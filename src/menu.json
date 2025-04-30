@@ -1,0 +1,19 @@
+[
+    {
+        "id": "main",
+        "translationKey": "main_menu.title",
+        "submenu": ["settings", "show_info", "exit"]
+    },
+    {
+        "id": "settings",
+        "translationKey": "main_menu.settings",
+        "parentId": "main",
+        "submenu": []
+    },
+    {
+        "id": "exit",
+        "translationKey": "main_menu.exit",
+        "parentId": "main",
+        "actionId": "exit"
+    }
+]

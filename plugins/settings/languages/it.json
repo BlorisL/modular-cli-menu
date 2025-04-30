@@ -1,0 +1,10 @@
+{
+    "settings_menu": {
+        "title": "Impostazioni",
+        "change_language": "Cambia Lingua"
+    },
+    "actions": {
+        "select_language": "Seleziona la lingua",
+        "language_changed": "Lingua cambiata con successo."
+    }
+}

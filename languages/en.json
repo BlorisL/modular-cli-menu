@@ -1,0 +1,11 @@
+{
+    "main_menu": {
+        "title": "Main Menu",
+        "back": "Back",
+        "exit": "Exit"
+    },
+    "actions": {
+        "exit": "Exiting the application.",
+        "wait_for_keypress": "Press any key to continue..."
+    }
+}

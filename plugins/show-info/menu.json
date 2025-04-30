@@ -1,0 +1,9 @@
+[
+  {
+      "id": "info",
+      "translationKey": "show_info_menu.info",
+      "parentId": "main",
+      "actionId": "showInfo",
+      "navigation": "waitAndContinue"
+  }
+]

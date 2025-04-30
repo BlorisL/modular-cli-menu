@@ -1,0 +1,11 @@
+{
+    "main_menu": {
+        "title": "Menu Principale",
+        "back": "Torna Indietro",
+        "exit": "Esci"
+    },
+    "actions": {
+        "exit": "Uscita dall'applicazione.",
+        "wait_for_keypress": "Premi un tasto per continuare..."
+    }
+}
