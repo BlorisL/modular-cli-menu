@@ -11,22 +11,34 @@ export class LanguageManager {
         this.currentLang = defaultLang;
     }
 
+    async getMergedLangData(lang: string) {
+        const pluginsDir = path.resolve(__dirname, '../plugins');
+        const entries = await fs.readdir(pluginsDir, { withFileTypes: true });
+      
+        const langDataList: any[] = [];
+      
+        for (const entry of entries) {
+          if (!entry.isDirectory()) continue;
+      
+          const langFilePath = path.join(pluginsDir, entry.name, 'languages', `${lang}.json`);
+          try {
+            const content = await fs.readFile(langFilePath, 'utf-8');
+            langDataList.push(JSON.parse(content));
+          } catch (err) {
+            // file non trovato o JSON non valido: lo saltiamo
+          }
+        }
+      
+        return Object.assign({}, ...langDataList);
+      };
+
     async loadLanguage(lang: string): Promise<void> {
         try {
             debugLog(`Loading language: ${lang}`);
-            // Load global translations
-            const globalFilePath = path.resolve(__dirname, '../../languages', `${lang}.json`);
-            let translations: Translations = {};
-            if (await fs.access(globalFilePath).then(() => true).catch(() => false)) {
-                const data = await fs.readFile(globalFilePath, 'utf-8');
-                translations = JSON.parse(data);
-                debugLog(`Loaded global translations from ${globalFilePath}:`, JSON.stringify(translations, null, 2));
-            } else {
-                debugLog(`Global translation file ${globalFilePath} not found`);
-            }
 
             // Load plugin translations
-            const pluginsDir = path.resolve(__dirname, '../../plugins');
+            let translations: Translations = {};
+            const pluginsDir = path.resolve(__dirname, '../plugins');
             const pluginFolders = await fs.readdir(pluginsDir);
             for (const folder of pluginFolders) {
                 const pluginLangFile = path.join(pluginsDir, folder, 'languages', `${lang}.json`);

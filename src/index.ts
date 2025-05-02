@@ -19,7 +19,7 @@ async function loadMenus(languageManager: LanguageManager): Promise<Map<string, 
     const menuItems = new Map<string, MenuItem>();
 
     // Load the main menu
-    const mainMenuFile = path.join(__dirname, 'menu.json');
+    const mainMenuFile = path.join(__dirname, 'plugins', 'main', 'menu.json');
     let mainMenuConfigs: MenuItemConfig[] = [];
     if (await fs.access(mainMenuFile).then(() => true).catch(() => false)) {
         const data = await fs.readFile(mainMenuFile, 'utf-8');
@@ -43,7 +43,7 @@ async function loadMenus(languageManager: LanguageManager): Promise<Map<string, 
         if (config.actionId) {
             let action: CustomAction | undefined;
             // Handle showInfo as a plugin action
-            const pluginName = config.pluginName || (config.actionId === 'showInfo' ? 'show-info' : '');
+            const pluginName = config.pluginName || 'main';
             action = await loadAction(pluginName, config.actionId);
             if (!action) {
                 debugLog(`Action ${config.actionId} not loaded for ${config.id}`);
@@ -80,7 +80,7 @@ async function loadMenus(languageManager: LanguageManager): Promise<Map<string, 
     }
 
     // Load menus from plugins
-    const pluginsDir = path.resolve(__dirname, '../plugins');
+    const pluginsDir = path.resolve(__dirname, 'plugins');
     let pluginFolders: string[] = [];
     try {
         pluginFolders = await fs.readdir(pluginsDir);
@@ -89,6 +89,9 @@ async function loadMenus(languageManager: LanguageManager): Promise<Map<string, 
     }
 
     for (const folder of pluginFolders) {
+        // Skip main plugin as it was already loaded
+        if (folder === 'main') continue;
+        
         const menuFile = path.join(pluginsDir, folder, 'menu.json');
         if (await fs.access(menuFile).then(() => true).catch(() => false)) {
             const data = await fs.readFile(menuFile, 'utf-8');
@@ -145,7 +148,7 @@ async function loadMenus(languageManager: LanguageManager): Promise<Map<string, 
                 m['items'].some((item: MenuItem) => item.submenu && item.submenu.getId() === menuId)
             );
             if (hasParent) {
-                const backAction = await loadAction('', 'back');
+                const backAction = await loadAction('main', 'back');
                 if (backAction) {
                     debugLog(`Associating back action to MenuItem back for menu ${menuId}`);
                     const backItem = new MenuItem(
@@ -178,17 +181,16 @@ async function loadAction(pluginName: string, actionId: string): Promise<CustomA
     }
 
     try {
-        let actionModule;
+        let actionPath: string;
         if (actionId === 'back' || actionId === 'exit') {
-            debugLog(`Loading common action: @actions/${actionId}`);
-            actionModule = await import(`@actions/${actionId}`);
+            actionPath = path.join(__dirname, 'plugins', 'main', 'actions', actionId);
+            debugLog(`Loading main action: ${actionPath}`);
         } else {
-            const actionPath = pluginName
-                ? `../plugins/${pluginName}/actions/${actionId}`
-                : `../plugins/show-info/actions/${actionId}`;
+            actionPath = path.join(__dirname, 'plugins', pluginName, 'actions', actionId);
             debugLog(`Loading plugin action: ${actionPath}`);
-            actionModule = await import(actionPath);
         }
+
+        const actionModule = await import(actionPath);
         const action = actionModule.default as CustomAction;
         if (typeof action !== 'function') {
             throw new Error(`Action ${actionId} is not a valid function`);
