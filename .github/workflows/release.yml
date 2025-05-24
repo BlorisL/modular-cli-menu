@@ -6,9 +6,9 @@ on:
       - main
 
 permissions:
-  contents: write # Permette push di tag e modifiche al repository
-  issues: write   # Permette di creare/modificare issue (per note di rilascio)
-  pull-requests: write # Opzionale, per gestire PR
+  contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   release:
