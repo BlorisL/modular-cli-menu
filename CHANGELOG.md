@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/blorisl/modular-cli-menu/compare/v1.2.0...v1.2.1) (2025-05-24)
+
+
+### Bug Fixes
+
+* package dependency ([cf60e59](https://github.com/blorisl/modular-cli-menu/commit/cf60e5955e5c4bec1b6a278aac5f0c3fd45b3eb0))
+
 # [1.2.0](https://github.com/blorisl/modular-cli-menu/compare/v1.1.0...v1.2.0) (2025-05-24)
 
 
