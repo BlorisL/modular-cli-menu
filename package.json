@@ -1,6 +1,6 @@
 {
     "name": "modular-cli-menu",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "",
     "scripts": {
         "dev": "tsx src/index.ts",
@@ -39,7 +39,9 @@
             "default": "./dist/menu.mjs"
         }
     },
-    "bin": "./dist/menu.mjs",
+    "bin": {
+        "modular-cli-menu": "./dist/menu.mjs"
+    },
     "files": [
         "dist",
         "README.md",
