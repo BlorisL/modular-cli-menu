@@ -5,6 +5,8 @@
         "moduleResolution": "NodeNext",
         "esModuleInterop": true,
         "outDir": "./dist",
+        "declaration": true, 
+        "declarationMap": true, 
         "strict": true,
         "resolveJsonModule": true,
         "allowImportingTsExtensions": true,
@@ -12,10 +14,7 @@
         "baseUrl": ".",
         "paths": {
             "@/*": ["src/*"],
-            "@classes/*": ["src/classes/*"],
-            "@interfaces/*": ["src/interfaces/*"],
-            "@actions/*": ["src/actions/*"],
-            "@utils/*": ["src/utils/*"]
+            "@plugins/*": ["src/plugins/*"],
         }
     },
     "include": [

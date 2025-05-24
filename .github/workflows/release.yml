@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write # Permette push di tag e modifiche al repository
+  issues: write   # Permette di creare/modificare issue (per note di rilascio)
+  pull-requests: write # Opzionale, per gestire PR
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release
+
+      - name: Sync dev branch with main
+        if: success()
+        run: |
+          git fetch origin dev:dev || git checkout -b dev
+          git checkout dev
+          git pull origin dev || true
+          git merge main --ff-only || (git merge main && git push origin dev)
+          git push origin dev

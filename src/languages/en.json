@@ -1,0 +1,16 @@
+{
+    "menu.notfound": "No matching menu was found",
+    "menu.goto.target.notfound": "The menu you want to go to does not exist",
+    "menu.action.notfound": "Action not found",
+    "menu.waitforkeypress": "Select a key to continue...",
+    "menu.main.question": "Main Menu",
+    "menu.action.back.label": "Back",
+    "menu.action.exit.label": "Exit",
+    "menu.action.exit.message": "Exiting the application",
+    "menu.main.action.waiting.label": "Press any key to continue...",
+    "menu.language.question": "Change language",
+    "menu.language.action.it.message": "Lingua italiana selezionata con successo",
+    "menu.language.action.en.message": "English language selected successfully",
+    "menu.language.action.it.label": "Italian",
+    "menu.language.action.en.label": "English"
+}

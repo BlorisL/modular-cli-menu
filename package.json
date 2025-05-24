@@ -2,22 +2,47 @@
     "name": "modular-cli-menu",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
     "scripts": {
-        "start": "clear && tsx src/index.ts"
+        "dev": "tsx src/index.ts",
+        "build": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false",
+        "build:en": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false --env.MENU_LANGUAGE=it",
+        "build:it": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false --env.MENU_LANGUAGE=it",
+        "pack:test": "npm pack --dry-run"
     },
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "inquirer": "^9.2.12",
+        "@inquirer/checkbox": "^4.1.6",
+        "@inquirer/input": "^4.1.10",
+        "@inquirer/select": "^4.2.1",
+        "@types/inquirer": "^9.0.7",
+        "chalk": "^5.4.1",
         "dotenv": "^16.4.5",
-        "inquirer-autocomplete-prompt": "^3.0.1"
+        "inquirer": "^9.2.12"
     },
     "devDependencies": {
-        "@types/inquirer": "^9.0.7",
-        "@types/inquirer-autocomplete-prompt": "^3.0.3",
+        "@semantic-release/changelog": "^6.0.3",
+        "@semantic-release/git": "^10.0.1",
+        "@semantic-release/npm": "^12.0.1",
         "@types/node": "^20.9.0",
-        "typescript": "^5.2.2",
-        "tsx": "^4.19.3"
-    }
+        "pkgroll": "^2.12.2",
+        "semantic-release": "^24.2.4",
+        "tsx": "^4.19.3",
+        "typescript": "^5.2.2"
+    },
+    "types": "./dist/types.d.ts",
+    "main": "./dist/menu.mjs",
+    "module": "./dist/menu.mjs",
+    "exports": {
+        "import": {
+            "types": "./dist/menu.d.ts",
+            "default": "./dist/menu.mjs"
+        }
+    },
+    "bin": "./dist/menu.mjs",
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ]
 }
