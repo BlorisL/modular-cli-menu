@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/blorisl/modular-cli-menu/compare/v1.1.0...v1.2.0) (2025-05-24)
+
+
+### Features
+
+* add clean-pkg-json dependency ([a4f8385](https://github.com/blorisl/modular-cli-menu/commit/a4f8385e7e4da0ea8e84695f52e763d7da0d27f1))
+
 # [1.1.0](https://github.com/BlorisL/modular-cli-menu/compare/v1.0.0...v1.1.0) (2025-05-24)
 
 
