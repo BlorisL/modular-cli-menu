@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/blorisl/modular-cli-menu/compare/v1.2.3...v1.3.0) (2025-06-02)
+
+
+### Features
+
+* add @semantic-release/commit-analyzer plugin and update release workflow ([cf6fcac](https://github.com/blorisl/modular-cli-menu/commit/cf6fcac49a8af36558daee944d3e14f53af254cb))
+
 ## [1.2.3](https://github.com/blorisl/modular-cli-menu/compare/v1.2.2...v1.2.3) (2025-06-02)
 
 
