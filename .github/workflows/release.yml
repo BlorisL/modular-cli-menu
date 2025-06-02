@@ -43,12 +43,6 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
 
-      - name: Commit version update
-        run: |
-          git add package.json
-          git commit -m "chore: update package.json version [skip ci]" || echo "No version changes to commit"
-          git push origin main || echo "No changes to push"
-
       - name: Stash prepack changes
         run: |
           git stash push -m "Stashing prepack changes" || echo "No prepack changes to stash"
