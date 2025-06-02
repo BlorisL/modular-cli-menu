@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/blorisl/modular-cli-menu/compare/v1.3.0...v1.3.1) (2025-06-02)
+
+
+### Bug Fixes
+
+* remove version update commit step from release workflow ([047fbed](https://github.com/blorisl/modular-cli-menu/commit/047fbed33b04ff3290c74672283669c4889a32ad))
+
 # [1.3.0](https://github.com/blorisl/modular-cli-menu/compare/v1.2.3...v1.3.0) (2025-06-02)
 
 
