@@ -32,19 +32,21 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Save original package.json
+        run: cp package.json package.json.bak
+
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
 
-      - name: Commit changes from semantic-release
-        if: success()
+      - name: Restore original package.json
+        if: always()
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add .
-          git commit -m "chore: update package.json for release [skip ci]" || echo "No changes to commit"
+          mv package.json.bak package.json || echo "No backup file to restore"
+          git add package.json
+          git commit -m "fix: restore original package.json [skip ci]" || echo "No changes to commit"
           git push origin main
 
       - name: Sync dev branch with main
