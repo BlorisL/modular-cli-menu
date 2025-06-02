@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/blorisl/modular-cli-menu/compare/v1.2.2...v1.2.3) (2025-06-02)
+
+
+### Bug Fixes
+
+* restore original package.json after release ([25e02c4](https://github.com/blorisl/modular-cli-menu/commit/25e02c425ebd5ce62ba3739cce9cbfb14b494478))
+
 ## [1.2.2](https://github.com/blorisl/modular-cli-menu/compare/v1.2.1...v1.2.2) (2025-06-02)
 
 
