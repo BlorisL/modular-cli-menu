@@ -32,8 +32,10 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Save original package.json
-        run: cp package.json package.json.bak
+      - name: Configure Git identity
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Release
         env:
@@ -41,19 +43,25 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
 
-      - name: Restore original package.json
-        if: always()
+      - name: Commit version update
         run: |
-          mv package.json.bak package.json || echo "No backup file to restore"
           git add package.json
-          git commit -m "fix: restore original package.json [skip ci]" || echo "No changes to commit"
-          git push origin main
+          git commit -m "chore: update package.json version [skip ci]" || echo "No version changes to commit"
+          git push origin main || echo "No changes to push"
+
+      - name: Stash prepack changes
+        run: |
+          git stash push -m "Stashing prepack changes" || echo "No prepack changes to stash"
 
       - name: Sync dev branch with main
-        if: success()
         run: |
           git fetch origin dev:dev || git checkout -b dev
           git checkout dev
           git pull origin dev || true
           git merge main --ff-only || (git merge main && git push origin dev)
           git push origin dev
+
+      - name: Clean up stash
+        if: always()
+        run: |
+          git stash drop || echo "No stash to drop"
