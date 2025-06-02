@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/blorisl/modular-cli-menu/compare/v1.2.1...v1.2.2) (2025-06-02)
+
+
+### Bug Fixes
+
+* automate commit of package.json changes after release ([21829d1](https://github.com/blorisl/modular-cli-menu/commit/21829d1dfe39e159a1430048d3c450f630c462e6))
+
 ## [1.2.1](https://github.com/blorisl/modular-cli-menu/compare/v1.2.0...v1.2.1) (2025-05-24)
 
 
