@@ -1,3 +1,11 @@
+## [1.3.5](https://github.com/blorisl/modular-cli-menu/compare/v1.3.4...v1.3.5) (2025-07-03)
+
+
+### Bug Fixes
+
+* remove prepack script for cleaner package management ([56bc06a](https://github.com/blorisl/modular-cli-menu/commit/56bc06aa2363ba266f0753df6262bef5b7bbac1e))
+* remove trailing whitespace in package.json scripts ([854110b](https://github.com/blorisl/modular-cli-menu/commit/854110b8ce5abdf9f0ff19f58ea6d4b763fc38d4))
+
 ## [1.3.4](https://github.com/blorisl/modular-cli-menu/compare/v1.3.3...v1.3.4) (2025-07-03)
 
 
