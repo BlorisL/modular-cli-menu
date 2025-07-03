@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/blorisl/modular-cli-menu/compare/v1.3.3...v1.3.4) (2025-07-03)
+
+
+### Bug Fixes
+
+* add default export to package.json for module compatibility ([3ebcd22](https://github.com/blorisl/modular-cli-menu/commit/3ebcd228a281aebd0b91bb4fdbbb74c5ae509d7a))
+
 ## [1.3.3](https://github.com/blorisl/modular-cli-menu/compare/v1.3.2...v1.3.3) (2025-07-03)
 
 
