@@ -46,7 +46,12 @@
         ".": {
             "types": "./dist/menu.d.ts",
             "import": "./dist/menu.mjs"
-        }
+        },
+        "./menu": {
+            "types": "./dist/menu.d.ts",
+            "import": "./dist/menu.mjs"
+        },
+        "./package.json": "./package.json"
     },
     "bin": {
         "modular-cli-menu": "./dist/menu.mjs"
