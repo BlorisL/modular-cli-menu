@@ -45,7 +45,8 @@
     "exports": {
         ".": {
             "types": "./dist/menu.d.ts",
-            "import": "./dist/menu.mjs"
+            "import": "./dist/menu.mjs",
+            "default": "./dist/menu.mjs"
         },
         "./menu": {
             "types": "./dist/menu.d.ts",
