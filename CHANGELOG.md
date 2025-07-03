@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/blorisl/modular-cli-menu/compare/v1.3.1...v1.3.2) (2025-07-03)
+
+
+### Bug Fixes
+
+* correct types and exports paths in package.json ([3803f11](https://github.com/blorisl/modular-cli-menu/commit/3803f1120dcf3d5a3aaf9693237c4a6dcfc8f74a))
+
 ## [1.3.1](https://github.com/blorisl/modular-cli-menu/compare/v1.3.0...v1.3.1) (2025-06-02)
 
 
