@@ -69,7 +69,6 @@
         "build:en": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false --env.MENU_LANGUAGE=it",
         "build:it": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false --env.MENU_LANGUAGE=it",
         "pack:test": "npm pack --dry-run",
-        "prepack": "clean-pkg-json -r dependencies"
     },
     "plugins": [
         "@semantic-release/commit-analyzer",
