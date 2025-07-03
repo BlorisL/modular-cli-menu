@@ -1,3 +1,10 @@
+## [1.3.6](https://github.com/blorisl/modular-cli-menu/compare/v1.3.5...v1.3.6) (2025-07-03)
+
+
+### Bug Fixes
+
+* add prepack script for cleaner package management ([2cc1199](https://github.com/blorisl/modular-cli-menu/commit/2cc11991b47a8faffe7846ada5896d81bfdba891))
+
 ## [1.3.5](https://github.com/blorisl/modular-cli-menu/compare/v1.3.4...v1.3.5) (2025-07-03)
 
 
