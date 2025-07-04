@@ -1,3 +1,10 @@
+## [1.3.7](https://github.com/blorisl/modular-cli-menu/compare/v1.3.6...v1.3.7) (2025-07-04)
+
+
+### Bug Fixes
+
+* export write function from menu module ([79984e3](https://github.com/blorisl/modular-cli-menu/commit/79984e3da500cc9bc444b91c6a32cebb9ed01fe6))
+
 ## [1.3.6](https://github.com/blorisl/modular-cli-menu/compare/v1.3.5...v1.3.6) (2025-07-03)
 
 
