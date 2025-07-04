@@ -190,6 +190,7 @@ export {
     type MenuItemType,
     type MenuType,
     print,
+    write,
     addPlugin,
     actionExit,
     actionGoBack,
