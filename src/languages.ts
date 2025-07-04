@@ -7,7 +7,7 @@ type TranslationDictionary = {
 
 let languages = { en, it };
 
-export function updateLanguages(pluginLanguages: Record<string, Record<string, string>>) {
+function updateLanguages(pluginLanguages: Record<string, Record<string, string>>) {
     Object.keys(languages).forEach(language => {
         if (pluginLanguages[language]) {
             languages[language as keyof typeof languages] = { 
@@ -35,4 +35,4 @@ function getTranslation(label: string, language?: LanguageTypes): string {
     return translations[language ?? getLanguage()][label] || label;
 }
 
-export { getLanguages, getLanguage, getTranslation };
+export { getLanguages, getLanguage, getTranslation, updateLanguages };

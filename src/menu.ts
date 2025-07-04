@@ -112,6 +112,61 @@ function getQuestion(item: MenuItemType) {
     }
 }
 
+async function action(selectedAction: string, selectedMenu: string = 'main') {
+    const action = actions[selectedAction];
+    switch (action?.type) {
+        case 'function':
+            if(action.options?.message?.text) {
+                console.log(write(action.options.message.text, action.options.message?.color));
+            }
+            if (action.options?.callback) {
+                await action.options.callback(selectedMenu);
+            }
+            break;
+        case 'goto':
+            if(menu[selectedMenu].parent) {
+                if (action.options?.callback) {
+                    await action.options.callback(menu[selectedMenu].parent);
+                } else {
+                    print(menu[selectedMenu].parent);
+                }
+            } else {
+                console.log(write(`menu.goto.target.notfound`, 'red'));
+            }
+            break;
+        case 'input':
+            if (action.options?.message) {
+                const userInput = await waitForKeyPress({
+                    message: action.options.message.text, 
+                    color: action.options.message?.color,
+                    default: action.options.default
+                });
+                
+                if (action.options.callback) {
+                    await action.options.callback(userInput, menu[selectedMenu]?.parent);
+                }
+            }
+            break;
+        case 'checkbox':
+            if (action.options?.message) {
+                const assetsAnswer = await checkbox({
+                    message: write(action.options.message.text, action.options.message?.color),
+                    choices: action.options.answers.map((item) => ({
+                        name: write(item.name, item.color),
+                        value: item.value
+                    }))
+                });
+                if (action.options.callback) {
+                    await action.options.callback(assetsAnswer, menu[selectedMenu]?.parent);
+                }
+            }
+            break;
+        default:
+            console.log(write(`menu.action.notfound`, 'red'));
+            break;
+    }
+}
+
 async function print(selectedMenu: string = 'main') {
     console.clear();
 
@@ -123,63 +178,33 @@ async function print(selectedMenu: string = 'main') {
     if(menu[selectedMenu]) {
         const answer: string = await select(getQuestion(menu[selectedMenu]));
         if(menu[selectedMenu].choices.includes(answer)) {
-            const action = actions[answer];
-            switch (action?.type) {
-                case 'function':
-                    if(action.options?.message?.text) {
-                        console.log(write(action.options.message.text, action.options.message?.color));
-                    }
-                    if (action.options?.callback) {
-                        await action.options.callback(selectedMenu);
-                    }
-                    break;
-                case 'goto':
-                    if(menu[selectedMenu].parent) {
-                        if (action.options?.callback) {
-                            await action.options.callback(menu[selectedMenu].parent);
-                        } else {
-                            print(menu[selectedMenu].parent);
-                        }
-                    } else {
-                        console.log(write(`menu.goto.target.notfound`, 'red'));
-                    }
-                    break;
-                case 'input':
-                    if (action.options?.message) {
-                        const userInput = await waitForKeyPress({
-                            message: action.options.message.text, 
-                            color: action.options.message?.color,
-                            default: action.options.default
-                        });
-                        
-                        if (action.options.callback) {
-                            await action.options.callback(userInput, menu[selectedMenu]?.parent);
-                        }
-                    }
-                    break;
-                case 'checkbox':
-                    if (action.options?.message) {
-                        const assetsAnswer = await checkbox({
-                            message: write(action.options.message.text, action.options.message?.color),
-                            choices: action.options.answers.map((item) => ({
-                                name: write(item.name, item.color),
-                                value: item.value
-                            }))
-                        });
-                        if (action.options.callback) {
-                            await action.options.callback(assetsAnswer, menu[selectedMenu]?.parent);
-                        }
-                    }
-                    break;
-                default:
-                    console.log(write(`menu.action.notfound`, 'red'));
-                    break;
-            }
+            action(answer, selectedMenu);
         } else if(menu[answer]) {
             print(answer);
         }
     } else {
         console.log(write(`menu.notfound`, 'red'));
+    }
+}
+
+async function addActionToMenu(action: string | ActionType, menuName: string = 'main') {
+    if(typeof action === 'string') {
+        action = actions[action];
+    } else {
+        if(!action.name) {
+            throw new Error('Action must have a name property');
+        }
+        if(!action.type) {
+            throw new Error('Action must have a type property');
+        }
+        actions[action.name] = action;
+    }
+
+    if(action && menu[menuName]) {
+        const tmp = getAction(action.name);
+        if(!menu[menuName].choices.includes(tmp.value)) {
+            menu[menuName].choices.push(tmp.value);
+        }
     }
 }
 
@@ -189,9 +214,12 @@ export {
     type ActionsType,
     type MenuItemType,
     type MenuType,
+    updateLanguages,
+    action,
     print,
     write,
     addPlugin,
+    addActionToMenu,
     actionExit,
     actionGoBack,
     waitForKeyPress

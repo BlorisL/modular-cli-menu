@@ -45,41 +45,41 @@ The library provides two main methods for output:
 To create a new plugin, define an object implementing the `PluginType` interface:
 
 ```typescript
-import { addPlugin } from 'modular-cli-menu';
-import type { PluginType, ActionType } from 'modular-cli-menu';
+import { print, addPlugin } from 'modular-cli-menu';
 
-const myPlugin: PluginType = {
+addPlugin({
     menu: {
-        name: 'myplugin',           // Unique menu name
-        parent: 'main',             // Parent menu (optional)
-        color: 'blue',              // Menu color (optional)
-        choices: [                  // Array of available actions
-            'menu.myplugin.action1',
-            'menu.myplugin.action2',
+        name: 'test',
+        parent: "main",
+        choices: [
+            'menu.test.action1',
             'menu.action.back'
         ]
-    },
+    }, 
     actions: {
-        'menu.myplugin.action1': {
+        'menu.test.action1': {
             type: 'function',
-            name: 'menu.myplugin.action1',
-            color: 'green',
+            name: 'menu.test.action1',
             options: {
-                message: {
-                    text: 'Action 1 executed!',
-                    color: 'green'
-                }
+                message: { text: 'menu.test.action1.message'}
             }
         }
     },
     languages: {
         en: {
-            'menu.myplugin.question': 'My Plugin',
-            'menu.myplugin.action1': 'Execute Action 1',
-            'menu.myplugin.action2': 'Execute Action 2'
+            'menu.test.question': 'Test',
+            'menu.test.action1.label': 'Action 1',
+            'menu.test.action1.message': 'Something',
+        },
+        it: {
+            'menu.test.question': 'Test',
+            'menu.test.action1.label': 'Azione 1',
+            'menu.test.action1.message': 'Qualcosa',
         }
     }
-};
+})
+
+print();
 ```
 
 In the main file remember to register the plugin
