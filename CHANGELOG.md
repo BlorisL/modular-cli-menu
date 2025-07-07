@@ -1,3 +1,11 @@
+# [1.4.0](https://github.com/blorisl/modular-cli-menu/compare/v1.3.7...v1.4.0) (2025-07-07)
+
+
+### Features
+
+* add retry/language plugins, update menu logic and documentation ([bdcb2f1](https://github.com/blorisl/modular-cli-menu/commit/bdcb2f1a9e270f46d198fbd35eb667d68799c43d))
+* enhance plugin system with new action handling and menu integration ([5d7c833](https://github.com/blorisl/modular-cli-menu/commit/5d7c8331e87361eedd765a7fe596655dd91cc1a3))
+
 ## [1.3.7](https://github.com/blorisl/modular-cli-menu/compare/v1.3.6...v1.3.7) (2025-07-04)
 
 
