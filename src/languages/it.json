@@ -7,10 +7,5 @@
     "menu.action.back.label": "Torna indietro",
     "menu.action.exit.label": "Esci",
     "menu.action.exit.message": "Uscita dall'applicazione",
-    "menu.main.action.waiting.label": "Premi un tasto per continuare...",
-    "menu.language.question": "Cambio lingua",
-    "menu.language.action.it.message": "Lingua italiana selezionata con successo",
-    "menu.language.action.en.message": "English language selected successfully",
-    "menu.language.action.it.label": "Italiano",
-    "menu.language.action.en.label": "Inglese"
+    "menu.main.action.waiting.label": "Premi un tasto per continuare..."
 }

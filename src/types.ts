@@ -1,8 +1,8 @@
 import { ColorName } from "chalk";
 
 type ActionDefaultType = {
-  name: string;
-  color?: ColorName;
+    name: string;
+    color?: ColorName;
 }
 
 type ActionFunctionType = {
@@ -48,7 +48,7 @@ type ActionCheckBoxType = {
 }
 
 type ActionType = ActionDefaultType & (
-    ActionFunctionType | 
+    ActionFunctionType |
     ActionInputType |
     ActionCheckBoxType |
     ActionGoToType
