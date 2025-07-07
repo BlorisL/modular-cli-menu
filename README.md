@@ -276,7 +276,6 @@ You can use this plugin to prompt the user to retry an action after an error or 
 ### Language Plugin
 
 The `language` plugin allows users to switch the interface language at runtime. It updates the `MENU_LANGUAGE` environment variable and reloads translations.
-```
 
 These plugins are registered automatically, but you can customize or extend them as needed.
 
