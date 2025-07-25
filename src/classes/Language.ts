@@ -1,26 +1,19 @@
 import chalk, { ColorName } from "chalk";
 import stripAnsi from 'strip-ansi';
+import { Action } from "./Action";
+import { Menu } from "./Menu";
+import { Utility } from "./Utility";
+import { LanguageCodeType, LanguagesType, LanguageType, RequestLanguagesType, TranslationType } from "@/types/Language";
 
-type LanguageCodeType = 'en' | 'it' | 'fr' | 'de' | 'es' | 'pt' | 'ru' | 'zh' | 'ja';
-
-type TranslationType = Record<string, string>;
-
-type LanguageType = {
-    code: LanguageCodeType;
-    translations?: TranslationType;
-}
-
-type LanguagesType = Partial<Record<LanguageCodeType, Language | TranslationType>>;
+Utility.loadEnv();
 
 class Language {
-
-    static readonly DEFAULT_LANGUAGE: LanguageCodeType = 'en';
 
     private code: LanguageCodeType;
     private translations: TranslationType;
 
     public constructor(options: LanguageType) {
-        this.code = options.code ?? Language.DEFAULT_LANGUAGE;
+        this.code = options.code ?? I18n.defaultLanguage;
         this.translations = options.translations ?? {};
     }
 
@@ -56,33 +49,56 @@ class Languages {
     }
 
     public getAll(): LanguagesType { return this.items; }
-    public add(items?: LanguagesType | Language | LanguageType | Array<Language | LanguageType>): this {
+    public add(items?: RequestLanguagesType | Language | LanguageType | Array<Language | LanguageType>): this {
         if (items !== undefined) {
+            let code: LanguageCodeType | undefined = undefined;
+            let translations: TranslationType = {};
+
             if (items instanceof Language) {
-                this.items[items.getCode()] = items;
+                code = items.getCode();
+                translations = items.getTranslations() || {};
+                //this.items[items.getCode()] = items;
             } else if (Array.isArray(items)) {
                 items.forEach(item => {
-                    if (item instanceof Language) {
-                        this.items[item.getCode()] = item;
-                    } else if (typeof item === 'object' && item !== null && 'code' in item) {
-                        // LanguageType
-                        const lang = new Language(item as LanguageType);
-                        this.items[lang.getCode()] = lang;
-                    }
+                    this.add(item);
+                    //if (item instanceof Language) {
+                    //    this.items[item.getCode()] = item;
+                    //} else if (typeof item === 'object' && item !== null && 'code' in item) {
+                    //    // LanguageType
+                    //    const lang = new Language(item as LanguageType);
+                    //    this.items[lang.getCode()] = lang;
+                    //}
                 });
+                return this;
             } else if (typeof items === 'object' && items !== null && 'code' in items) {
                 // LanguageType
-                const lang = new Language(items as LanguageType);
-                this.items[lang.getCode()] = lang;
+                code = (items as LanguageType).code;
+                translations = (items as LanguageType).translations || {};
+                //const lang = new Language(items as LanguageType);
+                //this.items[lang.getCode()]?.addTranslations((items as LanguageType).translations);
             } else if (typeof items === 'object' && items !== null) {
                 // LanguagesType
-                Object.entries(items as LanguagesType).forEach(([code, lang]) => {
-                    if (lang instanceof Language) {
-                        this.items[code as LanguageCodeType] = lang;
-                    } else if (lang && typeof lang === 'object') {
-                        this.items[code as LanguageCodeType] = new Language({ code: code as LanguageCodeType, translations: lang as TranslationType });
+                Object.entries(items as RequestLanguagesType).forEach(([itemCode, lang]) => {
+                    if (lang && typeof lang === 'object') {
+                        lang = new Language({ code: itemCode as LanguageCodeType, translations: lang as TranslationType });
                     }
+                    this.add(lang);
+                //    if (lang instanceof Language) {
+                //        if(lang.getTranslations()) {
+                //            this.items[itemCode as LanguageCodeType]?.addTranslations(lang.getTranslations()!);
+                //        }
+                //    } else if (lang && typeof lang === 'object') {
+                //        this.items[itemCode as LanguageCodeType]?.addTranslations(lang as TranslationType);
+                //    }
                 });
+            }
+
+            if(code) {
+                if(this.items[code]) {
+                    this.items[code]!.addTranslations(translations);
+                } else {
+                    this.items[code] = new Language({ code, translations });
+                }
             }
         }
         return this;
@@ -92,11 +108,9 @@ class Languages {
         return lang instanceof Language ? lang : undefined;
     }
 
-    public getCodes(): LanguageCodeType[] {
-        return Object.keys(this.items) as LanguageCodeType[];
-    }
+    public getCodes(): LanguageCodeType[] { return Object.keys(this.items) as LanguageCodeType[]; }
 
-    public getTranslation(label: string, languageCode: LanguageCodeType = Language.DEFAULT_LANGUAGE): string {
+    public getTranslation(label: string, languageCode: LanguageCodeType = I18n.getSelectedLanguage()): string {
         const language = this.get(languageCode);
         if (language) {
             return language.getTranslation(label);
@@ -106,6 +120,13 @@ class Languages {
 }
 
 class I18n {
+
+    static defaultLanguage: LanguageCodeType = process.env.MENU_LANGUAGE as LanguageCodeType || 'en';
+
+    private static selectedLanguage: LanguageCodeType = I18n.defaultLanguage;
+    static getSelectedLanguage(): LanguageCodeType { return I18n.selectedLanguage; }
+    static setSelectedLanguage(code: string): void { I18n.selectedLanguage = code as LanguageCodeType; }
+
     static languages: Languages = new Languages(
         new Language({ code: 'en' }),
         //new Language({ code: 'it' }),
@@ -119,6 +140,37 @@ class I18n {
         }
         return text;
     };
+
+    static getNameTranslation(item: Menu | Action): string {
+        let label = item.getName();
+
+        if(item instanceof Action) {
+            label = item.getMessage() ?? '';
+            if(!label || label.length === 0) {
+                label = `action.${item.getName()}.label`;
+            }
+        } else if(item instanceof Menu) {
+            //const parent = item.getParent() ? `.${item.getParent()}` : '';
+            label = `menu.${label}.question`;
+        }
+
+        return I18n.getTranslation(label, item.getColor());
+    };
+
+    static getMessageTranslation(item: Menu | Action): string {
+        let label = item.getMessage();
+
+        if(item instanceof Action) {
+            if(!label || label.length === 0) {
+                label = `action.${item.getName()}.message`;
+            }
+        } else if(item instanceof Menu) {
+            const parent = item.getParent() ? `.${item.getParent()}` : '';
+            label = `menu${parent}.${label}.message`;
+        }
+
+        return I18n.getTranslation(label, item.getColor());
+    };
 }
 
-export { type LanguagesType, Languages, type LanguageType, Language, LanguageCodeType, TranslationType, I18n };
+export { Languages, Language, I18n };

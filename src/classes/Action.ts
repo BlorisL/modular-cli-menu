@@ -1,32 +1,38 @@
 import { ColorName } from "chalk";
-import { Menus } from "./Menu";
+import { Menu, Menus } from "./Menu";
 import { I18n } from "./Language";
-
-type ActionsType = Record<string, Action>;
-
-type ActionType = {
-    name: string;
-    index?: number;
-    message?: string;
-    color?: ColorName;
-    callback?: (args: { menus: Menus; actions: Actions; parent?: string, action: Action }) => Promise<unknown>;
-}
+import { ActionMode, ActionsType, ActionType } from "@/types/Action";
+import { ActionChoiceType } from "@/types/Menu";
 
 class Action {
+    private mode: ActionMode;
     private name: string;
     private index?: number;
-    private callback?: (args: { menus: Menus, actions: Actions, parent?: string, action: Action }) => Promise<any>;
     private message?: string;
     private color?: ColorName;
-
+    private options?: Record<string, any>;
 
     public constructor(options: ActionType) {
+        this.mode = options.mode;
         this.name = options.name;
         this.index = options.index ?? undefined;
         this.message = options.message ?? undefined;
         this.color = options.color ?? undefined;
-        this.callback = options.callback ?? undefined;
+        
+        this.options = {};
+        if (options.mode === 'function') {
+            if(options.callback) {
+                this.options.callback = options.callback;
+            }
+        } else if (options.mode === 'goto') {
+            if(options.to) {
+                this.options.to = options.to;
+            }
+        }
     }
+
+    public getMode(): string { return this.mode; }
+    public setMode(mode: ActionMode): this { this.mode = mode; return this; }
 
     public getName(): string { return this.name; }
     public setName(name: string): this { this.name = name; return this; }
@@ -40,12 +46,37 @@ class Action {
     public getColor(): ColorName | undefined { return this.color; }
     public setColor(color: ColorName): this { this.color = color; return this; }
     
-    public async call(menus: Menus, actions: Actions, parent?: string) {
+    public async call({
+        menus,
+        actions,
+        parent,
+    }:{
+        menus: Menus;
+        actions: Actions;
+        parent?: Menu;
+    }): Promise<unknown> {
         if(this.getMessage()) {
-            console.log(I18n.getTranslation(this.getMessage(), this.getColor()));
+            console.log(I18n.getNameTranslation(this));
         }
-        if(this.callback) {
-            return await this.callback({ menus, actions, parent, action: this });
+        
+        switch (this.mode) {
+            case 'function':
+                if (this.options?.callback) {
+                    return await this.options.callback({ menus, actions, parent, action: this });
+                }
+                break;
+            case 'goto':
+                let menu = menus.get(this.options?.to) ?? parent;
+                if(!menu) {
+                    menu = menus.get('main');
+                }
+
+                return await menu!.call({
+                    menus, 
+                    actions, 
+                    parent: menus.getParentMenu(menu!.getName())
+                });
+                break;
         }
     } 
 }
@@ -76,7 +107,19 @@ class Actions {
         this.setSortedItems();
         return this;
     }
-    public get(name: string): Action | undefined { return this.items[name]; }
+    public some(choices: ActionChoiceType[]): Action[] | undefined { 
+        const tmp: Action[] = [];
+        choices.forEach(choice => {
+            const action = this.get(choice);
+            if(action) {
+                tmp.push(action);
+            }
+        });
+        return tmp;
+    }
+    public get(choice: ActionChoiceType): Action | undefined { 
+        return this.items[typeof choice === 'string' ? choice : choice.value]; 
+    }
     private setSortedItems(): void {
         this.sortedItems = Object.values(this.items).sort((a, b) => {
             const aIndex = a.getIndex();
@@ -90,4 +133,4 @@ class Actions {
     }
 }
 
-export { type ActionsType, Actions, type ActionType, Action };
+export { Actions, Action };
