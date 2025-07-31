@@ -19,7 +19,7 @@ const changeLanguage = async ({
     let menu;
     try {
         I18n.setSelectedLanguage(action.getName());
-        menu = (menus.get(parent ?? 'main') ?? menus.get('main'))!;
+        menu = menus.getLastMenuOpened();
 
         console.log(I18n.getTranslation('menu.language.success', 'green'));
         await menus.get('wait')?.call({ menus,  actions });
@@ -31,7 +31,6 @@ const changeLanguage = async ({
     return await menu!.call({
         menus, 
         actions, 
-        parent: menus.getParentMenu(menu!.getParent() ?? 'main')
     });
 };
 

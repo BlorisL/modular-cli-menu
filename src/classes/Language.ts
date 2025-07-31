@@ -150,7 +150,6 @@ class I18n {
                 label = `action.${item.getName()}.label`;
             }
         } else if(item instanceof Menu) {
-            //const parent = item.getParent() ? `.${item.getParent()}` : '';
             label = `menu.${label}.question`;
         }
 

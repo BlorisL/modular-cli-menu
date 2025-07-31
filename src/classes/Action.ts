@@ -48,37 +48,33 @@ class Action {
     
     public async call({
         menus,
-        actions,
-        parent,
-    }:{
+        actions
+    }: {
         menus: Menus;
         actions: Actions;
-        parent?: Menu;
     }): Promise<unknown> {
-        if(this.getMessage()) {
+        if (this.getMessage()) {
             console.log(I18n.getNameTranslation(this));
         }
-        
+
         switch (this.mode) {
             case 'function':
                 if (this.options?.callback) {
-                    return await this.options.callback({ menus, actions, parent, action: this });
+                    return await this.options.callback({ menus, actions, action: this });
                 }
                 break;
             case 'goto':
-                let menu = menus.get(this.options?.to) ?? parent;
-                if(!menu) {
-                    menu = menus.get('main');
+                let menu: Menu;
+                if (this.getName() === 'goback') {
+                    menu = menus.getLastMenuOpened();
+                } else {
+                    menu =  menus.get(this.options?.to || 'main')!;
                 }
-
-                return await menu!.call({
-                    menus, 
-                    actions, 
-                    parent: menus.getParentMenu(menu!.getName())
-                });
+                
+                return await menu.call({ menus, actions });
                 break;
         }
-    } 
+    }
 }
 
 class Actions {

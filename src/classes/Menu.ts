@@ -44,19 +44,19 @@ abstract class Menu {
     public async call({
         menus,
         actions,
-        parent,
         options = {}
-    }:{
+    }: {
         menus: Menus;
         actions: Actions;
-        parent?: Menu;
         options?: InputType | ChoiceType;
     }): Promise<unknown> {
         const defaultActions: string[] = ['separator'];
-        if(this.getName() !== 'language') {
+
+        if (this.getName() !== 'language') {
             defaultActions.push('language');
         }
-        if(parent && parent.getName() !== this.getName()) {
+
+        if (this.getName() !== 'main') {
             defaultActions.push('goback');
         }
         defaultActions.push('exit');
@@ -64,71 +64,8 @@ abstract class Menu {
         console.clear();
 
         return Promise.resolve(defaultActions);
-    } 
+    }
 }
-
-/*class MenuSelect extends Menu {
-    private actions: MenuSelectType['actions'];
-
-    public constructor(options: MenuType & MenuSelectType) {
-        super(options);
-        
-        this.actions = options.actions ?? [];
-    }
-
-    public getActions(): ActionChoiceType[] { 
-        return typeof this.actions === 'function' ? this.actions() : this.actions; 
-    }
-    public setActions(actions: MenuSelectType['actions']): this { this.actions = actions; return this; }
-    public addAction(action: ActionChoiceType | (() => ActionChoiceType[])): this { 
-        if (typeof action === 'function') {
-            this.actions = action;
-        } else if (typeof action === 'object' && action !== null && 'name' in action && 'value' in action) {
-            if (!Array.isArray(this.actions)) {
-                this.actions = [];
-            }
-            this.actions.push(action as ActionChoiceType);
-        } 
-        return this; 
-    }
-
-    public override async call({
-        menus,
-        actions,
-        parent,
-        options = {}
-    }:{
-        menus: Menus;
-        actions: Actions;
-        parent?: Menu;
-        options?: SelectType;
-    }) {
-        const defaultActions: string[] = await super.call({ menus, actions, parent, options }) as string[];
-
-        const answer = await select({
-            ...options as SelectType,
-            message: I18n.getNameTranslation(this),
-            choices: [...this.getActions(), ...defaultActions]
-                .filter((actionLabel) => {
-                    return actionLabel === 'separator' || actions.get(actionLabel) !== undefined;
-                })
-                .map((actionLabel) => {
-                    let result: { name: string, value: any } | Separator;
-                    if (actionLabel === 'separator') {
-                        result = new Separator();
-                    } else {
-                        const action = actions.get(actionLabel);
-                        result = {
-                            name: I18n.getNameTranslation(action!),
-                            value: action!.getName()
-                        };
-                    }
-                    return result;
-                }),
-        }) as string;
-        return await actions.get(answer)?.call({ menus, actions, parent });
-    } 
-}*/
 
 class MenuInput extends Menu {
 
@@ -139,12 +76,10 @@ class MenuInput extends Menu {
     public override async call({
         menus,
         actions,
-        parent,
         options = {}
     }:{
         menus: Menus;
         actions: Actions;
-        parent?: Menu;
         options?: InputType;
     }) {
         const answer = await input({
@@ -184,51 +119,45 @@ class MenuChoice extends Menu {
     public override async call({
         menus,
         actions,
-        parent,
         options = {}
-    }:{
+    }: {
         menus: Menus;
         actions: Actions;
-        parent?: Menu;
         options?: ChoiceType;
     }) {
-        const defaultActions: string[] = await super.call({ menus, actions, parent, options }) as string[];
+        const defaultActions = await super.call({ menus, actions, options }) as string[];
 
         const answer = await choices({
-            ...options as ChoiceType,
+            ...options,
             message: I18n.getNameTranslation(this),
             choices: [...this.getActions(), ...defaultActions]
-                .filter((actionLabel) => {
-                    return actionLabel === 'separator' || actions.get(actionLabel) !== undefined;
-                })
-                .map((actionLabel) => {
-                    let result: { name: string; value: any; isMulti: boolean } | Separator;
-                    if (actionLabel === 'separator') {
-                        result = new Separator();
-                    } else {
-                        const action = actions.get(actionLabel);
-                        
-                        result = {
-                            name: I18n.getNameTranslation(action!),
-                            value: action!.getName(),
-                            isMulti: typeof actionLabel !== 'string' && actionLabel?.isMulti === true
-                        };
-                    }
-                    return result;
+                .filter(actionLabel => actionLabel === 'separator' || actions.get(actionLabel))
+                .map(actionLabel => {
+                    if (actionLabel === 'separator') return new Separator();
+                    const action = actions.get(actionLabel);
+                    return {
+                        name: I18n.getNameTranslation(action!),
+                        value: action!.getName(),
+                        isMulti: typeof actionLabel !== 'string' && actionLabel?.isMulti === true
+                    };
                 }),
         }) as string[];
 
         return await Promise.all(
-            (actions.some(answer) ?? []).map(action =>
-                action.call({ menus, actions, parent })
-            )
+            (actions.some(answer) ?? []).map(action => {
+                if (action.getMode() === 'goto' && action.getName() !== 'goback') {
+                    menus.addToHistory(this.getName());
+                }
+                return action.call({ menus, actions });
+            })
         );
-    } 
+    }
 }
 
 class Menus {
     private items: MenusType;
     private sortedItems: Menu[];
+    private history: string[] = [];
 
     public constructor(...actions: Menu[]) {
         this.items = {};
@@ -236,6 +165,22 @@ class Menus {
 
         actions.map(action => this.add(action));
         this.setSortedItems();
+    }
+
+    public addToHistory(menuName: string): void {
+        this.history.push(menuName);
+    }
+
+    public delFromHistory(): string | undefined {
+        return this.history.pop();
+    }
+
+    public getLastMenuOpened(): Menu { 
+        let menu = this.get(this.delFromHistory() ?? 'main'); 
+        if (!menu) {
+            menu = this.get('main')!;
+        }
+        return menu;
     }
 
     public getAll(sorted: boolean = true): Menu[] {
@@ -261,9 +206,14 @@ class Menus {
         return this;
     }
     public get(name: string): Menu | undefined { return this.items[name]; }
+    public has(name: string): boolean { return this.get(name) !== undefined; }
     
     public getParentMenu(menuName: string): Menu | undefined {
-        return this.get(this.get(menuName)?.getParent() ?? 'main');
+        const currentMenu = this.get(menuName);
+        if (currentMenu && currentMenu.getParent()) {
+            return this.get(currentMenu.getParent()!);
+        }
+        return this.get('main');
     }
 
     private setSortedItems(): void {

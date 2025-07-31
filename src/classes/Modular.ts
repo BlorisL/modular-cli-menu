@@ -72,24 +72,20 @@ class Modular {
     public async call({
         type,
         name,
-        parent
     }: {
         type: 'menu' | 'action';
         name: string;
-        parent?: string
     }): Promise<unknown> {
         switch (type) {
             case 'menu': 
                 return await this.getMenus().get(name)?.call({
                     menus: this.getMenus(), 
                     actions: this.getActions(), 
-                    parent: this.menus.getParentMenu(name)
                 });
             case 'action': 
                 return this.getActions().get(name)?.call({
                     menus: this.getMenus(), 
                     actions: this.getActions(), 
-                    parent: this.menus.getParentMenu(name)
                 });
         }
     } 
