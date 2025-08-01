@@ -8,12 +8,10 @@ import { Modular } from "./classes/Modular";
 const changeLanguage = async ({ 
     menus, 
     actions, 
-    parent, 
     action 
 }: {
     menus: Menus;
     actions: Actions;
-    parent?: string;
     action: Action;
 }) => {
     let menu;
@@ -159,9 +157,9 @@ const plugins = new Modular([
             }
         ],
         actions: [
-            { mode: 'function', name: 'uno', callback: async ({menus, actions, parent, action}) => console.log(1) },
-            { mode: 'function', name: 'due', callback: async ({menus, actions, parent, action}) => console.log(2) },
-            { mode: 'function', name: 'tre', callback: async ({menus, actions, parent, action}) => console.log(3) },
+            { mode: 'function', name: 'uno', callback: async ({menus, actions, action}) => console.log(1) },
+            { mode: 'function', name: 'due', callback: async ({menus, actions, action}) => console.log(2) },
+            { mode: 'function', name: 'tre', callback: async ({menus, actions, action}) => console.log(3) },
         ],
         languages: {
             en: {
