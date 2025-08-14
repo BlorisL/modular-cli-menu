@@ -53,6 +53,7 @@ class Modular {
         }
         return this;
     }
+    public getDefaultMenu(): MenuChoice { return this.getMenus().get('main')! as MenuChoice; }
 
     public getActions(): Actions { return this.actions; }
     public addAction(items?: Actions | Action | ActionType | Array<Action | ActionType>): this {
@@ -89,6 +90,8 @@ class Modular {
                 });
         }
     } 
+
+    public async start(): Promise<unknown> { return await this.call({ type: 'menu', name: 'main'}); }
 }
 
 export { Modular };

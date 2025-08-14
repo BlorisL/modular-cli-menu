@@ -39,23 +39,23 @@
         "tsx": "^4.19.3",
         "typescript": "^5.2.2"
     },
-    "types": "./dist/menu.d.ts",
-    "main": "./dist/menu.mjs",
-    "module": "./dist/menu.mjs",
+    "types": "./dist/index.d.ts",
+    "main": "./dist/index.mjs",
+    "module": "./dist/index.mjs",
     "exports": {
         ".": {
-            "types": "./dist/menu.d.ts",
-            "import": "./dist/menu.mjs",
-            "default": "./dist/menu.mjs"
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "default": "./dist/index.mjs"
         },
-        "./menu": {
-            "types": "./dist/menu.d.ts",
-            "import": "./dist/menu.mjs"
+        "./index": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs"
         },
         "./package.json": "./package.json"
     },
     "bin": {
-        "modular-cli-menu": "./dist/menu.mjs"
+        "modular-cli-menu": "./dist/index.mjs"
     },
     "files": [
         "package.json",
@@ -64,7 +64,7 @@
         "LICENSE"
     ],
     "scripts": {
-        "dev": "tsx src/index.ts",
+        "dev": "tsx src/dev.ts",
         "build": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false",
         "build:en": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false --env.MENU_LANGUAGE=it",
         "build:it": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false --env.MENU_LANGUAGE=it",

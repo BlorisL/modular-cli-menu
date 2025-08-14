@@ -3,48 +3,42 @@ import { Menu, Menus } from "./Menu";
 import { I18n } from "./Language";
 import { ActionMode, ActionsType, ActionType } from "@/types/Action";
 import { ActionChoiceType } from "@/types/Menu";
+import { Item } from "./Item";
 
-class Action {
-    private mode: ActionMode;
-    private name: string;
-    private index?: number;
-    private message?: string;
-    private color?: ColorName;
-    private options?: Record<string, any>;
+class Action extends Item {
+    protected options?: Record<string, any>;
 
-    public constructor(options: ActionType) {
-        this.mode = options.mode;
-        this.name = options.name;
-        this.index = options.index ?? undefined;
-        this.message = options.message ?? undefined;
-        this.color = options.color ?? undefined;
+    public constructor(params: ActionType) {
+        super(params);
         
         this.options = {};
-        if (options.mode === 'function') {
-            if(options.callback) {
-                this.options.callback = options.callback;
+        if (params.mode === 'function') {
+            if(params.options?.callback) {
+                this.options.callback = params.options.callback;
             }
-        } else if (options.mode === 'goto') {
-            if(options.to) {
-                this.options.to = options.to;
+        } else if (params.mode === 'goto') {
+            if(params.options?.to) {
+                this.options.to = params.options.to;
             }
         }
     }
 
-    public getMode(): string { return this.mode; }
-    public setMode(mode: ActionMode): this { this.mode = mode; return this; }
+    public getNameTranslation(): string { 
+        let label = this.getMessage() ?? '';
+        if(!label || label.length === 0) {
+            label = `action.${this.getName()}.label`;
+        }
+        return label; 
+    }
+    
+    public getMessageTranslation(): string { 
+        let label = this.getMessage();
+        if(!label || label.length === 0) {
+            label = `action.${this.getName()}.message`;
+        }
 
-    public getName(): string { return this.name; }
-    public setName(name: string): this { this.name = name; return this; }
-
-    public getIndex(): number | undefined { return this.index; }
-    public setIndex(index: number): this { this.index = index; return this; }
-
-    public getMessage(): string | undefined { return this.message; }
-    public setMessage(message: string): this { this.message = message; return this; }
-
-    public getColor(): ColorName | undefined { return this.color; }
-    public setColor(color: ColorName): this { this.color = color; return this; }
+        return label;
+    }
     
     public async call({
         menus,

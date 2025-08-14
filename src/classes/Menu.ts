@@ -1,45 +1,27 @@
-import { ColorName } from "chalk";
 import { Actions } from "./Action";
 import { I18n } from "./Language";
 import input from '@inquirer/input';
-import select, { Separator } from '@inquirer/select';
+import { Separator } from '@inquirer/select';
 import { ChoiceType, ActionChoiceType, InputType, MenuChoiceType, MenuInputType, MenuMode, MenusType, MenuType } from "@/types/Menu";
 import { choices } from "@/prompts/Choices";
+import { Item } from "./Item";
 
-abstract class Menu {
-    protected mode: MenuMode;
-    protected name: string;
+abstract class Menu extends Item {
     protected parent?: string;
-    protected index?: number;
-    protected message?: string;
-    protected color?: ColorName;
 
-    public constructor(options: MenuType) {
-        this.mode = options.mode;
-        this.name = options.name;
-        this.parent = options.parent ?? undefined;
-        this.index = options.index ?? undefined;
-        this.message = options.message;
-        this.color = options.color ?? undefined;
+    public constructor(params: MenuType) {
+        super(params);
+        this.parent = params.parent ?? undefined;
     }
-
-    public getMode(): MenuMode { return this.mode; }
-    public setMode(mode: MenuMode): this { this.mode = mode; return this; }
-
-    public getName(): string { return this.name; }
-    public setName(name: string): this { this.name = name; return this; }
 
     public getParent(): string | undefined { return this.parent; }
     public setParent(parent: string): this { this.parent = parent; return this; }
 
-    public getIndex(): number | undefined { return this.index; }
-    public setIndex(index: number): this { this.index = index; return this; }
-
-    public getMessage(): string | undefined { return this.message; }
-    public setMessage(message: string): this { this.message = message; return this; }
-
-    public getColor(): ColorName | undefined { return this.color; }
-    public setColor(color: ColorName): this { this.color = color; return this; }
+    public getNameTranslation(): string { return `menu.${this.getName()}.question`; }
+    public getMessageTranslation(): string { 
+        const parent = this.getParent() ? `.${this.getParent()}` : '';
+        return `menu${parent}.${this.getMessage()}.message`;
+    }
 
     public async call({
         menus,
@@ -69,8 +51,8 @@ abstract class Menu {
 
 class MenuInput extends Menu {
 
-    public constructor(options: MenuType & MenuInputType) {
-        super(options);
+    public constructor(params: MenuType & MenuInputType) {
+        super(params);
     }
 
     public override async call({
@@ -94,24 +76,31 @@ class MenuInput extends Menu {
 class MenuChoice extends Menu {
     private actions: MenuChoiceType['actions'];
 
-    public constructor(options: MenuType & MenuChoiceType) {
-        super(options);
+    public constructor(params: MenuType & MenuChoiceType) {
+        super(params);
         
-        this.actions = options.actions ?? [];
+        this.actions = params.actions ?? [];
     }
 
     public getActions(): ActionChoiceType[] { 
         return typeof this.actions === 'function' ? this.actions() : this.actions; 
     }
     public setActions(actions: MenuChoiceType['actions']): this { this.actions = actions; return this; }
-    public addAction(action: ActionChoiceType | (() => ActionChoiceType[])): this { 
+    public addAction(action: string | ActionChoiceType | (() => Array<string | ActionChoiceType>)): this { 
         if (typeof action === 'function') {
             this.actions = action;
-        } else if (typeof action === 'object' && 'value' in action) {
+        } else {
             if (!Array.isArray(this.actions)) {
                 this.actions = [];
             }
-            this.actions.push(action as ActionChoiceType);
+
+            if(typeof action === 'string') {
+                action = { value: action, isMulti: false } as ActionChoiceType;
+            }
+            
+            if (typeof action === 'object' && 'value' in action) {
+                this.actions.push(action);
+            }
         } 
         return this; 
     }
@@ -142,6 +131,7 @@ class MenuChoice extends Menu {
                     };
                 }),
         }) as string[];
+
 
         return await Promise.all(
             (actions.some(answer) ?? []).map(action => {

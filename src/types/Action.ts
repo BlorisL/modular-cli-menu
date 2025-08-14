@@ -7,12 +7,16 @@ export type ActionMode = 'function' | 'goto';
 
 export type ActionFunctionType = {
     mode: 'function';
-    callback?: (args: { menus: Menus; actions: Actions; action: Action }) => Promise<unknown>;
+    options?: {
+        callback?: (args: { menus: Menus; actions: Actions; action: Action }) => Promise<unknown>;
+    };
 };
 
 export type ActionGoToType = {
     mode: 'goto';
-    to?: string;
+    options?: {
+        to?: string;
+    };
 };
 
 export type ActionType = {

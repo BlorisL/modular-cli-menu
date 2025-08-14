@@ -14,11 +14,12 @@
         "baseUrl": ".",
         "paths": {
             "@/*": ["src/*"],
-            "@plugins/*": ["src/plugins/*"],
+            "@classes/*": ["src/classes/*"],
+            "@types/*": ["src/types/*"],
+            "@prompts/*": ["src/prompts/*"],
         }
     },
     "include": [
         "src/**/*",
-        "plugins/**/*"
     ]
 }

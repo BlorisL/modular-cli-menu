@@ -12,15 +12,15 @@ class Plugin {
     private actions: Actions;
     //private languages: Languages;
 
-    public constructor(options: PluginType) {
-        this.name = options.name;
-        this.index = options.index ?? undefined;
+    public constructor(params: PluginType) {
+        this.name = params.name;
+        this.index = params.index ?? undefined;
         this.menus = new Menus();
-        this.addMenu(options.menus);
+        this.addMenu(params.menus);
         this.actions = new Actions();
-        this.addAction(options.actions);
-        //this.languages = options.languages ?? new Languages();
-        I18n.languages.add(options.languages);
+        this.addAction(params.actions);
+        //this.languages = params.languages ?? new Languages();
+        I18n.languages.add(params.languages);
     }
 
     public getName(): string { return this.name; }

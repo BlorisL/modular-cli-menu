@@ -1,9 +1,8 @@
 import chalk, { ColorName } from "chalk";
 import stripAnsi from 'strip-ansi';
-import { Action } from "./Action";
-import { Menu } from "./Menu";
 import { Utility } from "./Utility";
 import { LanguageCodeType, LanguagesType, LanguageType, RequestLanguagesType, TranslationType } from "@/types/Language";
+import { Item } from "./Item";
 
 Utility.loadEnv();
 
@@ -141,34 +140,12 @@ class I18n {
         return text;
     };
 
-    static getNameTranslation(item: Menu | Action): string {
-        let label = item.getName();
-
-        if(item instanceof Action) {
-            label = item.getMessage() ?? '';
-            if(!label || label.length === 0) {
-                label = `action.${item.getName()}.label`;
-            }
-        } else if(item instanceof Menu) {
-            label = `menu.${label}.question`;
-        }
-
-        return I18n.getTranslation(label, item.getColor());
+    static getNameTranslation(item: Item): string {
+        return I18n.getTranslation(item.getNameTranslation(), item.getColor());
     };
 
-    static getMessageTranslation(item: Menu | Action): string {
-        let label = item.getMessage();
-
-        if(item instanceof Action) {
-            if(!label || label.length === 0) {
-                label = `action.${item.getName()}.message`;
-            }
-        } else if(item instanceof Menu) {
-            const parent = item.getParent() ? `.${item.getParent()}` : '';
-            label = `menu${parent}.${label}.message`;
-        }
-
-        return I18n.getTranslation(label, item.getColor());
+    static getMessageTranslation(item: Item): string {
+        return I18n.getTranslation(item.getMessageTranslation(), item.getColor());
     };
 }
 

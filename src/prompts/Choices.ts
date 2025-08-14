@@ -15,6 +15,12 @@ interface Config {
 type PromptValue = string[] | { action: string };
 type Item = Choice | Separator;
 
+// Helper function to safely check if an item is a Separator
+const isSeparator = (item: any): boolean => {
+    return item && typeof item === 'object' && 
+           ('separator' in item || 'type' in item && item.type === 'separator');
+};
+
 export const choices = createPrompt<PromptValue, Config>(
     (config: Config, done: (value: PromptValue) => void) => {
         const { message, choices } = config;
@@ -28,19 +34,22 @@ export const choices = createPrompt<PromptValue, Config>(
         useKeypress((key) => {
             if (isEnterKey(key)) {
                 const selectedItem = allItems[activeIndex];
-                if (!(selectedItem instanceof Separator)) {
-                    if (selectedItem.isMulti) {
+                if (!isSeparator(selectedItem)) {
+                    // Type cast to Choice since we know it's not a Separator
+                    const choiceItem = selectedItem as Choice;
+                    if (choiceItem.isMulti) {
                         setStatus('done');
                         done(Array.from(selected));
                     } else {
                         setStatus('done');
-                        done([typeof selectedItem === 'string' ? selectedItem : selectedItem.value ]);
+                        done([choiceItem.value]);
                     }
                 }
             } else if (isSpaceKey(key)) {
                 const choice = allItems[activeIndex];
-                if (!(choice instanceof Separator) && choice.isMulti) {
-                    const choiceValue = choice.value;
+                if (!isSeparator(choice) && (choice as Choice).isMulti) {
+                    const choiceItem = choice as Choice;
+                    const choiceValue = choiceItem.value;
                     const newSelected = new Set(selected);
                     if (newSelected.has(choiceValue)) {
                         newSelected.delete(choiceValue);
@@ -51,13 +60,13 @@ export const choices = createPrompt<PromptValue, Config>(
                 }
             } else if (key.name === 'up') {
                 let newIndex = activeIndex === 0 ? allItems.length - 1 : activeIndex - 1;
-                while (allItems[newIndex] instanceof Separator && newIndex !== activeIndex) {
+                while (isSeparator(allItems[newIndex]) && newIndex !== activeIndex) {
                     newIndex = newIndex === 0 ? allItems.length - 1 : newIndex - 1;
                 }
                 setActiveIndex(newIndex);
             } else if (key.name === 'down') {
                 let newIndex = activeIndex === allItems.length - 1 ? 0 : activeIndex + 1;
-                while (allItems[newIndex] instanceof Separator && newIndex !== activeIndex) {
+                while (isSeparator(allItems[newIndex]) && newIndex !== activeIndex) {
                     newIndex = newIndex === allItems.length - 1 ? 0 : newIndex + 1;
                 }
                 setActiveIndex(newIndex);
@@ -70,7 +79,8 @@ export const choices = createPrompt<PromptValue, Config>(
         allItems.forEach((item, index) => {
             const isActive = index === activeIndex;
 
-            if (item instanceof Separator) {
+            // Check if the item is a Separator using the helper function
+            if (isSeparator(item)) {
                 lines.push(new Separator().separator);
             } else {
                 const choice = item as Choice;
