@@ -1,4 +1,5 @@
 import { ColorName } from "chalk";
+import { Action } from "../actions/item";
 
 type MenuTypes = 'input' | 'choices';
 
@@ -6,7 +7,7 @@ type MenuType = {
     plugin: string;
     mode: MenuTypes;
     name: string;
-    parent?: string;
+    //parent?: string;
     index?: number;
     message?: string;
     color?: ColorName;
@@ -14,18 +15,17 @@ type MenuType = {
 
 abstract class Menu {
     protected plugin: MenuType['plugin'];
-    protected mode: MenuType['mode'];
+    protected abstract mode: MenuType['mode'];
     protected name: MenuType['name'];
-    protected parent: MenuType['parent'];
+    //protected parent: MenuType['parent'];
     protected index?: MenuType['index'];
     protected message?: MenuType['message'];
     protected color?: MenuType['color'];
 
     public constructor(params: MenuType) {
         this.plugin = params.plugin;
-        this.mode = params.mode;
         this.name = params.name;
-        this.parent = params.parent;
+        //this.parent = params.parent;
         this.index = params.index ?? undefined;
         this.message = params.message ?? undefined;
         this.color = params.color ?? undefined;
@@ -39,8 +39,8 @@ abstract class Menu {
     public getName(): MenuType['name'] { return this.name; }
     public setName(name: MenuType['name']): this { this.name = name; return this; }
 
-    public getParent(): MenuType['parent'] { return this.parent; }
-    public setParent(parent: MenuType['parent']): this { this.parent = parent; return this; }
+    //public getParent(): MenuType['parent'] { return this.parent; }
+    //public setParent(parent: MenuType['parent']): this { this.parent = parent; return this; }
 
     public getIndex(): MenuType['index'] | undefined { return this.index; }
     public setIndex(index: MenuType['index']): this { this.index = index; return this; }
@@ -56,7 +56,16 @@ abstract class Menu {
         return `${this.getPlugin()}.menu.${this.getMessage()}.message`;
     }
 
-    public abstract call(...args: unknown[]): Promise<unknown>;
+    public abstract toObject(): MenuType;
+
+    public abstract print({
+        findMenu,
+        findAction,
+    }: {
+        [key: string]: any;
+        findMenu?: ({ pluginName, menuName }: { pluginName: string; menuName: string }) => Menu | undefined;
+        findAction?: ({ pluginName, actionName }: { pluginName: string; actionName: string }) => Action | undefined;
+    }): Promise<unknown>;
 }
 
 export { 

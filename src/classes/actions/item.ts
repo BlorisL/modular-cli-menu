@@ -1,5 +1,5 @@
 import { ColorName } from "chalk";
-import { I18n } from "../Language";
+import { Menu } from "../menus/item";
 
 type ActionTypes = 'function' | 'goto';
 
@@ -64,7 +64,14 @@ abstract class Action {
 
     public abstract toObject(): ActionType;
 
-    public abstract call(): Promise<unknown>;
+    public abstract run({
+        findMenu,
+        findAction,
+    }: {
+        [key: string]: any;
+        findMenu?: ({ pluginName, menuName }: { pluginName: string; menuName: string }) => Menu | undefined;
+        findAction?: ({ pluginName, actionName }: { pluginName: string; actionName: string }) => Action | undefined;
+    }): Promise<unknown>;
 }
 
 export { 

@@ -1,10 +1,10 @@
-import { Action, ActionType } from "./action";
-import { ActionFunction, ActionFunctionType } from "./ActionFunction";
-import { ActionGoTo, ActionGoToType } from "./ActionGoTo";
+import { Action, ActionType } from "./item";
+import { ActionFunction, ActionFunctionType } from "./modes/function";
+import { ActionGoTo, ActionGoToType } from "./modes/goto";
 
-type ActionsType = Record<string, ActionType>;
 
 type ActionsItemType = ActionFunctionType | ActionGoToType;
+type ActionsType = Record<string, ActionsItemType>;
 
 class Actions {
     protected items: Record<string, Action> = {};
@@ -19,7 +19,7 @@ class Actions {
             case ActionFunction.MODE_NAME:
                 tmp = new ActionFunction(item);
                 break;
-            case 'goto':
+            case ActionGoTo.MODE_NAME:
                 tmp = new ActionGoTo(item);
                 break;
         }

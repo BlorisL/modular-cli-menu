@@ -1,5 +1,5 @@
-import { I18n } from "../Language";
-import { Action, ActionType, ActionTypes } from "./action";
+import { I18n } from "../../languages/i18n";
+import { Action, ActionType, ActionTypes } from "../item";
 
 type ActionFunctionType = ActionType & {
     mode: 'function';
@@ -31,9 +31,9 @@ class ActionFunction extends Action {
         };
     }
 
-    public async call(): Promise<unknown> {
+    public async run(): Promise<unknown> {
         if (this.getMessage()) {
-            console.log(I18n.getNameTranslation(this));
+            console.log(I18n.getTranslation(this.getNameTranslation(), this.getColor()));
         }
 
         if (this.callback) {

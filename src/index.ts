@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Action, Actions } from "./classes/Action";
-import { I18n } from "./classes/Language";
+import { I18n } from "./classes/languages/item";
 import { Menus } from "./classes/Menu";
 import { Modular } from "./classes/Modular";
 

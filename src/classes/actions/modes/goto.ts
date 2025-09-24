@@ -1,5 +1,5 @@
-import { I18n } from "../Language";
-import { Action, ActionType, ActionTypes } from "./action";
+import { I18n } from "../../languages/i18n";
+import { Action, ActionType, ActionTypes } from "../item";
 
 type ActionGoToType = ActionType & {
     mode: 'goto';
@@ -15,14 +15,14 @@ class ActionGoTo extends Action {
     protected mode: ActionTypes;
     protected to?: ActionGoToType['to'];
     protected before?: ActionGoToType['before'];
-    protected after?: ActionGoToType['after'];
+    //protected after?: ActionGoToType['after'];
     
     public constructor(params: ActionGoToType) {
         super(params);
         this.mode = ActionGoTo.MODE_NAME;
         this.to = params?.to;
         this.before = params?.before;
-        this.after = params?.after;
+        //this.after = params?.after;
     }
     
     public toObject(): ActionGoToType {
@@ -34,26 +34,26 @@ class ActionGoTo extends Action {
             color: this.color,
             //parent: this.parent,
             before: this.before,
-            after: this.after
+            //after: this.after
         };
     }
 
-    public async call(): Promise<unknown> {
+    public async run(): Promise<unknown> {
         if (this.getMessage()) {
-            console.log(I18n.getNameTranslation(this));
+            console.log(I18n.getTranslation(this.getNameTranslation(), this.getColor()));
         }
 
         if (this.before) {
-            return await this.before();
+            await this.before();
         }
 
         if (this.to) {
             console.log(`Going to menu: ${this.to}`);
         }
 
-        if (this.after) {
-            return await this.after();
-        }
+        //if (this.after) {
+        //    await this.after();
+        //}
     }
 }
 

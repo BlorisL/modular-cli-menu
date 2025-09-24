@@ -12,7 +12,7 @@ interface Config {
     choices: (Choice | Separator)[];
 }
 
-type PromptValue = string[] | { action: string };
+export type PromptValue = string[] | { action: string };
 type Item = Choice | Separator;
 
 // Helper function to safely check if an item is a Separator
