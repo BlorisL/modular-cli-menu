@@ -1,25 +1,25 @@
 import { ColorName } from "chalk";
 import { Menu, Menus } from "./Menu";
 import { I18n } from "./Language";
-import { ActionMode, ActionsType, ActionType } from "@/types/Action";
+import { ActionFunctionType, ActionGoToType, ActionMode, ActionsType, ActionType } from "@/types/Action";
 import { ActionChoiceType } from "@/types/Menu";
 import { Item } from "./Item";
 
 class Action extends Item {
-    protected options?: Record<string, any>;
+    protected options: ActionFunctionType['options'] | ActionGoToType['options'];
 
     public constructor(params: ActionType) {
         super(params);
         
         this.options = {};
         if (params.mode === 'function') {
-            if(params.options?.callback) {
-                this.options.callback = params.options.callback;
-            }
+            this.options = { callback: params.options?.callback };
         } else if (params.mode === 'goto') {
-            if(params.options?.to) {
-                this.options.to = params.options.to;
-            }
+            this.options = { 
+                to: params.options?.to, 
+                after: params.options?.after, 
+                callback: params.options?.callback 
+            };
         }
     }
 
@@ -59,13 +59,32 @@ class Action extends Item {
                 break;
             case 'goto':
                 let menu: Menu;
+                const options = (this.options as ActionGoToType['options']);
+
                 if (this.getName() === 'goback') {
                     menu = menus.getLastMenuOpened();
                 } else {
-                    menu =  menus.get(this.options?.to || 'main')!;
+                    menu =  menus.get(options?.to || 'main')!;
                 }
                 
-                return await menu.call({ menus, actions });
+                console.log(options)
+
+                console.log('0', this)
+                const input = await menu.call({ menus, actions });
+
+                if(options?.callback) {
+                    await options.callback({ menus, actions, action: this, value: input });
+                }
+
+                console.log('a', options)
+
+                if(options?.after !== undefined) {
+                    menu = menus.get(options.after ?? 'main')!;
+                }
+
+                console.log('b', menu)
+
+                return await menu.call({ menus, actions, options });
                 break;
         }
     }

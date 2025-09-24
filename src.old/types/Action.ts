@@ -16,6 +16,8 @@ export type ActionGoToType = {
     mode: 'goto';
     options?: {
         to?: string;
+        after?: string;
+        callback?: (args: { menus: Menus; actions: Actions; action: Action, value?: any }) => Promise<unknown>;
     };
 };
 
@@ -24,4 +26,5 @@ export type ActionType = {
     index?: number;
     message?: string;
     color?: ColorName;
+    parent?: string;
 } & ( ActionFunctionType | ActionGoToType );

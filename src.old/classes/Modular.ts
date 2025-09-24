@@ -58,13 +58,26 @@ class Modular {
     public getActions(): Actions { return this.actions; }
     public addAction(items?: Actions | Action | ActionType | Array<Action | ActionType>): this {
         if (items !== undefined) {
+            const addToParent = (action: Action) => {
+                if(action.getParent() !== undefined) {
+                    const menu = this.menus.get(action.getParent() ?? 'main');
+                    if(menu instanceof MenuChoice) {
+                        menu.addAction(action.getName());
+                    }
+                }
+            };
+
             if (items instanceof Actions) {
-                items.getAll().forEach(action => this.actions.add(action));
+                items.getAll().forEach(action => {
+                    this.actions.add(action);
+                    addToParent(action);
+                });
             } else if (Array.isArray(items)) {
                 items.forEach(item => this.addAction(item));
             } else {
                 const action = items instanceof Action ? items : new Action(items);
                 this.actions.add(action);
+                addToParent(action);
             }
         }
         return this;
@@ -77,18 +90,24 @@ class Modular {
         type: 'menu' | 'action';
         name: string;
     }): Promise<unknown> {
+        let tmp;
         switch (type) {
             case 'menu': 
-                return await this.getMenus().get(name)?.call({
+                tmp = await this.getMenus().get(name)?.call({
                     menus: this.getMenus(), 
                     actions: this.getActions(), 
                 });
+console.log(2, tmp)
+                break;
             case 'action': 
-                return this.getActions().get(name)?.call({
+                tmp = this.getActions().get(name)?.call({
                     menus: this.getMenus(), 
                     actions: this.getActions(), 
                 });
+console.log(2, tmp)
+                break;
         }
+        return tmp;
     } 
 
     public async start(): Promise<unknown> { return await this.call({ type: 'menu', name: 'main'}); }

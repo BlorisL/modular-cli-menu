@@ -82,6 +82,13 @@ class Plugin {
                 items.forEach(item => {
                     const action = item instanceof Action ? item : new Action(item);
                     this.actions.add(action);
+
+                    if(action.getParent() !== undefined) {
+                        const menu = this.menus.get(action.getParent() ?? 'main');
+                        if(menu instanceof MenuChoice) {
+                            menu.addAction(action.getName());
+                        }
+                    }
                 });
             }
         }

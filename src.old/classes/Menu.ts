@@ -7,15 +7,11 @@ import { choices } from "@/prompts/Choices";
 import { Item } from "./Item";
 
 abstract class Menu extends Item {
-    protected parent?: string;
 
     public constructor(params: MenuType) {
         super(params);
         this.parent = params.parent ?? undefined;
     }
-
-    public getParent(): string | undefined { return this.parent; }
-    public setParent(parent: string): this { this.parent = parent; return this; }
 
     public getNameTranslation(): string { return `menu.${this.getName()}.question`; }
     public getMessageTranslation(): string { 
@@ -43,7 +39,7 @@ abstract class Menu extends Item {
         }
         defaultActions.push('exit');
 
-        console.clear();
+        //console.clear();
 
         return Promise.resolve(defaultActions);
     }

@@ -3,6 +3,7 @@ import { ColorName } from "chalk";
 type ItemType = {
     mode: string;
     name: string;
+    parent?: string;
     index?: number;
     message?: string;
     color?: ColorName;
@@ -11,6 +12,7 @@ type ItemType = {
 export abstract class Item<T extends ItemType = ItemType> {
     protected mode: T['mode'];
     protected name: T['name'];
+    protected parent: T['parent'];
     protected index?: T['index'];
     protected message?: T['message'];
     protected color?: T['color'];
@@ -18,6 +20,7 @@ export abstract class Item<T extends ItemType = ItemType> {
     public constructor(params: T) {
         this.mode = params.mode;
         this.name = params.name;
+        this.parent = params.parent;
         this.index = params.index ?? undefined;
         this.message = params.message ?? undefined;
         this.color = params.color ?? undefined;
@@ -28,6 +31,9 @@ export abstract class Item<T extends ItemType = ItemType> {
 
     public getName(): T['name'] { return this.name; }
     public setName(name: T['name']): this { this.name = name; return this; }
+
+    public getParent(): T['parent'] { return this.parent; }
+    public setParent(parent: T['parent']): this { this.parent = parent; return this; }
 
     public getIndex(): T['index'] | undefined { return this.index; }
     public setIndex(index: T['index']): this { this.index = index; return this; }
