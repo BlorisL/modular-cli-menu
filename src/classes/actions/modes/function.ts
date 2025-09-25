@@ -21,6 +21,7 @@ class ActionFunction extends Action {
 
     public toObject(): ActionFunctionType {
         return {
+            plugin: this.getPlugin(),
             mode: this.mode as ActionFunctionType['mode'],
             name: this.name,
             index: this.index,

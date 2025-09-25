@@ -1,60 +1,25 @@
-import { ColorName } from "chalk";
 import { Action } from "../actions/item";
+import { BaseItem, BaseItemType } from "../BaseItem";
 
 type MenuTypes = 'input' | 'choices';
 
-type MenuType = {
-    plugin: string;
+type MenuType = BaseItemType & {
     mode: MenuTypes;
-    name: string;
     //parent?: string;
-    index?: number;
-    message?: string;
-    color?: ColorName;
 };
 
-abstract class Menu {
-    protected plugin: MenuType['plugin'];
-    protected abstract mode: MenuType['mode'];
-    protected name: MenuType['name'];
+abstract class Menu extends BaseItem<MenuTypes> {
     //protected parent: MenuType['parent'];
-    protected index?: MenuType['index'];
-    protected message?: MenuType['message'];
-    protected color?: MenuType['color'];
 
     public constructor(params: MenuType) {
-        this.plugin = params.plugin;
-        this.name = params.name;
+        super(params);
         //this.parent = params.parent;
-        this.index = params.index ?? undefined;
-        this.message = params.message ?? undefined;
-        this.color = params.color ?? undefined;
     }
 
-    public getPlugin(): MenuType['plugin'] { return this.plugin; }
-
-    public getMode(): MenuType['mode'] { return this.mode; }
-    public setMode(mode: MenuType['mode']): this { this.mode = mode; return this; }
-
-    public getName(): MenuType['name'] { return this.name; }
-    public setName(name: MenuType['name']): this { this.name = name; return this; }
+    protected getType(): string { return 'menu'; }
 
     //public getParent(): MenuType['parent'] { return this.parent; }
     //public setParent(parent: MenuType['parent']): this { this.parent = parent; return this; }
-
-    public getIndex(): MenuType['index'] | undefined { return this.index; }
-    public setIndex(index: MenuType['index']): this { this.index = index; return this; }
-
-    public getMessage(): MenuType['message'] | undefined { return this.message; }
-    public setMessage(message: MenuType['message']): this { this.message = message; return this; }
-
-    public getColor(): MenuType['color'] | undefined { return this.color; }
-    public setColor(color: MenuType['color']): this { this.color = color; return this; }
-
-    public getNameTranslation(): string { return `${this.getPlugin()}.menu.${this.getName()}.question`; }
-    public getMessageTranslation(): string { 
-        return `${this.getPlugin()}.menu.${this.getMessage()}.message`;
-    }
 
     public abstract toObject(): MenuType;
 

@@ -27,6 +27,7 @@ class ActionGoTo extends Action {
     
     public toObject(): ActionGoToType {
         return {
+            plugin: this.getPlugin(),
             mode: this.mode as ActionGoToType['mode'],
             name: this.name,
             index: this.index,
@@ -54,6 +55,7 @@ class ActionGoTo extends Action {
         //if (this.after) {
         //    await this.after();
         //}
+        return undefined;
     }
 }
 
