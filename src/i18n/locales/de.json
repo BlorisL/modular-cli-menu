@@ -1,0 +1,13 @@
+{
+    "label_main_menu": "📌 Hauptmenü",
+    "label_settings": "⚙️ Einstellungen",
+    "label_advanced": "🔧 Erweitert",
+    "label_back": "↩️ Zurück",
+    "label_exit": "❌ Beenden",
+    "label_change_language": "🌐 Sprache ändern",
+    "label_greeting": "👋 Grüße",
+    "label_notifications": "🔔 Benachrichtigungen",
+    "label_backup": "💾 Sicherung",
+    "label_cleanup": "🧹 Bereinigung",
+    "label_enter_name": "✏️ Geben Sie Ihren Namen ein"
+}

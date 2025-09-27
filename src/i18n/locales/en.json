@@ -1,0 +1,13 @@
+{
+    "label_main_menu": "📌 Main Menu",
+    "label_settings": "⚙️ Settings",
+    "label_advanced": "🔧 Advanced",
+    "label_back": "↩️ Back",
+    "label_exit": "❌ Exit",
+    "label_change_language": "🌐 Change language",
+    "label_greeting": "👋 Greet",
+    "label_notifications": "🔔 Notifications",
+    "label_backup": "💾 Backup",
+    "label_cleanup": "🧹 Cleanup",
+    "label_enter_name": "✏️ Enter your name"
+}
