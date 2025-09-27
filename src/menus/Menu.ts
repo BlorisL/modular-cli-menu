@@ -6,7 +6,11 @@ import { choices } from "../prompts/Choices";
 import { Separator } from "@inquirer/core";
 import { Translation } from "../i18n/Translation";
 
+type GlobalActionProvider = (menu: Menu) => Action;
+
 export abstract class Menu {
+    static globalActionProviders: GlobalActionProvider[] = [];
+
     parent: Parent = null;
 
     constructor(public id: string, public key: string) {}
@@ -56,6 +60,11 @@ export abstract class Menu {
         if (this.parent) {
             actions.push(new BackAction("label_back", this));
         }
+
+        Menu.globalActionProviders.forEach(provider => {
+            actions.push(provider(this));
+        });
+
         actions.push(new ExitAction("label_exit"));
 
         return actions;

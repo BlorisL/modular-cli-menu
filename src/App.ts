@@ -1,41 +1,26 @@
 import { ChoiceMenu } from "./menus/ChoiceMenu";
-import { FunctionAction } from "./actions/FunctionAction";
-import { GotoAction } from "./actions/GoToAction";
-import { ChangeLanguageAction } from "./features/language/ChangeLanguageAction";
-import { Translation } from "./i18n/Translation";
 import { InputMenu } from "./menus/InputMenu";
+import { DefaultPlugin } from "./plugins/default/DefaultPlugin";
+import { LanguagePlugin } from "./plugins/language/LanguagePlugin";
+import { Plugin } from "./types";
 
 export class App {
-    private mainMenu: ChoiceMenu;
-    private settingsMenu: ChoiceMenu;
-    private advancedMenu: ChoiceMenu;
-    private inputMenu: InputMenu;
+    public mainMenu: ChoiceMenu;
+    public settingsMenu: ChoiceMenu;
+    public advancedMenu: ChoiceMenu;
+    public inputMenu: InputMenu;
 
     constructor() {
-        this.mainMenu = new ChoiceMenu("main", "label_main_menu");
-        this.settingsMenu = new ChoiceMenu("settings", "label_settings");
-        this.advancedMenu = new ChoiceMenu("advanced", "label_advanced");
-        this.inputMenu = new InputMenu("input", "label_enter_name", (val) => {
-            console.log(`👤 Hai inserito: ${val}`);
-        });
-
-        this.setupMenus();
+        this.loadPlugins();
     }
 
-    private setupMenus() {
-        // Main
-        this.mainMenu.addAction(new FunctionAction("label_greeting", () => console.log("👋 Ciao!")));
-        this.mainMenu.addAction(new GotoAction("label_settings", this.settingsMenu, this.mainMenu));
-        this.mainMenu.addAction(new ChangeLanguageAction("label_change_language", this.mainMenu));
-        this.mainMenu.addAction(new GotoAction("label_enter_name", this.inputMenu, this.mainMenu));
+    private loadPlugins() {
+        const plugins: Plugin[] = [
+            new DefaultPlugin(),
+            new LanguagePlugin(),
+        ];
 
-        // Settings
-        this.settingsMenu.addAction(new FunctionAction("label_notifications", () => console.log("🔔 Notifiche...")));
-        this.settingsMenu.addAction(new GotoAction("label_advanced", this.advancedMenu, this.settingsMenu));
-
-        // Advanced
-        this.advancedMenu.addAction(new FunctionAction("label_backup", () => console.log("💾 Avvio backup...")));
-        this.advancedMenu.addAction(new FunctionAction("label_cleanup", () => console.log("🧹 Pulizia completata!")));
+        plugins.forEach(plugin => plugin.setup(this));
     }
 
     async start() {
