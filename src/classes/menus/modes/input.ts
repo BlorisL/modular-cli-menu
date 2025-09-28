@@ -1,5 +1,5 @@
-import { Action } from "@/actions/Action";
-import { Menu } from "./Menu";
+import { Action } from "@/classes/actions/action";
+import { Menu } from "../menu";
 import input from "@inquirer/input";
 
 export class InputMenu extends Menu {

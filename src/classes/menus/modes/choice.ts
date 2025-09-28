@@ -1,5 +1,5 @@
-import { Menu } from "./Menu";
-import { Action } from "../actions/Action";
+import { Menu } from "../menu";
+import { Action } from "../../actions/action";
 
 export class ChoiceMenu extends Menu {
     private actions: Action[] = [];

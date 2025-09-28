@@ -1,10 +1,32 @@
-import { Menu } from "./menus/Menu";
-import { Action } from "./actions/Action";
-import { App } from "./App";
+import { Menu } from "./classes/menus/menu";
+import { Action } from "./classes/actions/action";
 
-// Un parent può essere un Menu o un'Action
 export type Parent = Menu | Action | null;
 
-export interface Plugin {
-    setup(app: App): void;
+export interface ActionConfig {
+    type: 'function' | 'goto' | 'back' | 'exit';
+    key: string;
+    fn?: () => Promise<void> | void;
+    targetMenuId?: string;
+    after?: 'none' | 'rerender' | 'back';
 }
+
+export interface MenuConfig {
+    type: 'choice' | 'input';
+    id: string;
+    key: string;
+    customActions?: string[];
+    onSubmit?: (value: string) => void;
+    register?: boolean;
+    parent?: string; // ID del menu genitore, opzionale
+}
+
+export interface PluginConfig {
+    name: string;
+    menus?: Record<string, MenuConfig>;
+    actions?: Record<string, ActionConfig>;
+    globalGoto?: { label: string; targetMenuId: string };
+    translations?: Record<"it" | "en" | "de", Record<string, string>>; // nuovo campo per estensioni
+}
+
+export type GlobalActionProvider = (menu: Menu) => Action | null; // Modificato per consentire null

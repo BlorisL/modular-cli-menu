@@ -1,55 +1,192 @@
-// App.ts
+// PluginManager.ts
 
-import { ChoiceMenu } from "./menus/ChoiceMenu";
-import { FunctionAction } from "./actions/FunctionAction";
-import { GotoAction } from "./actions/GoToAction";
-import { ChangeLanguageAction } from "./features/language/ChangeLanguageAction";
-import { Translation } from "./i18n/Translation";
-import { InputMenu } from "./menus/InputMenu";
+// PluginManager.ts
 
-export class App {
-    private mainMenu: ChoiceMenu;
-    private settingsMenu: ChoiceMenu;
-    private advancedMenu: ChoiceMenu;
-    private inputMenu: InputMenu;
+import { Menu } from "./classes/menus/menu";
+import { ChoiceMenu } from "./classes/menus/modes/choice";
+import { InputMenu } from "./classes/menus/modes/input";
+import { Action } from "./classes/actions/action";
+import { FunctionAction } from "./classes/actions/modes/function";
+import { GotoAction } from "./classes/actions/modes/goto";
+import { BackAction } from "./classes/actions/modes/back";
+import { ExitAction } from "./classes/actions/modes/exit";
+import { PluginConfig, ActionConfig, MenuConfig } from "./types";
 
-    constructor() {
-        this.mainMenu = new ChoiceMenu("main", "label_main_menu");
-        this.settingsMenu = new ChoiceMenu("settings", "label_settings");
-        this.advancedMenu = new ChoiceMenu("advanced", "label_advanced");
-        this.inputMenu = new InputMenu("input", "label_enter_name", (val) => {
-            console.log(`👤 Hai inserito: ${val}`);
-        });
+export class PluginManager {
+    private menus = new Map<string, Menu>(); // menus registrati globalmente
+    private actionMaps = new Map<string, Map<string, Action>>(); // actionMap per plugin (istanze)
+    private localMenus = new Map<string, Map<string, Menu>>(); // menu non-registrati per plugin
 
-        this.setupMenus();
+    constructor(private configs: PluginConfig[]) {}
+
+    addMenu(menu: Menu): void {
+        if (this.menus.has(menu.id)) {
+            throw new Error(`Menu con id "${menu.id}" già registrato`);
+        }
+        this.menus.set(menu.id, menu);
     }
 
-    private setupMenus() {
-        // Main
-        this.mainMenu.addAction(new FunctionAction("label_greeting", () => console.log("👋 Ciao!")));
-        this.mainMenu.addAction(new GotoAction("label_settings", this.settingsMenu, this.mainMenu));
-        this.mainMenu.addAction(new ChangeLanguageAction("label_change_language", this.mainMenu));
-        this.mainMenu.addAction(new GotoAction("label_enter_name", this.inputMenu, this.mainMenu));
-
-        // Settings
-        this.settingsMenu.addAction(new FunctionAction("label_notifications", () => console.log("🔔 Notifiche...")));
-        this.settingsMenu.addAction(new GotoAction("label_advanced", this.advancedMenu, this.settingsMenu));
-
-        // Advanced
-        this.advancedMenu.addAction(new FunctionAction("label_backup", () => console.log("💾 Avvio backup...")));
-        this.advancedMenu.addAction(new FunctionAction("label_cleanup", () => console.log("🧹 Pulizia completata!")));
+    getMenu(id: string): Menu | undefined {
+        // cerca prima nei menu registrati
+        const registered = this.menus.get(id);
+        if (registered) return registered;
+        // poi cerca nei localMenus di tutti i plugin
+        for (const [, localMap] of this.localMenus) {
+            const m = localMap.get(id);
+            if (m) return m;
+        }
+        return undefined;
     }
 
-    async start() {
-        await this.mainMenu.render();
+    async start(entryMenuId: string): Promise<void> {
+        const entry = this.getMenu(entryMenuId);
+        if (!entry) {
+            throw new Error(`Menu di ingresso "${entryMenuId}" non trovato`);
+        }
+        await entry.render();
+    }
+
+    load(): void {
+        // processa i plugin nell'ordine delle configs
+        this.configs.forEach(config => this.setupPlugin(config));
+    }
+
+    private setupPlugin(config: PluginConfig): void {
+        // mappe temporanee per questo plugin
+        const actionMap = new Map<string, Action>();
+        const localMenuMap = new Map<string, Menu>();
+        this.actionMaps.set(config.name, actionMap);
+        this.localMenus.set(config.name, localMenuMap);
+
+        // --- 1) crea le istanze di Action (goto con target temporaneo)
+        for (const [aid, aConf] of Object.entries(config.actions || {})) {
+            let action: Action;
+            switch (aConf.type) {
+                case "function":
+                    action = new FunctionAction(aConf.key, aConf.fn || (() => {}), aConf.after);
+                    break;
+                case "goto":
+                    // target assegnato dopo (null temporaneo)
+                    action = new GotoAction(aConf.key, null as any);
+                    break;
+                case "back":
+                    action = new BackAction(aConf.key);
+                    break;
+                case "exit":
+                    action = new ExitAction(aConf.key);
+                    break;
+                default:
+                    throw new Error(`Unknown action type: ${(aConf as any).type}`);
+            }
+            actionMap.set(aid, action);
+        }
+
+        // --- 2) crea le istanze di Menu e le registra / salva localmente
+        for (const [mid, mConf] of Object.entries(config.menus || {})) {
+            let menu: Menu;
+            switch (mConf.type) {
+                case "choice":
+                    menu = new ChoiceMenu(mConf.id, mConf.key);
+                    break;
+                case "input":
+                    menu = new InputMenu(mConf.id, mConf.key, mConf.onSubmit || (() => {}));
+                    break;
+                default:
+                    throw new Error(`Unknown menu type: ${(mConf as any).type}`);
+            }
+
+            // registra globalmente solo se register !== false
+            if (mConf.register !== false) {
+                this.addMenu(menu);
+            } else {
+                localMenuMap.set(mConf.id, menu);
+            }
+        }
+
+        // --- 3) risolvi i target per i goto (ora che tutti i menu di questo plugin sono creati)
+        for (const [aid, aConf] of Object.entries(config.actions || {})) {
+            if (aConf.type === "goto") {
+                const gotoAction = actionMap.get(aid) as GotoAction | undefined;
+                if (!gotoAction) continue;
+                const targetId = aConf.targetMenuId!;
+                const target = this.getMenu(targetId);
+                if (!target) {
+                    throw new Error(`Target menu ${targetId} not found for action ${aid}`);
+                }
+                gotoAction.targetMenu = target;
+            }
+        }
+
+        // --- 4) assegna customActions ai menu (ora i goto hanno target risolto)
+        for (const [mid, mConf] of Object.entries(config.menus || {})) {
+            const menu = this.getMenu(mConf.id);
+            if (!menu) continue;
+            if (!mConf.customActions || mConf.customActions.length === 0) continue;
+
+            const choiceMenu = menu as ChoiceMenu;
+            for (const aId of mConf.customActions) {
+                // cerca l'azione nell'actionMap corrente
+                let action = actionMap.get(aId);
+                // se non c'è, cerca nelle altre actionMaps (plugin precedenti)
+                if (!action) {
+                    for (const [, otherMap] of this.actionMaps) {
+                        action = otherMap.get(aId);
+                        if (action) break;
+                    }
+                }
+                if (!action) {
+                    throw new Error(`Action ${aId} not found for menu ${mConf.id}`);
+                }
+                // evita duplicati: non aggiungere se già presente (stessa istanza)
+                const alreadyPresent = choiceMenu.getCustomActions().includes(action);
+                if (!alreadyPresent) {
+                    choiceMenu.addAction(action);
+                }
+            }
+        }
+
+        // --- 5) aggiungi i goto automatici dai menu figli al loro parent (solo se non già presenti)
+        for (const [mid, mConf] of Object.entries(config.menus || {})) {
+            if (!mConf.parent) continue;
+            const childMenu = this.getMenu(mConf.id);
+            if (!childMenu) continue;
+
+            const parentMenu = this.getMenu(mConf.parent);
+            if (!parentMenu) {
+                throw new Error(`Menu genitore ${mConf.parent} non trovato per il menu ${mConf.id}`);
+            }
+            const parentChoiceMenu = parentMenu as ChoiceMenu;
+
+            // verifica se esiste già un GotoAction nel parent che punti al child (evita duplicati)
+            const exists = parentChoiceMenu.getCustomActions().some(act => {
+                return act instanceof GotoAction && act.targetMenu?.id === mConf.id;
+            });
+            if (!exists) {
+                parentChoiceMenu.addAction(new GotoAction(mConf.key, childMenu));
+            }
+        }
+
+        // --- 6) globalGoto se presente (usa getMenu che cerca anche nei localMenus)
+        if (config.globalGoto) {
+            const { label, targetMenuId } = config.globalGoto;
+            const target = this.getMenu(targetMenuId);
+            if (!target) {
+                throw new Error(`Target menu ${targetMenuId} not found for global goto`);
+            }
+            // provider che può restituire null (per es. se siamo già nel menu target)
+            (Menu as any).globalActionProviders.push((menu: Menu) => {
+                if (menu.id === targetMenuId) return null;
+                return new GotoAction(label, target);
+            });
+        }
     }
 }
 
 
-// actions/Action.ts
+// classes/actions/action.ts
 
-import { Parent } from "../types";
-import { Translation } from "../i18n/Translation";
+import { Parent } from "../../types";
+import { Translation } from "../../i18n/Translation";
 
 export abstract class Action {
     parent: Parent = null;
@@ -64,24 +201,21 @@ export abstract class Action {
 }
 
 
-// actions/BackAction.ts
+// classes/actions/modes/back.ts
 
-import { Action } from "./Action";
-import { Parent } from "../types";
-import { Menu } from "../menus/Menu";
+import { Action } from "../action";
+import { Menu } from "../../menus/menu";
+import { Parent } from "../../../types";
 
 export class BackAction extends Action {
-    constructor(label: string, private current: Parent) {
-        super(label);
+    constructor(key: string) {
+        super(key);
     }
-
     async execute() {
-        const parent = this.current?.parent;
+        const parent = this.parent?.parent;
         if (parent && parent instanceof Menu) {
-            // torna al menu padre (che può rigenerare la UI)
             await parent.render();
         } else if (parent && parent instanceof Action) {
-            // torna all'action padre
             await parent.execute();
         } else {
             console.log("⚠️ Nessun parent disponibile!");
@@ -89,106 +223,182 @@ export class BackAction extends Action {
     }
 }
 
+// classes/actions/modes/exit.ts
 
-// actions/ExitAction.ts
-
-import { Action } from "./Action";
+import { Action } from "../action";
 
 export class ExitAction extends Action {
+    constructor(key: string) {
+        super(key);
+    }
     execute() {
         console.log("❌ Uscita dal programma.");
         process.exit(0); // se sei in Node.js
     }
 }
 
+// classes/actions/modes/function.ts
 
-// actions/FunctionAction.ts
 
-import { Action } from "./Action";
+import { Action } from "../action";
+import { Menu } from "../../menus/menu";
 
 export class FunctionAction extends Action {
-    constructor(label: string, private fn: () => void) {
-        super(label);
+    constructor(key: string, private fn: () => Promise<void> | void, private after: 'none' | 'rerender' | 'back' = 'none') {
+        super(key);
     }
-
-    execute() {
-        this.fn();
+    async execute() {
+        let result = this.fn();
+        if (result instanceof Promise) await result;
+        switch (this.after) {
+            case 'back':
+                const parent = this.parent?.parent;
+                if (parent instanceof Menu) {
+                    await parent.render();
+                } else if (parent instanceof Action) {
+                    await parent.execute();
+                } else {
+                    console.log("⚠️ Nessun parent disponibile!");
+                }
+                break;
+            case 'rerender':
+                if (this.parent instanceof Menu) {
+                    await this.parent.render();
+                }
+                break;
+            case 'none':
+            default:
+                // do nothing
+                break;
+        }
     }
 }
 
+// classes/actions/modes/goto.ts
 
-// actions/GoToAction.ts
-
-// src/actions/GotoAction.ts
-import { Action } from "./Action";
-import { Menu } from "../menus/Menu";
-import { Parent } from "../types";
+import { Action } from "../action";
+import { Menu } from "../../menus/menu";
 
 export class GotoAction extends Action {
-    constructor(label: string, private targetMenu: Menu, private current: Parent) {
-        super(label);
+    public targetMenu: Menu;
+    constructor(key: string, targetMenu: Menu) {
+        super(key);
+        this.targetMenu = targetMenu;
     }
-
     async execute() {
-        this.targetMenu.parent = this.current;
+        this.targetMenu.parent = this.parent;
         await this.targetMenu.render();
     }
 }
 
+// classes/menus/menu.ts
 
-// features/language/ChangeLanguageAction.ts
-
-import { Action } from "../../actions/Action";
+import { Action } from "../actions/action";
+import { BackAction } from "../actions/modes/back";
+import { ExitAction } from "../actions/modes/exit";
 import { Parent } from "../../types";
-import { LanguageMenu } from "./LanguageMenu";
+import { choices } from "../../prompts/Choices";
+import { Separator } from "@inquirer/core";
+import { Translation } from "../../i18n/Translation";
 
-export class ChangeLanguageAction extends Action {
-    constructor(label: string, private current: Parent) {
-        super(label);
+type GlobalActionProvider = (menu: Menu) => Action | null;
+
+export abstract class Menu {
+    static globalActionProviders: GlobalActionProvider[] = [];
+    parent: Parent = null;
+    constructor(public id: string, public key: string) { }
+    get title(): string {
+        return Translation.t(this.key);
+    }
+    abstract getCustomActions(): Action[];
+    async render(): Promise<void> {
+        const custom = this.getCustomActions() || [];
+        const global = this.getGlobalActions();
+        // Combina azioni personalizzate e globali, aggiungendo un separatore tra di loro se ci sono azioni personalizzate
+        const actions: Array<Action | null> = [
+            ...custom,
+            ...(custom.length > 0 ? [null] : []), // Aggiungi separatore solo se ci sono customActions
+            ...global.filter((action): action is Action => action !== null), // Filtra valori null dalle azioni globali
+        ];
+        const idMap = new Map<string, Action>();
+        const items = actions.map((a, idx) => {
+            if (!a) return new Separator();
+            a.parent = this;
+            const id = `${this.id}::${idx}`;
+            idMap.set(id, a);
+            return { name: a.label, value: id, isMulti: false };
+        });
+        const result = await choices({
+            message: this.title,
+            choices: items.length > 0 ? items : [new Separator()], // Usa un separatore se non ci sono azioni
+        });
+        const selected = result as string[];
+        const selectedId = selected?.[0];
+        if (!selectedId) return;
+        const action = idMap.get(selectedId);
+        if (!action) {
+            console.error("Azione selezionata non trovata:", selectedId);
+            return;
+        }
+        await action.execute();
+    }
+    private getGlobalActions(): Action[] {
+        const actions: Action[] = [];
+        if (this.parent) {
+            actions.push(new BackAction("label_back"));
+        }
+        Menu.globalActionProviders.forEach(provider => {
+            const action = provider(this);
+            if (action) {
+                actions.push(action);
+            }
+        });
+        actions.push(new ExitAction("label_exit"));
+        return actions;
+    }
+}
+
+// classes/menus/modes/choice.ts
+
+import { Menu } from "../menu";
+import { Action } from "../../actions/action";
+
+export class ChoiceMenu extends Menu {
+    private actions: Action[] = [];
+
+    addAction(action: Action) {
+        this.actions.push(action);
     }
 
-    async execute() {
-        const langMenu = new LanguageMenu();
-        langMenu.parent = this.current;
-        await langMenu.render();
+    getCustomActions(): Action[] {
+        return this.actions;
     }
 }
 
 
-// features/language/LanguageMenu.ts
+// classes/menus/modes/input.ts
 
-import { ChoiceMenu } from "../../menus/ChoiceMenu";
-import { Translation } from "../../i18n/Translation";
-import { Menu } from "../../menus/Menu";
-import { FunctionAction } from "../../actions/FunctionAction";
+import { Action } from "@/classes/actions/action";
+import { Menu } from "../menu";
+import input from "@inquirer/input";
 
-export class LanguageMenu extends ChoiceMenu {
-    constructor() {
-        super("language", "🌐 Select language");
+export class InputMenu extends Menu {
+    constructor(id: string, key: string, private onSubmit: (value: string) => void) {
+        super(id, key);
+    }
 
-        this.addAction(new FunctionAction("🇮🇹 Italiano", async () => {
-            Translation.setLocale("it");
-            console.log("Lingua cambiata in Italiano");
-            if (this.parent && this.parent instanceof Menu) {
-                await this.parent.render();
-            }
-        }));
+    getCustomActions() {
+        return [];
+    }
 
-        this.addAction(new FunctionAction("🇬🇧 English", async () => {
-            Translation.setLocale("en");
-            console.log("Language switched to English");
-            if (this.parent && this.parent instanceof Menu) {
-                await this.parent.render();
-            }
-        }));
-
-        this.addAction(new FunctionAction("🇩🇪 Deutsch", async () => {
-            Translation.setLocale("de");
-            console.log("Sprache auf Deutsch geändert");
-            if (this.parent && this.parent instanceof Menu) {
-                await this.parent.render();
-            }
-        }));
+    async render() {
+        const answer = await input({ message: this.title });
+        this.onSubmit(answer);
+        if (this.parent instanceof Menu) {
+            await this.parent.render();
+        } else if (this.parent instanceof Action) {
+            await this.parent.execute();
+        }
     }
 }
 
@@ -226,122 +436,169 @@ export class Translation {
 
 // main.ts
 
-import { App } from "./App";
+import { PluginManager } from "./PluginManager";
+import { defaultConfig } from "./plugins/default/defaultConfig";
+import { languageConfig } from "./plugins/language/languageConfig";
+import { additionalConfig } from "./plugins/additional/additionalConfig";
 
-new App().start();
+async function bootstrap() {
+    const manager = new PluginManager([
+        defaultConfig,
+        additionalConfig,
+        languageConfig,
+    ]);
 
-
-// menus/ChoiceMenu.ts
-
-import { Menu } from "./Menu";
-import { Action } from "../actions/Action";
-
-export class ChoiceMenu extends Menu {
-    private actions: Action[] = [];
-
-    addAction(action: Action) {
-        this.actions.push(action);
-    }
-
-    getCustomActions(): Action[] {
-        return this.actions;
-    }
+    manager.load();
+    await manager.start("main"); // parte dal mainMenu
 }
 
+bootstrap();
 
-// menus/InputMenu.ts
+// plugins/additional/additionalConfig.ts
 
-import { Action } from "@/actions/Action";
-import { Menu } from "./Menu";
-import input from "@inquirer/input";
+import { PluginConfig } from "../../types";
 
-export class InputMenu extends Menu {
-    constructor(id: string, key: string, private onSubmit: (value: string) => void) {
-        super(id, key);
-    }
+export const additionalConfig: PluginConfig = {
+    name: "additional",
+    menus: {
+        settings: {
+            type: "choice",
+            id: "settings",
+            key: "label_settings",
+            customActions: ["notifications", "advanced"],
+            parent: "main",
+            register: true,
+        },
+        advanced: {
+            type: "choice",
+            id: "advanced",
+            key: "label_advanced",
+            customActions: ["backup", "cleanup"],
+            parent: "settings",
+            register: true,
+        },
+        input: {
+            type: "input",
+            id: "input",
+            key: "label_enter_name",
+            onSubmit: (val: string) => {
+                console.log(`👤 Hai inserito: ${val}`);
+            },
+            parent: "main",
+            register: true,
+        },
+    },
+    actions: {
+        greeting: {
+            type: "function",
+            key: "label_greeting",
+            fn: () => console.log("👋 Ciao!"),
+            after: "none",
+        },
+        settings: {
+            type: "goto",
+            key: "label_settings",
+            targetMenuId: "settings",
+        },
+        enter_name: {
+            type: "goto",
+            key: "label_enter_name",
+            targetMenuId: "input",
+        },
+        notifications: {
+            type: "function",
+            key: "label_notifications",
+            fn: () => console.log("🔔 Notifiche..."),
+            after: "none",
+        },
+        advanced: {
+            type: "goto",
+            key: "label_advanced",
+            targetMenuId: "advanced",
+        },
+        backup: {
+            type: "function",
+            key: "label_backup",
+            fn: () => console.log("💾 Avvio backup..."),
+            after: "none",
+        },
+        cleanup: {
+            type: "function",
+            key: "label_cleanup",
+            fn: () => console.log("🧹 Pulizia completata!"),
+            after: "none",
+        },
+    },
+};
 
-    getCustomActions() {
-        return [];
-    }
+// plugins/default/defaultConfig.ts
 
-    async render() {
-        const answer = await input({ message: this.title });
-        this.onSubmit(answer);
-        if (this.parent instanceof Menu) {
-            await this.parent.render();
-        } else if (this.parent instanceof Action) {
-            await this.parent.execute();
-        }
-    }
-}
+import { PluginConfig } from "../../types";
 
+export const defaultConfig: PluginConfig = {
+    name: "default",
+    menus: {
+        main: {
+            type: "choice",
+            id: "main",
+            key: "label_main_menu",
+            customActions: [],
+            register: true,
+        },
+    },
+    actions: {},
+};
 
-// menus/Menu.ts
+// plugins/language/languageConfig.ts
 
-import { Action } from "../actions/Action";
-import { BackAction } from "../actions/BackAction";
-import { ExitAction } from "../actions/ExitAction";
-import { Parent } from "../types";
-import { choices } from "../prompts/Choices";
-import { Separator } from "@inquirer/core";
-import { Translation } from "../i18n/Translation";
+import { PluginConfig } from "../../types";
+import { Translation } from "../../i18n/Translation";
 
-export abstract class Menu {
-    parent: Parent = null;
-
-    constructor(public id: string, public key: string) {}
-
-    get title(): string {
-        return Translation.t(this.key);
-    }
-
-    abstract getCustomActions(): Action[];
-
-    async render(): Promise<void> {
-        const custom = this.getCustomActions() || [];
-        const global = this.getGlobalActions();
-
-        const actions: Array<Action | null> = custom.length > 0 ? [...custom, null, ...global] : [...global];
-        const idMap = new Map<string, Action>();
-
-        const items = actions.map((a, idx) => {
-            if (!a) return new Separator();
-            a.parent = this;
-            const id = `${this.id}::${idx}`;
-            idMap.set(id, a);
-            return { name: a.label, value: id, isMulti: false };
-        });
-
-        const result = await choices({
-            message: this.title,
-            choices: items,
-        });
-
-        const selected = result as string[];
-        const selectedId = selected?.[0];
-        if (!selectedId) return;
-
-        const action = idMap.get(selectedId);
-        if (!action) {
-            console.error("Azione selezionata non trovata:", selectedId);
-            return;
-        }
-
-        await action.execute();
-    }
-
-    private getGlobalActions(): Action[] {
-        const actions: Action[] = [];
-
-        if (this.parent) {
-            actions.push(new BackAction("label_back", this));
-        }
-        actions.push(new ExitAction("label_exit"));
-
-        return actions;
-    }
-}
-
+export const languageConfig: PluginConfig = {
+    name: "language",
+    menus: {
+        language: {
+            type: "choice",
+            id: "language",
+            key: "🌐 Select language",
+            customActions: ["it", "en", "de"],
+            register: false,
+        },
+    },
+    actions: {
+        it: {
+            type: "function",
+            key: "🇮🇹 Italiano",
+            fn: () => {
+                Translation.setLocale("it");
+                console.log("Lingua cambiata in Italiano");
+            },
+            after: "back",
+        },
+        en: {
+            type: "function",
+            key: "🇬🇧 English",
+            fn: () => {
+                Translation.setLocale("en");
+                console.log("Language switched to English");
+            },
+            after: "back",
+        },
+        de: {
+            type: "function",
+            key: "🇩🇪 Deutsch",
+            fn: () => {
+                Translation.setLocale("de");
+                console.log("Sprache auf Deutsch geändert");
+            },
+            after: "back",
+        },
+    },
+    globalGoto: {
+        label: "label_change_language",
+        targetMenuId: "language",
+    },
+};
 
 // prompts/Choices.ts
 
@@ -449,10 +706,35 @@ export const choices = createPrompt<PromptValue, Config>(
 
 // types.ts
 
-import { Menu } from "./menus/Menu";
-import { Action } from "./actions/Action";
+import { Menu } from "./classes/menus/menu";
+import { Action } from "./classes/actions/action";
 
-// Un parent può essere un Menu o un'Action
 export type Parent = Menu | Action | null;
 
+export interface ActionConfig {
+    type: 'function' | 'goto' | 'back' | 'exit';
+    key: string;
+    fn?: () => Promise<void> | void;
+    targetMenuId?: string;
+    after?: 'none' | 'rerender' | 'back';
+}
+
+export interface MenuConfig {
+    type: 'choice' | 'input';
+    id: string;
+    key: string;
+    customActions?: string[];
+    onSubmit?: (value: string) => void;
+    register?: boolean;
+    parent?: string; // ID del menu genitore, opzionale
+}
+
+export interface PluginConfig {
+    name: string;
+    menus?: Record<string, MenuConfig>;
+    actions?: Record<string, ActionConfig>;
+    globalGoto?: { label: string; targetMenuId: string };
+}
+
+export type GlobalActionProvider = (menu: Menu) => Action | null; // Modificato per consentire null
 

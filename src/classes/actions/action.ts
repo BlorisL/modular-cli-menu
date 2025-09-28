@@ -1,4 +1,4 @@
-import { Parent } from "../types";
+import { Parent } from "../../types";
 import { Translation } from "../i18n/Translation";
 
 export abstract class Action {
