@@ -1,7 +1,7 @@
 import { createPrompt, useState, useKeypress, usePrefix, isEnterKey, isSpaceKey, Separator } from '@inquirer/core';
 import chalk from 'chalk';
 
-export interface Choice {
+interface Choice {
     name: string;
     value: string;
     isMulti: boolean;
