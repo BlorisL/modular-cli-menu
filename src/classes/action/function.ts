@@ -14,13 +14,13 @@ class ActionFunction extends Action {
     protected callback: () => Promise<unknown>;
 
     public constructor(config: ActionFunctionConfig) {
-        super({ mode: ActionFunction.MODE_NAME, name: config.name });
+        super(config);
         this.callback = config.callback;
     }
 
     public getMode(): ModeType { return this.mode; }
 
-    public async run(options: ActionFunctionOptions = {}) {
+    public async run(options: ActionFunctionOptions) {
         return await this.callback();
     }
 }

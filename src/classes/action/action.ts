@@ -8,7 +8,12 @@ type ActionConfig = {
     global?: boolean;
     parent?: string;
 }
-type ActionOptions = { [key: string]: any; };
+type ActionOptions = { 
+    getGlobalActions?: () => Action[];
+    findMenu: (name: string) => Menu | undefined;
+    findAction: (name: string) => Action | undefined;
+    //[key: string]: any; 
+};
 
 abstract class Action {
     protected abstract mode: ModeType;
@@ -32,6 +37,19 @@ abstract class Action {
     public setParent(parent: Menu | Action): this { this.parent = parent; return this; }
 
     public isGlobal(): boolean { return this.global; }
+    
+    public toObject(): ActionConfig {
+        return {
+            mode: this.getMode(),
+            name: this.getName(),
+            //parent: this.getParent()?.getName(),
+        };
+    }
+
+    public clone(): this {
+        const Constructor = this.constructor as new (config: ActionConfig) => this;
+        return new Constructor(this.toObject());
+    }
 
     public abstract run(options: ActionOptions): Promise<unknown>;
 }

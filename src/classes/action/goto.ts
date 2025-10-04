@@ -2,8 +2,6 @@ import { Menu } from "../menu";
 import { Action, ActionConfig, ActionOptions, ModeType } from "./action";
 
 type ActionGoToOptions = ActionOptions & {
-    findMenu: (name: string) => Menu | undefined;
-    findAction: (name: string) => Action | undefined;
 };
 
 type ActionGoToConfig = ActionConfig & {
@@ -19,7 +17,7 @@ class ActionGoTo extends Action {
     protected before?: (options: ActionGoToOptions) => Promise<unknown>;
 
     public constructor(config: ActionGoToConfig) {
-        super({ mode: ActionGoTo.MODE_NAME, name: config.name });
+        super(config);
         this.to = config.to;
         this.before = config.before;
     }
@@ -34,16 +32,23 @@ class ActionGoTo extends Action {
         let item: Menu | Action | undefined = undefined;
         if(this.to) {
             item = options.findMenu(this.to) || options.findAction(this.to);
-        } else if(this.getParent()) {
-            item = this.getParent();
+        //} else if(this.getParent()) {
+        //    item = this.getParent();
         } else {
             item = options.findMenu('main')!;
         }
 
+        setTimeout(() => {
+            console.log('')
+            console.log('### Action')
+            console.log(this)
+            console.log('### Item')
+            console.log(item)
+        }, 1000);
         if(item instanceof Action) {
             return await (item as Action).run(options);
         } else {
-            return await (item as Menu).print({});
+            return await (item as Menu).print(options);
         }
     }
 }

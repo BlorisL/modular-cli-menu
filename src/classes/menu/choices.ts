@@ -1,12 +1,8 @@
 import { Choice, choices } from "@/prompts/Choices";
 import { Menu, MenuConfig, MenuOptions, ModeType } from "./menu";
-import { Action } from "../action";
 import { Separator } from '@inquirer/core';
 
 type MenuChoicesOptions = MenuOptions & {
-    getGlobalActions?: () => Action[];
-    findMenu?: (name: string) => Menu | undefined;
-    findAction?: (name: string) => Action | undefined;
     options?: Omit<Parameters<typeof choices>[0], 'message' | 'choices'>;
 }
 
@@ -76,11 +72,18 @@ class MenuChoices extends Menu {
         return this;
     }
 
-    public async print(params: MenuChoicesOptions = {}) {
+    public override async print(params: MenuChoicesOptions = {}) {
+        //const baseResult = await super.print(params);
+
         const globalActions = [
             new Separator(),
             ...(params.getGlobalActions?.() ?? []).map(action => ({ name: action.getName(), value: action.getName(), isMulti: false }))
         ];
+        setTimeout(() => {
+            console.log('')
+            console.log('### MENU')
+            console.log(this)
+        }, 1000);
         const answers = await choices({
             ...(params.options ?? {}),
             message: this.getName(),
@@ -93,6 +96,7 @@ class MenuChoices extends Menu {
         answers.forEach(answer => {
         console.log(answers)
             params.findAction?.(answer)?.run({ 
+                getGlobalActions: params.getGlobalActions,
                 findMenu: params.findMenu,
                 findAction: params.findAction,
                 selected: answers 

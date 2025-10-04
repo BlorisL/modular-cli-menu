@@ -1,5 +1,6 @@
 import { Plugins } from "./classes/plugin";
 
+
 const plugins = new Plugins([
     {
         name: "default",
@@ -32,10 +33,21 @@ const plugins = new Plugins([
         menus: [
             {
                 mode: "choices",
-                name: "test",
-                parent: "main",
+                name: "test1",
+                parents: ["main"],
                 values: ['a','b','c'],
+            },
+            {
+                mode: "choices",
+                name: "test2",
+                parents: ["test1"],
+                values: ['d','e','f'],
             }
+        ],
+        actions: [
+            //{
+//
+            //}
         ]
     }
 ]);

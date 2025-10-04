@@ -3,35 +3,92 @@ import { Action } from "../action";
 
 type ModeType = 'input' | 'choices';
 
+type MenuParent = Menu | Action | string;
+
 type MenuConfig = {
     mode: ModeType;
     name: string;
-    parent?: string;
+    parents?: MenuParent[];
 }
-type MenuOptions = { [key: string]: any; };
+
+type MenuOptions = { 
+    getGlobalActions?: () => Action[];
+    findMenu?: (name: string) => Menu | undefined;
+    findAction?: (name: string) => Action | undefined;
+    //[key: string]: any; 
+};
 
 abstract class Menu {
     protected abstract mode: ModeType;
     protected name: string;
-    protected parent?: Menu | Action | string;
+    protected parents: MenuParent[];
 
     public constructor(config: MenuConfig) {
         this.name = config.name;
-        this.parent = config.parent;
+        this.parents = config.parents ?? [];
     }
 
     public getMode(): ModeType { return this.mode; }
 
     public getName(): string { return this.name; }
 
-    public isParentSet(): boolean { return (typeof this.parent) !== 'string'; }
-    public getRawParent(): string | Menu | Action | undefined { return this.parent; }
-    public getParent(): Menu | Action | undefined { 
-        return this.isParentSet() ? (this.parent as Menu | Action) : undefined; 
+    public getParents(): MenuParent[] { return this.parents; }
+    public getStringParents(): string[] { 
+        return this.parents.map(p => (typeof p === 'string' ? p : p.getName())); 
     }
-    public setParent(parent: Menu | Action): this { this.parent = parent; return this; }
+    public findParent(parent: MenuParent): MenuParent | undefined { 
+        if(typeof parent !== 'string') {
+            parent = parent.getName();
+        }
 
-    public abstract print(options: MenuOptions): Promise<unknown>;
+        return this.getParents().find(p => {
+            if(typeof p === 'string') {
+                return p === parent ? p : undefined;
+            } else {
+                return p.getName() == parent ? p : undefined;
+            }
+        });
+    }
+    public isParentSet(parent: string): boolean { return typeof this.findParent(parent) !== 'string'; }
+    public getParent(parent: string): Menu | Action | undefined {
+        const item = this.findParent(parent);
+        return typeof item !== 'string' ? item : undefined;
+    }
+    public addParent(parent: MenuParent): this { 
+        const item = this.findParent(parent);
+        if(item) {
+            if(typeof item === 'string' && typeof parent !== 'string') {
+                this.parents.splice(this.parents.indexOf(item), 1, parent);
+            }
+        } else {
+            this.parents?.push(parent); 
+        }
+        return this; 
+    }
+
+    public toObject(): MenuConfig {
+        return {
+            mode: this.getMode(),
+            name: this.getName(),
+            parents: this.getParents().map(parent => {
+                if(typeof parent === 'string')  {
+                    return parent;
+                } else {
+                    return parent.getName()
+                }
+            }),
+        };
+    }
+
+    public clone(): this {
+        const Constructor = this.constructor as new (config: MenuConfig) => this;
+        return new Constructor(this.toObject());
+    }
+
+    public async print(options: MenuOptions): Promise<unknown> {
+        const menu = this.clone()
+        return menu;
+    };
 }
 
 export {
