@@ -46,6 +46,7 @@ class MenuChoices extends Menu {
     public constructor(config: MenuChoicesConfig) {
         const { values, ...menuConfig } = config;
         super(menuConfig);
+        // values may be undefined when cloning from a base MenuConfig
         this.set(values);
     }
 
@@ -72,36 +73,43 @@ class MenuChoices extends Menu {
         return this;
     }
 
-    public override async print(params: MenuChoicesOptions = {}) {
-        //const baseResult = await super.print(params);
+    public override async print(params?: MenuChoicesOptions) {
+        const menu = await (super.print(params) as Promise<this>);
 
         const globalActions = [
             new Separator(),
-            ...(params.getGlobalActions?.() ?? []).map(action => ({ name: action.getName(), value: action.getName(), isMulti: false }))
+            ...(params?.getGlobalActions?.() ?? []).map(action => ({ name: action.getName(), value: action.getName(), isMulti: false }))
         ];
         setTimeout(() => {
             console.log('')
             console.log('### MENU')
-            console.log(this)
+            console.log(menu)
         }, 1000);
         const answers = await choices({
-            ...(params.options ?? {}),
-            message: this.getName(),
+            ...(params?.options ?? {}),
+            message: menu.getName(),
             choices: [
-                ...this.getValues().map(choice => choice.toObject()),
+                ...menu.getValues().map(choice => choice.toObject()),
                 ...(globalActions.length > 1 ? globalActions : [])
             ],
         }) as string[];
 
         answers.forEach(answer => {
-        console.log(answers)
-            params.findAction?.(answer)?.run({ 
-                getGlobalActions: params.getGlobalActions,
-                findMenu: params.findMenu,
-                findAction: params.findAction,
-                selected: answers 
+            console.log(answers)
+            params?.findAction?.(answer)?.run({
+                findMenu: params?.findMenu,
+                findAction: params?.findAction,
+                getGlobalActions: params?.getGlobalActions
             });
         });
+    }
+
+    public toObject(): MenuChoicesConfig {
+        return {
+            ...(super.toObject() as MenuConfig),
+            name: this.getName(),
+            values: this.getValues().map(v => ({ name: v.getName(), value: v.getValue(), isMulti: v.getIsMulti() })),
+        };
     }
 }
 

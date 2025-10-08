@@ -60,6 +60,7 @@ class Plugins {
         let action: Action | undefined = undefined;
         this.getAll().some(plugin => {
             action = plugin.getAction(actionName);
+
             return !!action;
         });
         return action;
@@ -87,24 +88,25 @@ class Plugins {
     }
 
     public async print(pluginName: string = '', menuName: string = '') {
-        const menu = this.getMenu(pluginName, menuName);
+        const menu = this.getMenu(menuName, pluginName);
         if (menu) {
             return await menu.print({
-                getGlobalActions: () => this.getGlobalActions(),
-                findMenu: (name: string) => this.getMenu(name),
-                findAction: (name: string) => this.getAction(name),
+                getGlobalActions: this.getGlobalActions.bind(this),
+                findMenu: this.getMenu.bind(this),
+                findAction: this.getAction.bind(this),
             });
         } else {
-            return await this.getMenu('main')?.print({});
+            return await this.getMenu('main')?.print();
         }
     }
 
     public async run(pluginName: string = '', actionName: string = '') {
-        const action = this.getAction(pluginName, actionName);
+        const action = this.getAction(actionName, pluginName);
         if (action) {
             return await action.run({
-                findMenu: (name: string) => this.getMenu(name),
-                findAction: (name: string) => this.getAction(name),
+                findMenu: this.getMenu.bind(this),
+                findAction: this.getAction.bind(this),
+                getGlobalActions: this.getGlobalActions.bind(this),
             });
         } else {
             if(Plugins.DEBUG) {

@@ -6,27 +6,35 @@ type ModeType = 'input' | 'choices';
 type MenuParent = Menu | Action | string;
 
 type MenuConfig = {
+    plugin?: string;
     mode: ModeType;
     name: string;
     parents?: MenuParent[];
 }
 
 type MenuOptions = { 
-    getGlobalActions?: () => Action[];
-    findMenu?: (name: string) => Menu | undefined;
-    findAction?: (name: string) => Action | undefined;
+    from?: Menu;
+    options?: Record<string, any>;
+    getGlobalActions: () => Action[];
+    findMenu: (name: string) => Menu | undefined;
+    findAction: (name: string) => Action | undefined;
     //[key: string]: any; 
 };
 
 abstract class Menu {
     protected abstract mode: ModeType;
+    protected plugin?: string;
     protected name: string;
     protected parents: MenuParent[];
+    protected from?: Menu;
 
     public constructor(config: MenuConfig) {
+        this.plugin = config.plugin;
         this.name = config.name;
         this.parents = config.parents ?? [];
     }
+
+    public getPlugin(): string | undefined { return this.plugin; }
 
     public getMode(): ModeType { return this.mode; }
 
@@ -66,10 +74,14 @@ abstract class Menu {
         return this; 
     }
 
+    public getFrom(): Menu | undefined { return this.from; }
+    public setFrom(from: Menu): this { this.from = from; return this; }
+
     public toObject(): MenuConfig {
         return {
             mode: this.getMode(),
             name: this.getName(),
+            plugin: this.getPlugin(),
             parents: this.getParents().map(parent => {
                 if(typeof parent === 'string')  {
                     return parent;
@@ -85,8 +97,12 @@ abstract class Menu {
         return new Constructor(this.toObject());
     }
 
-    public async print(options: MenuOptions): Promise<unknown> {
-        const menu = this.clone()
+    public async print(options?: MenuOptions): Promise<unknown> {
+        const menu = this.clone();
+        if(options?.from) {
+            menu.setFrom(options.from);
+        }
+
         return menu;
     };
 }

@@ -44,6 +44,10 @@ class Plugin {
             if (item instanceof Menu) {
                 instance = item;
             } else {
+                if(item.plugin === undefined) {
+                    item.plugin = this.getName();
+                }
+
                 switch(item.mode) {
                     case MenuChoices.MODE_NAME:
                         instance = new MenuChoices(item as MenuChoicesConfig);
@@ -73,6 +77,10 @@ class Plugin {
             if (item instanceof Action) {
                 instance = item;
             } else {
+                if(item.plugin === undefined) {
+                    item.plugin = this.getName();
+                }
+                
                 switch(item.mode) {
                     case ActionFunction.MODE_NAME:
                         instance = new ActionFunction(item as ActionFunctionConfig);
