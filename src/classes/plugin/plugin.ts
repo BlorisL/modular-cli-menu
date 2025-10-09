@@ -10,7 +10,8 @@ type ActionCollection = Record<string, Action>;
 
 type PluginConfig = {
     name: string;
-    menus?: Array<MenuChoicesConfig>;
+    // allow different menu config variants (choices, input, etc.)
+    menus?: Array<MenuConfig | MenuChoicesConfig>;
     actions?: Array<ActionFunctionConfig | ActionGoToConfig>;
     translations?: LanguageConfig[];
 }
@@ -80,7 +81,7 @@ class Plugin {
                 if(item.plugin === undefined) {
                     item.plugin = this.getName();
                 }
-                
+
                 switch(item.mode) {
                     case ActionFunction.MODE_NAME:
                         instance = new ActionFunction(item as ActionFunctionConfig);
@@ -106,6 +107,15 @@ class Plugin {
         this.i18n.add(languages);
 
         return this;
+    }
+
+    public toObject(): PluginConfig {
+        return {
+            name: this.getName(),
+            menus: this.getMenus().map(menu => menu.toObject()),
+            actions: this.getActions().map(action => action.toObject()),
+            translations: this.getTranslations()?.map(lang => lang.toObject()),
+        };
     }
 }
 

@@ -32,6 +32,14 @@ class ActionGoTo extends Action {
         return this.isBefore() ? this.before!(params) : undefined;
     }
 
+    public override toObject(): ActionGoToConfig {
+        return {
+            ...super.toObject(),
+            to: this.getTo(),
+            before: this.isBefore() ? this.before : undefined,
+        };
+    }
+
     public async run(params: ActionGoToOptions) {
         const action = await (super.run(params) as Promise<this>);
 
@@ -41,31 +49,34 @@ class ActionGoTo extends Action {
 
         let item: Menu | Action | undefined = undefined;
         if(action.isTo()) {
-            item = params.findMenu(this.getTo()!) || params.findAction(this.getTo()!);
+            item = params.findMenu(action.getTo()!) || params.findAction(action.getTo()!);
         //} else if(this.getParent()) {
         //    item = this.getParent();
-        } else if(params?.from) {
+        } else if(params.from) {
             item = params.from;
+        } else if(action.getFrom()) {
+            item = action.getFrom();
         } else {
             item = params.findMenu('main')! || params.findAction('main')!;
         }
 
         setTimeout(() => {
             console.log('')
-            console.log('### Action')
-            console.log(this)
+            console.log('### Action', params, )
+            console.log(action)
             console.log('### Item')
             console.log(item)
         }, 1000);
         if(item instanceof Action) {
             return await (item as Action).run({
                 ...params,
-                from: item.getFrom()
+                //from: item.getFrom()
             });
         } else {
             return await (item as Menu).print({
                 ...params,
-                from: item!.getFrom()
+                from: this.getFrom(),
+                getGlobalActions: params.getGlobalActions
             });
         }
     }

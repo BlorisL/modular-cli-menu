@@ -87,6 +87,10 @@ class Plugins {
         return actions;
     }
 
+    public toObject(): PluginConfig[] {
+        return this.getAll().map(plugin => plugin.toObject());
+    }
+
     public async print(pluginName: string = '', menuName: string = '') {
         const menu = this.getMenu(menuName, pluginName);
         if (menu) {
@@ -125,11 +129,14 @@ class Plugins {
                         if (parentMenu) {
                             if(parentMenu.getMode() === MenuChoices.MODE_NAME) {
                                 (parentMenu as MenuChoices).add(menu.getName());
-                                plugin.addAction(new ActionGoTo({ 
+                                const tmpAction = new ActionGoTo({ 
                                     mode: ActionGoTo.MODE_NAME,
                                     name: menu.getName(), 
-                                    to: menu.getName() 
-                                }));
+                                    to: menu.getName() ,
+                                })
+                                // action should originate from the parent menu
+                                tmpAction.setFrom(parentMenu);
+                                plugin.addAction(tmpAction);
                             }
                             menu.addParent(parentMenu);
                         } else {

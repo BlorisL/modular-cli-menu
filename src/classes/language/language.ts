@@ -24,6 +24,13 @@ class Language {
 
     public getTranslation(key: string): string { return this.translations[key] || key; }
     public setTranslation(key: string, value: string): this { this.translations[key] = value; return this; }
+
+    public toObject(): LanguageConfig {
+        return {
+            code: this.getCode(),
+            translations: this.getTranslations(),
+        };
+    }
 }
 
 export {

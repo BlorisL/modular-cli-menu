@@ -52,6 +52,8 @@ const plugins = new Plugins([
     }
 ]);
 
+//console.log(JSON.stringify(plugins.toObject()));
+
 plugins.print().then(() => {
     //console.log('Done');
 }).catch(err => {

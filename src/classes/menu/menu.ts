@@ -10,14 +10,16 @@ type MenuConfig = {
     mode: ModeType;
     name: string;
     parents?: MenuParent[];
+    from?: string;
 }
+
 
 type MenuOptions = { 
     from?: Menu;
     options?: Record<string, any>;
     getGlobalActions: () => Action[];
-    findMenu: (name: string) => Menu | undefined;
-    findAction: (name: string) => Action | undefined;
+    findMenu: (name: string) => (Menu | undefined);
+    findAction: (name: string) => (Action | undefined);
     //[key: string]: any; 
 };
 
@@ -82,6 +84,7 @@ abstract class Menu {
             mode: this.getMode(),
             name: this.getName(),
             plugin: this.getPlugin(),
+            from: this.getFrom()?.getName(),
             parents: this.getParents().map(parent => {
                 if(typeof parent === 'string')  {
                     return parent;
@@ -99,10 +102,9 @@ abstract class Menu {
 
     public async print(options?: MenuOptions): Promise<unknown> {
         const menu = this.clone();
-        if(options?.from) {
-            menu.setFrom(options.from);
+        if(!this.getFrom()) {
+            menu.setFrom(this.getFrom()!);
         }
-
         return menu;
     };
 }

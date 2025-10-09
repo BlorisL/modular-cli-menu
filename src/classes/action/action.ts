@@ -8,13 +8,14 @@ type ActionConfig = {
     name: string;
     global?: boolean;
     parent?: string;
+    from?: string;
 }
 type ActionOptions = { 
     from?: Menu;
     options?: Record<string, any>;
-    getGlobalActions?: () => Action[];
-    findMenu: (name: string) => Menu | undefined;
-    findAction: (name: string) => Action | undefined;
+    getGlobalActions: () => Action[];
+    findMenu: (name: string) => (Menu | undefined);
+    findAction: (name: string) => (Action | undefined);
     //[key: string]: any; 
 };
 
@@ -47,13 +48,18 @@ abstract class Action {
     public getFrom(): Menu | undefined { return this.from; }
     public setFrom(from: Menu): this { this.from = from; return this; }
 
-    public isGlobal(): boolean { return this.global; }
+    public getGlobal(): boolean { return this.global; }
+    public isGlobal(): boolean { return this.getGlobal() === true; }
     
     public toObject(): ActionConfig {
         return {
             mode: this.getMode(),
+            plugin: this.getPlugin(),
             name: this.getName(),
-            //parent: this.getParent()?.getName(),
+            parent: this.getParent()?.getName(),
+            from: this.getFrom()?.getName(),
+            global: this.getGlobal(),
+            //from?: this.getFrom(),
         };
     }
 
@@ -64,9 +70,11 @@ abstract class Action {
     
     public async run(options?: ActionOptions): Promise<unknown> {
         const action = this.clone();
-        if(options?.from) {
-            action.setFrom(options.from);
+        if(!this.getFrom()) {
+            action.setFrom(this.getFrom()!);
         }
+
+        console.log('##### Action clone', options?.from);
 
         return action;
     };

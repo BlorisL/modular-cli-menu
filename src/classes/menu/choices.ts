@@ -1,6 +1,7 @@
 import { Choice, choices } from "@/prompts/Choices";
 import { Menu, MenuConfig, MenuOptions, ModeType } from "./menu";
 import { Separator } from '@inquirer/core';
+import { tmpdir } from "os";
 
 type MenuChoicesOptions = MenuOptions & {
     options?: Omit<Parameters<typeof choices>[0], 'message' | 'choices'>;
@@ -13,6 +14,7 @@ type MenuChoiceConfig = {
 }
 
 type MenuChoicesConfig = MenuConfig & {
+    mode: 'choices';
     name: string;
     values: Array<string | MenuChoiceConfig>;
 }
@@ -89,24 +91,40 @@ class MenuChoices extends Menu {
             ...(params?.options ?? {}),
             message: menu.getName(),
             choices: [
-                ...menu.getValues().map(choice => choice.toObject()),
-                ...(globalActions.length > 1 ? globalActions : [])
+                ...menu.getValues().map(choice => {
+                    const tmp = choice.toObject();
+                    const action = params?.findAction(tmp.name);
+                    tmp.name += ' | from: ' + (action?.getFrom() ? action?.getFrom()?.getName() : 'no from found');
+                    return tmp;
+                }),
+                ...(globalActions.length > 1 ? globalActions : []).map(a => {
+                    const tmp = a;
+                    if(!(tmp instanceof Separator)) {
+                        tmp.name += ' | from: ' + (menu.getFrom() ? menu.getFrom()?.getName() : 'no from found');
+                    }
+                    return tmp;
+                })
             ],
         }) as string[];
 
-        answers.forEach(answer => {
-            console.log(answers)
-            params?.findAction?.(answer)?.run({
-                findMenu: params?.findMenu,
-                findAction: params?.findAction,
-                getGlobalActions: params?.getGlobalActions
+        if(params) {
+            answers.forEach(answer => {
+                console.log(answers)
+                const action = params?.findAction?.(answer);
+                action?.run({
+                    from: action.getFrom() ?? menu.getFrom(),
+                    findMenu: params.findMenu,
+                    findAction: params.findAction,
+                    getGlobalActions: params.getGlobalActions
+                });
             });
-        });
+        }
     }
 
     public toObject(): MenuChoicesConfig {
         return {
-            ...(super.toObject() as MenuConfig),
+            ...super.toObject(),
+            mode: MenuChoices.MODE_NAME,
             name: this.getName(),
             values: this.getValues().map(v => ({ name: v.getName(), value: v.getValue(), isMulti: v.getIsMulti() })),
         };
