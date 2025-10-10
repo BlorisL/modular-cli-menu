@@ -92,10 +92,13 @@ const mainMenu = new Menu('main', [
     new Action('action1'),
     new Action('action2'),
 ]);
+
 submenu1
     .addValue(submenu2)
     .addValue(back.clone().setFrom(mainMenu));
+
 submenu2.addValue(back.clone().setFrom(submenu1));
+
 mainMenu.addValue(submenu1);
 
 mainMenu.print();
