@@ -17,6 +17,57 @@ type ActionConfig = {
     global?: boolean;
 };
 
+class Tree {
+    protected plugins: Plugins;
+    protected item: Menu;
+
+    public constructor(plugins: Plugins) {
+        this.plugins = plugins;
+        this.item = this.load();
+    }
+
+    protected load(menu?: Menu): Menu {
+        if(!menu) {
+            menu = this.plugins.getMenu('main', 'default')!;
+        }
+        menu = menu?.clone();
+        menu?.getValues().forEach(value => {
+            const tmp = typeof value === 'string'
+                ? (this.plugins.findMenu(value) ?? this.plugins.findAction(value))
+                : value;
+            if(tmp) {
+                menu.addValue(tmp.clone().setFrom(menu));
+                if(tmp instanceof Menu) {
+                    this.load(tmp);
+                }
+            }
+        });
+        console.log(menu?.getParents())
+        menu?.getParents()?.forEach(parent => {
+            const tmp = typeof parent === 'string'
+                ? (this.plugins.getMenu(parent) ?? this.plugins.getAction(parent))
+                : parent;
+            if(tmp) {
+                menu.addParent(tmp);
+                if(tmp instanceof Menu) {
+                    tmp.addValue(menu.clone().setFrom(tmp));
+                    this.load(tmp);
+                }
+            }
+        });
+
+        return menu;
+    }
+
+    public getPlugins(): Plugins { return this.plugins; }
+
+    public getItem(): Menu { return this.item; }
+
+    public print(): Promise<unknown> {
+        return this.item.print(this.plugins.getGlobalActions());
+    }
+}
+
 class Plugin {
     protected name: string;
     protected menus: Record<string, Menu> = {};
@@ -46,7 +97,7 @@ class Plugin {
             }
 
             if(instance) {
-                this.menus[instance.getName()] = instance;
+                this.menus[instance.getName()] = instance.setPlugin(this.getName());
             }
         });
 
@@ -69,7 +120,7 @@ class Plugin {
             }
 
             if(instance) {
-                this.actions[instance.getName()] = instance;
+                this.actions[instance.getName()] = instance.setPlugin(this.getName());
             }
         });
 
@@ -109,7 +160,7 @@ class Plugins {
             }
             this.items[plugin.getName()] = plugin;
         });
-        this.checkEntity();
+        //this.checkEntity();
 
         return this;
     }
@@ -219,17 +270,22 @@ class Plugins {
 }
 
 class Menu {
+    protected plugin?: string;
     protected name: string;
     protected parents: Array<Menu | Action | string>;
     protected values: Array<Menu | Action | string>;
     protected from?: Menu | Action;
 
     public constructor(config: MenuConfig) {
+        this.plugin = undefined;
         this.name = config.name;
         this.parents = config.parents ?? [];
         this.values = config.values;
         this.from = undefined;
     }
+
+    public getPlugin(): string | undefined { return this.plugin; }
+    public setPlugin(plugin: string): this { this.plugin = plugin; return this; }
     
     public getName(): string { return this.name; }
 
@@ -270,18 +326,13 @@ class Menu {
     public async print(values: Action[] = []): Promise<unknown> {
         const items = [
             ...this.getValues().map(
-                v => typeof v === 'string' ? v : v.clone().setFrom(this)
+                v => typeof v === 'string' ? v : v
             ),
             ...(values.length > 0 ? [new Separator()] : []),
             ...values.map(v => {
-                return v.clone().setFrom(this.getFrom()!);
+                return v;
             })
         ];
-
-        console.log('###1 Menu', this.getName(), values.map(v => {
-            console.log('###2', this)
-                return v.clone().setFrom(this.getFrom()!);
-            }));
 
         const answers = await choices({
             message: `Select an action from menu "${this.getName()}"`,
@@ -300,7 +351,6 @@ class Menu {
                 v => (typeof v !== 'string' && !(v instanceof Separator)) && v.getName() === answer
             );
 
-            console.log('###2', answer, item)
             if(item instanceof Action) {
                 item.run();
             } else if(item instanceof Menu) {
@@ -314,15 +364,20 @@ class Menu {
 }
 
 class Action {
+    protected plugin?: string;
     protected name: string;
     protected global: boolean;
     protected from?: Menu | Action;
 
     public constructor(config: ActionConfig) {
+        this.plugin = undefined;
         this.name = config.name;
         this.global = config.global ?? false;
         this.from = undefined;
     }
+
+    public getPlugin(): string | undefined { return this.plugin; }
+    public setPlugin(plugin: string): this { this.plugin = plugin; return this; }
 
     public getName(): string { return this.name; }
 
@@ -391,7 +446,9 @@ const plugins = new Plugins([
     }
 ]);
 
-plugins.print();
+const tree = new Tree(plugins);
+
+tree.print();
 
 /*
 const pluginMain = new Plugin();

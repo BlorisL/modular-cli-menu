@@ -21,7 +21,7 @@ const isSeparator = (item: any): boolean => {
            ('separator' in item || 'type' in item && item.type === 'separator');
 };
 
-export const choices = createPrompt<PromptValue, Config>(
+const choices = createPrompt<PromptValue, Config>(
     (config: Config, done: (value: PromptValue) => void) => {
         const { message, choices } = config;
         const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -99,3 +99,5 @@ export const choices = createPrompt<PromptValue, Config>(
         return lines.join('\n');
     }
 );
+
+export { choices, Separator };
