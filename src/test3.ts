@@ -1,5 +1,71 @@
 import { Choice, choices } from "@/prompts/Choices";
 
+/**
+ * Deep-clone helper that avoids infinite recursion on cyclic graphs.
+ * Uses a WeakMap to keep track of already-cloned objects.
+ * Accepts Menu, Action or string and returns a cloned equivalent.
+ */
+function cloneDeep(item: any, map = new WeakMap<any, any>()): any {
+    if (typeof item === 'string') return item;
+    if (map.has(item)) return map.get(item);
+
+    // Menu
+    if (item instanceof Menu) {
+        // Create a placeholder and register it to handle cycles.
+        const placeholder = new Menu(item.getName(), [], []);
+        map.set(item, placeholder);
+
+        // Clone values (can be strings, Menu or Action)
+        const clonedValues = item.getValues().map((v: any) => cloneDeep(v, map));
+        const vals = placeholder.getValues();
+        clonedValues.forEach((cv: any) => {
+            if (typeof cv === 'string') {
+                vals.push(cv);
+            } else {
+                // addValue expects Menu | Action
+                placeholder.addValue(cv);
+            }
+        });
+
+        // Clone parents (can be strings, Menu or Action)
+        const clonedParents = item.getParents().map((p: any) => cloneDeep(p, map));
+        const pars = placeholder.getParents();
+        clonedParents.forEach((cp: any) => {
+            if (typeof cp === 'string') {
+                pars.push(cp);
+            } else {
+                placeholder.addParent(cp);
+            }
+        });
+
+        return placeholder;
+    }
+
+    // ActionGoTo: construct manually so we can set to/from with cloneDeep
+    if (item instanceof ActionGoTo) {
+        const orig = item as ActionGoTo;
+        const a = new ActionGoTo(orig.getName(), orig.getGlobal());
+        map.set(item, a);
+        if (orig.isTo()) {
+            a.setTo(cloneDeep(orig.getTo(), map));
+        }
+        if (orig.isFrom()) {
+            a.setFrom(cloneDeep(orig.getFrom(), map));
+        }
+        return a;
+    }
+
+    // Other Actions: rely on their own clone implementations (safe for functions etc.)
+    if (item instanceof Action) {
+        const cloned = item.clone();
+        map.set(item, cloned);
+        return cloned;
+    }
+
+    // Fallback: return as-is
+    return item;
+}
+
 
 class Plugin {
     protected name: string;
@@ -57,6 +123,7 @@ class Plugins {
         return this;
     }
 
+    public getMenus(): Menu[] { return this.getAll().flatMap(plugin => plugin.getMenus()); }
     public findMenu(menuName: string = '' , pluginName: string = ''): Menu | undefined {
         let menu: Menu | undefined = this.getMenu(menuName, pluginName);
 
@@ -82,6 +149,7 @@ class Plugins {
         return menu;
     }
     
+    public getActions(): Action[] { return this.getAll().flatMap(plugin => plugin.getActions()); }
     public getAction(actionName: string = '', pluginName: string = ''): Action | undefined {
         let action: Action | undefined = undefined;
         const plugin = this.get(pluginName);
@@ -122,39 +190,81 @@ class Plugins {
         const back = this.getGoToAction('back')!;
         const globalActions = this.getGlobalActions();
 
-        Object.values(this.items).forEach(plugin => {
-            Object.values(plugin.getMenus()).forEach(menu => {
-                menu.getValues().forEach(value => {
-                    if(typeof value === 'string') {
-                        const item = this.getMenu(value) ?? this.getAction(value);
+        this.getMenus().forEach(menu => {
+            menu.getValues().forEach(value => {
+                if(typeof value === 'string') {
+                    const item = this.getMenu(value) ?? this.getAction(value);
 
-                        if(item) {
-                            menu.addValue(item);
-                            if(item instanceof Menu) {
-                                console.log('add', menu.getName(), 'to', item.getName());
-                                if(menu.getName() !== item.getName()) {
-                                    menu.addValue(back.clone().setFrom(item));
-                                }
+                    if(item) {
+                        menu.addValue(item);
+                        if(item instanceof Menu) {
+                            console.log('add', menu.getName(), 'to', item.getName());
+                            if(menu.getName() !== item.getName()) {
+                                menu.addValue(back.clone().setFrom(item));
                             }
                         }
                     }
-                });
-                menu.getParents().forEach((parent, index) => {
-                    if(typeof parent === 'string') {
-                        const item = this.getMenu(parent) ?? this.getAction(parent);
-                        if(item) {
-                            menu.addParent(item);
-                            if(item instanceof Menu) {
-                                item.addValue(menu);
-                                if(menu.getName() !== item.getName()) {
-                                    console.log(menu.getName(), 'add back to', item.getName());
-                                    menu.addValue(back.clone().setFrom(item));
-                                }
-                            }
-                        }
-                    }
-                });
+                }
             });
+            menu.getParents().forEach((parent, index) => {
+                if(typeof parent === 'string') {
+                    const item = this.getMenu(parent) ?? this.getAction(parent);
+                    if(item) {
+                        menu.addParent(item);
+                        if(item instanceof Menu) {
+                            item.addValue(menu);
+                            if(menu.getName() !== item.getName()) {
+                                console.log(menu.getName(), 'add back to', item.getName());
+                                menu.addValue(back.clone().setFrom(item));
+                            }
+                        }
+                    }
+                }
+            });
+        });
+        this.getActions().forEach(action => {
+            if(action instanceof ActionGoTo) {
+                if(action.isFromString()) {
+                    const item = this.getMenu(action.getFrom() as string) ?? this.getAction(action.getFrom() as string);
+                    if(item) {
+                        action.setFrom(item);
+                        if(item instanceof Menu) {
+                            item.addValue(action);
+                        }
+                    }
+                }
+                if(action.isToString()) {
+                    const backup = this.getMenu(action.getTo() as string) ?? this.getAction(action.getTo() as string);
+                    const item = (this.getMenu(action.getTo() as string) ?? this.getAction(action.getTo() as string))?.clone();
+                    if(item) {
+                        console.log('A Set to', item.getName(), 'for action', action.getName());
+                        if(item instanceof Menu && action.getFrom() instanceof Menu) {
+                            const menu = action.getFrom() as Menu;
+                            console.log('A add', menu.getName(), 'to back', item.getName());
+                            if(item.getName() !== menu.getName()) {
+                                console.log(0,
+                                    (((backup as Menu).getValues().find(
+                                        v => !(typeof v === 'string') && v?.getName() == 'back'
+                                    ) as ActionGoTo | undefined)?.getFrom() as Menu | Action | undefined)?.getName(), 
+                                    ((item.getValues().find(
+                                        v => !(typeof v === 'string') && v?.getName() == 'back'
+                                    ) as ActionGoTo | undefined)?.getFrom() as Menu | Action | undefined)?.getName()
+                                )
+                                item.addValue(back.clone().setFrom(menu));
+                                console.log(1,
+                                    (((backup as Menu).getValues().find(
+                                        v => !(typeof v === 'string') && v?.getName() == 'back'
+                                    ) as ActionGoTo | undefined)?.getFrom() as Menu | Action | undefined)?.getName(), 
+                                    ((item.getValues().find(
+                                        v => !(typeof v === 'string') && v?.getName() == 'back'
+                                    ) as ActionGoTo | undefined)?.getFrom() as Menu | Action | undefined)?.getName()
+                                )
+                            }
+                        }
+                        action.setTo(item);
+                    }
+                }
+            }
         });
         this.getGlobalActions().forEach(action => {
             this.getAll().forEach(plugin => {
@@ -227,7 +337,10 @@ class Menu {
     }
 
     public clone(): Menu {
-        return new Menu(this.getName(), this.getValues());
+        return new Menu(
+            this.getName(), 
+            this.getValues().map(v => typeof v === 'string' ? v : v.clone())
+        );
     }
 
     public async print(): Promise<unknown> {
@@ -291,40 +404,43 @@ abstract class Action {
 
 class ActionGoTo extends Action {
     protected type = 'goto';
-    protected to?: Menu | Action;
-    protected from?: Menu | Action;
+    protected to?: Menu | Action | string;
+    protected from?: Menu | Action | string;
 
     public constructor(
         name: string, 
         global: boolean = false, 
-        to?: Menu | Action, 
-        from?: Menu | Action
+        to?: Menu | Action | string, 
+        from?: Menu | Action | string
     ) {
         super(name, global);
         this.to = to;
         this.from = from;
     }
 
-    public getTo(): Menu | Action | undefined { return this.to; }
+    public getTo(): Menu | Action | string | undefined { return this.to; }
+    public setTo(to: Menu | Action): this { this.to = to; return this; }
     public isTo(): boolean { return this.to !== undefined; }
+    public isToString(): boolean { return this.isTo() && (typeof this.to === 'string'); }
 
-    public setFrom(from: Menu): this { this.from = from; return this; }
-    public getFrom(): Menu | Action | undefined { return this.from; }
+    public getFrom(): Menu | Action | string | undefined { return this.from; }
+    public setFrom(from: Menu | Action): this { this.from = from; return this; }
     public isFrom(): boolean { return this.from !== undefined; }
+    public isFromString(): boolean { return this.isFrom() && (typeof this.from === 'string'); }
 
     public override clone(): this {
         const action = super.clone() as this;
         if(this.isTo()) {
-            action.to = this.getTo();
+            action.to = cloneDeep(this.getTo());
         }
         if(this.isFrom()) {
-            action.from = this.getFrom();
+            action.from = cloneDeep(this.getFrom());
         }
         return action;
     }
 
     public async run(): Promise<unknown> {
-        const item: Menu | Action | undefined = this.getTo() ?? this.getFrom();
+        const item = this.getTo() ?? this.getFrom();
         if(item) {
             if(item instanceof Action) {
                 return (item as Action).run();
@@ -389,7 +505,10 @@ const plugins = new Plugins([
             new ActionFunction('subaction3', false, async () => { console.log('SubAction 3 executed'); } ),
             new ActionFunction('subaction4', false, async () => { console.log('SubAction 4 executed'); } ),
         ]
-    )
+    ),
+    new Plugin('exmaple2', [], [
+        new ActionGoTo('msubmenu2', false,  'submenu2', 'main')!
+    ])
 ]);
 
 
