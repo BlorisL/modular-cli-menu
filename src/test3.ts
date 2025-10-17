@@ -206,7 +206,6 @@ class Plugins {
             menu.getValues().forEach(value => {
                 if(typeof value === 'string') {
                     const item = this.getMenu(value) ?? this.getAction(value);
-
                     if(item) {
                         menu.addValue(item);
                         if(item instanceof Menu) {
@@ -321,11 +320,12 @@ class Menu {
     }
     public addValue(value: Menu | Action): this { 
         if(this.getValue(value.getName())) {
-            this.values.splice(
-                this.values.findIndex(v => (typeof v !== 'string') && v.getName() === value.getName()), 
-                1, 
-                value
+            const index = this.values.findIndex(
+                v => (typeof v === 'string' ? v : v.getName()) === value.getName()
             );
+            if(index !== -1) {
+                this.values.splice(index, 1, value);
+            }
         } else {
             this.values.push(value); 
         }
@@ -334,13 +334,23 @@ class Menu {
     }
 
     public getParents(): Array<Menu | Action | string> { return this.parents; }
+    public getParent(name: string): Menu | Action | string | undefined {
+        return this.parents.find(v => {
+            if(typeof v === 'string') {
+                return v === name ? v : undefined;
+            } else {
+                return v.getName() === name ? v : undefined;
+            }
+        });
+    }
     public addParent(parent: Menu | Action): this { 
-        if(this.parents.includes(parent.getName())) {
-            this.parents.splice(
-                this.parents.findIndex(p => (typeof p !== 'string') && p.getName() === parent.getName()), 
-                1, 
-                parent
+        if(this.getParent(parent.getName())) {
+            const index = this.parents.findIndex(
+                v => (typeof v === 'string' ? v : v.getName()) === parent.getName()
             );
+            if(index !== -1) {
+                this.parents.splice(index, 1, parent);
+            }
         } else {
             this.parents.push(parent); 
         }
@@ -579,6 +589,6 @@ const plugins = new Plugins([
 
 //plugin.getMenu('main')!.addValue(submenu1);
 
-//plugins.getMenu('main')!.print();
+plugins.getMenu('main')!.print();
 
-console.log(JSON.stringify(plugins.toJson()))
+//console.log(JSON.stringify(plugins.toJson()))

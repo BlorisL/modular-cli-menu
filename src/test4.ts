@@ -68,41 +68,93 @@ function cloneDeep(item: any, map = new WeakMap<any, any>()): any {
 
 type PluginJson = {
     name: string;
-    menus: MenuJson[];
-    actions: Array<ActionGoToJson | ActionFunction>;
+    menus?: MenuJson[];
+    actions?: ActionsJson[];
+};
+
+type PluginObject = {
+    name: string;
+    menus: Record<string, Menu>;
+    actions: Record<string, ActionsClass>;
 };
 
 class Plugin {
-    protected name: string;
-    protected menus: Record<string, Menu>;
-    protected actions: Record<string, Action>;
+    protected name: PluginObject['name'];
+    protected menus: PluginObject['menus'];
+    protected actions: PluginObject['actions'];
 
-    public constructor(params: PluginJson) {
-        this.name = params.name;
+    constructor(params: PluginJson);
+    constructor(
+        name: string,
+        menus?: Menu[],
+        actions?: Action[]
+    );
+
+    constructor(
+        nameOrParams: PluginJson | string,
+        menus: Menu[] = [],
+        actions: ActionsClass[] = []
+    ) {
+        if (typeof nameOrParams === 'string') {
+            const name = nameOrParams as string;
+            this.name = name;
+            this.menus = {};
+            this.actions = {};
+
+            menus.forEach(menu => this.addMenu(menu));
+            actions.forEach(action => this.addAction(action));
+        } else {
+            const params = nameOrParams as PluginJson;
+            this.name = params.name;
+            this.menus = {};
+            this.actions = {};
+
+            (params.menus ?? []).forEach(menu => this.addMenu(menu));
+            (params.actions ?? []).forEach(action => this.addAction(action));
+        }
+    }
+
+    /*public constructor(name: string, menus: Menu[] = [], actions: Action[] = []) {
+        this.name = name;
         this.menus = {};
         this.actions = {};
 
-        params.menus.forEach(menu => this.addMenu(new Menu(menu)));
-        params.actions.forEach(action => {
-            const aType = (action as any).type;
-            if (aType === 'goto') {
-                this.addAction(new ActionGoTo(action as ActionGoToJson));
-            } else if (aType === 'function') {
-                this.addAction(new ActionFunction(action as ActionFunctionJson));
-            }
-        });
-    }
+        menus.forEach(menu => this.addMenu(menu));
+        actions.forEach(action => this.addAction(action));
+    }*/
 
     public getName(): string { return this.name; }
 
 
     public getMenus(): Menu[] { return Object.values(this.menus); }
     public getMenu(name: string): Menu | undefined { return this.menus[name]; }
-    public addMenu(menu: Menu): this { this.menus[menu.getName()] = menu; return this; }
+    //public addMenu(menu: Menu): this { this.menus[menu.getName()] = menu; return this; }
+    public addMenu(menu: MenuJson | Menu): this {
+        const m = menu instanceof Menu ? menu : new Menu(menu);
+        this.menus[m.getName()] = m;
+        return this;
+    }
 
-    public getActions(): Action[] { return Object.values(this.actions); }
-    public getAction(name: string): Action | undefined { return this.actions[name]; }
-    public addAction(action: Action): this { this.actions[action.getName()] = action; return this; }
+    public getActions(): ActionsClass[] { return Object.values(this.actions); }
+    public getAction(name: string): ActionsClass | undefined { return this.actions[name]; }
+    //public addAction(action: Action): this { this.actions[action.getName()] = action; return this; }
+    public addAction(action: ActionsJson | ActionsClass): this {
+        let a: ActionsClass | undefined = undefined;
+        if (action instanceof Action) {
+            a = action;
+        } else {
+            switch (action.type) {
+                case 'goto': a = new ActionGoTo(action as ActionGotoJson); break;
+                case 'function': a = new ActionFunction(action as ActionFunctionJson); break;
+            }
+        }
+
+        if(a) {
+            this.actions[a.getName()] = a;
+        }
+
+        return this;
+    }
 
     public getGlobalActions(): Action[] {
         return this.getActions().filter(action => action.isGlobal());
@@ -127,18 +179,29 @@ class Plugin {
     }
 }
 
-class Plugins {
-    protected items: Record<string, Plugin> = {};
+type PluginsJson = PluginJson[];
+type PluginsObject = {
+    items: Record<string, Plugin>;
+};
 
-    public constructor(plugins: PluginJson[] = []) {
-        plugins.forEach(plugin => this.add(new Plugin(plugin)));
+class Plugins {
+    protected items: PluginsObject['items'] = {};
+
+    constructor(params: PluginsJson);
+    constructor(plugins: Plugin[]);
+
+    constructor(
+        pluginsOrParams: PluginsJson | Plugin[] = []
+    ) {
+        pluginsOrParams.forEach(plugin => this.add(plugin));
     }
 
     public getAll(): Plugin[] { return Object.values(this.items); }
 
     public get(name: string): Plugin | undefined { return this.items[name]; }
-    public add(plugin: Plugin): this {
-        this.items[plugin.getName()] = plugin;
+    public add(plugin: PluginJson | Plugin): this {
+        const p = plugin instanceof Plugin ? plugin : new Plugin(plugin);
+        this.items[p.getName()] = p;
         this.checkEntities();
         return this;
     }
@@ -206,19 +269,17 @@ class Plugins {
         return action instanceof ActionFunction ? action : undefined;
     }
 
-    public toJson(): PluginJson[] {
+    public toJson(): PluginsJson {
         return this.getAll().map(p => p.toJson());
     }
 
     protected checkEntities(): void {
         const back = this.getGoToAction('back')!;
-        const globalActions = this.getGlobalActions();
 
         this.getMenus().forEach(menu => {
             menu.getValues().forEach(value => {
                 if (typeof value === 'string') {
                     const item = this.getMenu(value) ?? this.getAction(value);
-
                     if (item) {
                         menu.addValue(item);
                         if (item instanceof Menu) {
@@ -247,80 +308,102 @@ class Plugins {
             });
         });
         this.getActions().forEach(action => {
-            if (action instanceof ActionGoTo) {
-                if (action.isFromString()) {
-                    const item = this.getMenu(action.getFrom() as string) ?? this.getAction(action.getFrom() as string);
-                    if (item) {
-                        action.setFrom(item);
-                        if (item instanceof Menu) {
-                            item.addValue(action);
-                        }
-                    }
-                }
-                if (action.isToString()) {
-                    const backup = this.getMenu(action.getTo() as string) ?? this.getAction(action.getTo() as string);
-                    const item = (this.getMenu(action.getTo() as string) ?? this.getAction(action.getTo() as string))?.clone();
-                    if (item) {
-                        console.log('A Set to', item.getName(), 'for action', action.getName());
-                        if (item instanceof Menu && action.getFrom() instanceof Menu) {
-                            const menu = action.getFrom() as Menu;
-                            console.log('A add', menu.getName(), 'to back', item.getName());
-                            if (item.getName() !== menu.getName()) {
-                                console.log(0,
-                                    (((backup as Menu).getValues().find(
-                                        v => !(typeof v === 'string') && v?.getName() == 'back'
-                                    ) as ActionGoTo | undefined)?.getFrom() as Menu | Action | undefined)?.getName(),
-                                    ((item.getValues().find(
-                                        v => !(typeof v === 'string') && v?.getName() == 'back'
-                                    ) as ActionGoTo | undefined)?.getFrom() as Menu | Action | undefined)?.getName()
-                                )
-                                item.addValue(back.clone().setFrom(menu));
-                                console.log(1,
-                                    (((backup as Menu).getValues().find(
-                                        v => !(typeof v === 'string') && v?.getName() == 'back'
-                                    ) as ActionGoTo | undefined)?.getFrom() as Menu | Action | undefined)?.getName(),
-                                    ((item.getValues().find(
-                                        v => !(typeof v === 'string') && v?.getName() == 'back'
-                                    ) as ActionGoTo | undefined)?.getFrom() as Menu | Action | undefined)?.getName()
-                                )
+            if(!action.isGlobal()) {
+                if (action instanceof ActionGoTo) {
+                    if (action.isFromString()) {
+                        const item = this.getMenu(action.getFrom() as string) ?? this.getAction(action.getFrom() as string);
+                        if (item) {
+                            action.setFrom(item);
+                            if (item instanceof Menu) {
+                                item.addValue(action);
                             }
                         }
-                        action.setTo(item);
+                    }
+                    if (action.isToString()) {
+                        const item = (this.getMenu(action.getTo() as string) ?? this.getAction(action.getTo() as string))?.clone();
+                        if (item) {
+                            if (item instanceof Menu && action.getFrom() instanceof Menu) {
+                                const menu = action.getFrom() as Menu;
+                                if (item.getName() !== menu.getName()) {
+                                    item.addValue(back.clone().setFrom(menu));
+                                }
+                            }
+                            action.setTo(item);
+                        }
                     }
                 }
             }
         });
         this.getGlobalActions().forEach(action => {
-            this.getAll().forEach(plugin => {
-                plugin.getMenus().forEach(menu => {
-                    menu.addValue(action.clone());
+            if(action.getName() !== 'back') {
+                this.getAll().forEach(plugin => {
+                    plugin.getMenus().forEach(menu => {
+                        menu.addValue(action.clone());
+                    });
                 });
+            }
+        });
+        this.getMenus().forEach(menu => {
+            menu.getValues().sort((a, b) => {
+                const aIsGlobal = a instanceof Action && a.isGlobal();
+                const bIsGlobal = b instanceof Action && b.isGlobal();
+
+                if (aIsGlobal && !bIsGlobal) return 1;
+                if (!aIsGlobal && bIsGlobal) return -1;
+                
+                return 0;
             });
         });
     }
 }
 
 type MenuJson = {
-    name: string
-    values: string[];
-    parents: string[];
+    name: string;
+    values?: Array<string>;
+    parents?: Array<string>;
+};
+type MenuValueObject = Menu | Action | string;
+type MenuParentObject = Menu | Action | string;
+type MenuObject = {
+    name: string;
+    values: MenuValueObject[];
+    parents: MenuParentObject[];
 };
 
 class Menu {
-    protected name: string;
-    protected values: Array<Menu | Action | string>;
-    protected parents: Array<Menu | Action | string>;
+    protected name: MenuObject['name'];
+    protected values: MenuObject['values'];
+    protected parents: MenuObject['parents'];
 
-    public constructor(params: MenuJson) {
-        this.name = params.name;
-        this.values = params.values ?? [];
-        this.parents = params.parents ?? [];
+    constructor(params: MenuJson);
+    constructor(
+        name: string,
+        values?: Array<Menu | Action | string>,
+        parents?: Array<Menu | Action | string>
+    );
+
+    constructor(
+        nameOrParams: MenuJson | MenuObject['name'],
+        values?: MenuObject['values'],
+        parents?: MenuObject['parents']
+    ) {
+        if (typeof nameOrParams === 'string') {
+            const name = nameOrParams as string;
+            this.name = name;
+            this.values = values ?? [];
+            this.parents = parents ?? [];
+        } else {
+            const params = nameOrParams as MenuJson;
+            this.name = params.name;
+            this.values = (params.values ?? []) as MenuObject['values'];
+            this.parents = (params.parents ?? []) as MenuObject['parents'];
+        }
     }
 
     public getName(): string { return this.name; }
 
-    public getValues(): Array<Menu | Action | string> { return this.values; }
-    public getValue(name: string): Menu | Action | string | undefined {
+    public getValues(): MenuObject['values'] { return this.values; }
+    public getValue(name: string): MenuValueObject | undefined {
         return this.values.find(v => {
             if (typeof v === 'string') {
                 return v === name ? v : undefined;
@@ -329,17 +412,18 @@ class Menu {
             }
         });
     }
-    public addValues(values: Array<Menu | Action>): this {
+    public addValues(values: Exclude<MenuValueObject, string>[]): this {
         values.forEach(value => this.addValue(value));
         return this;
     }
-    public addValue(value: Menu | Action): this {
+    public addValue(value: Exclude<MenuValueObject, string>): this {
         if (this.getValue(value.getName())) {
-            this.values.splice(
-                this.values.findIndex(v => (typeof v !== 'string') && v.getName() === value.getName()),
-                1,
-                value
+            const index = this.values.findIndex(
+                v => (typeof v === 'string' ? v : v.getName()) === value.getName()
             );
+            if (index !== -1) {
+                this.values.splice(index, 1, value);
+            }
         } else {
             this.values.push(value);
         }
@@ -347,14 +431,24 @@ class Menu {
         return this;
     }
 
-    public getParents(): Array<Menu | Action | string> { return this.parents; }
-    public addParent(parent: Menu | Action): this {
-        if (this.parents.includes(parent.getName())) {
-            this.parents.splice(
-                this.parents.findIndex(p => (typeof p !== 'string') && p.getName() === parent.getName()),
-                1,
-                parent
+    public getParents(): MenuObject['parents'] { return this.parents; }
+    public getParent(name: string): MenuParentObject | undefined {
+        return this.parents.find(v => {
+            if (typeof v === 'string') {
+                return v === name ? v : undefined;
+            } else {
+                return v.getName() === name ? v : undefined;
+            }
+        });
+    }
+    public addParent(parent: Exclude<MenuParentObject, string>): this {
+        if (this.getParent(parent.getName())) {
+            const index = this.parents.findIndex(
+                v => (typeof v === 'string' ? v : v.getName()) === parent.getName()
             );
+            if (index !== -1) {
+                this.parents.splice(index, 1, parent);
+            }
         } else {
             this.parents.push(parent);
         }
@@ -371,7 +465,10 @@ class Menu {
     }
 
     public clone(): Menu {
-        return new Menu(this.toJson());
+        return new Menu(
+            this.getName(),
+            this.getValues().map(v => typeof v === 'string' ? v : v.clone())
+        );
     }
 
     public async print(): Promise<unknown> {
@@ -407,85 +504,139 @@ class Menu {
 
 }
 
+type ActionType = 'goto' | 'function';
+type ActionsJson = ActionGotoJson | ActionFunctionJson;
+type ActionsClass = ActionGoTo | ActionFunction;
+
 type ActionJson = {
     name: string;
-    //type: string;
+    type: ActionType;
+    global?: boolean;
+};
+type ActionObject = {
+    name: string;
+    type: ActionType;
     global: boolean;
 };
 
 abstract class Action {
-    protected name: string;
-    protected abstract type: string;
-    protected global: boolean;
+    protected name: ActionObject['name'];
+    protected abstract type: ActionObject['type'];
+    protected global: ActionObject['global'];
 
-    public constructor(params: ActionJson) {
-        this.name = params.name;
-        this.global = params.global ?? false;
+    constructor(
+        nameOrParams: ActionJson | string,
+        global: boolean = false
+    ) {
+        if (typeof nameOrParams === 'string') {
+            const name = nameOrParams as string;
+            this.name = name;
+            this.global = global ?? false;
+        } else {
+            const params = nameOrParams as ActionJson;
+            this.name = params.name;
+            this.global = params.global ?? false;
+        }
     }
 
-    public getName(): string { return this.name; }
+    public getName(): ActionObject['name'] { return this.name; }
 
-    public getGlobal(): boolean { return this.global; }
+    public getGlobal(): ActionObject['global'] { return this.global; }
     public isGlobal(): boolean { return this.getGlobal() === true; }
 
-    public getType(): string { return this.type; }
+    public abstract getType(): ActionObject['type'];
 
     public toJson(): ActionJson {
         return {
             name: this.getName(),
-            //type: this.getType(),
+            type: this.getType(),
             global: this.getGlobal()
         };
     }
 
     public clone(): this {
-        const Constructor = this.constructor as new (params: ActionJson) => this;
-        return new Constructor(this.toJson());
+        const Constructor = this.constructor as new (name: string, global: boolean) => this;
+        return new Constructor(this.getName(), this.getGlobal());
     }
 
     public abstract run(): Promise<unknown>;
 }
 
-type ActionGoToJson = ActionJson & {
-    type: string;
+type ActionGotoJson = { type: 'goto' } & Omit<ActionJson, 'type'> & {
     to?: string;
     from?: string;
 };
+type ActionGotoToObject = Menu | Action | string;
+type ActionGotoFromObject = Menu | Action | string;
+type ActionGotoObject = { type: ActionGotoJson['type'] } & Omit<ActionObject, 'type'> & {
+    to?: ActionGotoToObject;
+    from?: ActionGotoFromObject;
+}
 
 class ActionGoTo extends Action {
-    protected type = 'goto';
-    protected to?: Menu | Action | string;
-    protected from?: Menu | Action | string;
+    protected type: ActionGotoObject['type'] = 'goto';
+    protected to?: ActionGotoToObject;
+    protected from?: ActionGotoFromObject;
 
-    public constructor(params: ActionGoToJson) {
-        const { type, to, from, ...others } = params;
-        super(others);
-        this.to = to;
-        this.from = from;
+    constructor(params: ActionGotoJson);
+    constructor(
+        name: string,
+        global?: boolean,
+        to?: ActionGotoToObject,
+        from?: ActionGotoFromObject
+    );
+
+    constructor(
+        nameOrParams: ActionGotoJson | string,
+        global?: boolean,
+        to?: ActionGotoToObject,
+        from?: ActionGotoFromObject
+    ) {
+        super(nameOrParams, global);
+
+        if (typeof nameOrParams === 'string') {
+            this.to = to;
+            this.from = from;
+        } else {
+            this.to = nameOrParams.to;
+            this.from = nameOrParams.from;
+        }
     }
 
-    public getTo(): Menu | Action | string | undefined { return this.to; }
-    public setTo(to: Menu | Action): this { this.to = to; return this; }
+    public getType(): ActionGotoObject['type'] { return this.type; }
+
+    public getTo(): ActionGotoToObject | undefined { return this.to; }
+    public setTo(to: Exclude<ActionGotoToObject, string>): this { this.to = to; return this; }
     public isTo(): boolean { return this.to !== undefined; }
     public isToString(): boolean { return this.isTo() && (typeof this.to === 'string'); }
 
-    public getFrom(): Menu | Action | string | undefined { return this.from; }
-    public setFrom(from: Menu | Action): this { this.from = from; return this; }
+    public getFrom(): ActionGotoFromObject | undefined { return this.from; }
+    public setFrom(from: Exclude<ActionGotoFromObject, string>): this { this.from = from; return this; }
     public isFrom(): boolean { return this.from !== undefined; }
     public isFromString(): boolean { return this.isFrom() && (typeof this.from === 'string'); }
 
-    public toJson(): ActionGoToJson {
+    public toJson(): ActionGotoJson {
         return {
             ...super.toJson(),
             type: this.getType(),
-            to: this.isToString() ? (this.getTo() as string) : (this.getTo() as Menu | Action | undefined)?.getName(),
-            from: this.isFromString() ? (this.getFrom() as string) : (this.getFrom() as Menu | Action | undefined)?.getName(),
+            to: this.isToString()
+                ? this.getTo() as string
+                : (this.getTo() as Menu | Action | undefined)?.getName(),
+            from: this.isFromString()
+                ? this.getFrom() as string
+                : (this.getFrom() as Menu | Action | undefined)?.getName(),
         };
     }
 
     public override clone(): this {
-        const Constructor = this.constructor as new (params: ActionGoToJson) => this;
-        return new Constructor(this.toJson());
+        const action = super.clone() as this;
+        if (this.isTo()) {
+            action.to = cloneDeep(this.getTo());
+        }
+        if (this.isFrom()) {
+            action.from = cloneDeep(this.getFrom());
+        }
+        return action;
     }
 
     public async run(): Promise<unknown> {
@@ -500,20 +651,38 @@ class ActionGoTo extends Action {
     }
 }
 
-type ActionFunctionJson = ActionJson & {
-    type: string;
+type ActionFunctionJson = { type: 'function' } & Omit<ActionJson, 'type'> & {
     callback: () => Promise<unknown>;
 };
-
+type ActionFunctionObject = { type: ActionFunctionJson['type'] } & Omit<ActionObject, 'type'> & {
+    callback: () => Promise<unknown>;
+};
 class ActionFunction extends Action {
-    protected type = 'function';
-    protected callback: () => Promise<unknown>;
+    protected type: ActionFunctionObject['type'] = 'function';
+    protected callback: ActionFunctionObject['callback'];
 
-    public constructor(params: ActionFunctionJson) {
-        const { type, callback, ...others } = params;
-        super(others);
-        this.callback = callback;
+    constructor(params: ActionFunctionJson);
+    constructor(
+        name: string,
+        global: boolean,
+        callback: () => Promise<unknown>
+    );
+
+    constructor(
+        nameOrParams: ActionFunctionJson | string,
+        global?: boolean,
+        callback?: () => Promise<unknown>
+    ) {
+        super(nameOrParams, global);
+
+        if (typeof nameOrParams === 'string') {
+            this.callback = callback!;
+        } else {
+            this.callback = nameOrParams.callback;
+        }
     }
+
+    public getType(): ActionFunctionObject['type'] { return this.type; }
 
     public toJson(): ActionFunctionJson {
         return {
@@ -524,14 +693,116 @@ class ActionFunction extends Action {
     }
 
     public override clone(): this {
-        const Constructor = this.constructor as new (params: ActionFunctionJson) => this;
-        return new Constructor(this.toJson());
+        const action = super.clone() as this;
+        action.callback = this.callback;
+        return action;
     }
 
     public async run(): Promise<unknown> {
         return await this.callback();
     }
 }
+
+const plugins = new Plugins([
+    {
+        name: "default",
+        menus: [
+            {
+                name: "main",
+                values: [
+                    "action1",
+                    "action2",
+                ],
+                parents: []
+            }
+        ],
+        actions: [
+            {
+                name: "back",
+                type: "goto",
+                global: true
+            },
+            {
+                name: "exit",
+                type: "function",
+                global: true,
+                callback: async () => { 
+                    console.log('Exiting...'); 
+                    process.exit(0); 
+                }
+            },
+            {
+                name: "action1",
+                type: "function",
+                callback: async () => { console.log('Action 1 executed'); }
+            },
+            {
+                name: "action2",
+                type: "function",
+                callback: async () => { console.log('Action 2 executed'); }
+            }
+        ]
+    },
+    {
+        name: "example",
+        menus: [
+            {
+                name: "submenu1",
+                values: [
+                    "subaction1",
+                    "subaction2",
+                ],
+                parents: [
+                    "main"
+                ]
+            },
+            {
+                name: "submenu2",
+                values: [
+                    "subaction3",
+                    "subaction4",
+                ],
+                parents: [
+                    "submenu1"
+                ]
+            }
+        ],
+        actions: [
+            {
+                name: "subaction1",
+                type: "function",
+                callback: async () => { console.log('SubAction 1 executed'); }
+            },
+            {
+                name: "subaction2",
+                type: "function",
+                callback: async () => { console.log('SubAction 2 executed'); }
+            },
+            {
+                name: "subaction3",
+                type: "function",
+                callback: async () => { console.log('SubAction 3 executed'); }
+            },
+            {
+                name: "subaction4",
+                type: "function",
+                callback: async () => { console.log('SubAction 4 executed'); }
+            }
+        ]
+    },
+    {
+        name: "exmaple2",
+        menus: [],
+        actions: [
+            {
+                name: "msubmenu2",
+                type: "goto",
+                to: "submenu2",
+                from: "main"
+            }
+        ]
+    }
+]);
 
 /*const plugins = new Plugins([
     new Plugin(
@@ -566,112 +837,6 @@ class ActionFunction extends Action {
         new ActionGoTo('msubmenu2', false,  'submenu2', 'main')!
     ])
 ]);*/
-
-const plugins = new Plugins([
-    {
-        "name": "default",
-        "menus": [
-            {
-                "name": "main",
-                "values": [
-                    "action1",
-                    "action2",
-                    "exit",
-                    "submenu1",
-                    "msubmenu2"
-                ],
-                "parents": []
-            }
-        ],
-        "actions": [
-            {
-                "name": "back",
-                "type": "goto",
-                "global": false
-            },
-            {
-                "name": "exit",
-                "type": "function",
-                "global": true
-            },
-            {
-                "name": "action1",
-                "type": "function",
-                "global": false
-            },
-            {
-                "name": "action2",
-                "type": "function",
-                "global": false
-            }
-        ]
-    },
-    {
-        "name": "example",
-        "menus": [
-            {
-                "name": "submenu1",
-                "values": [
-                    "subaction1",
-                    "subaction2",
-                    "back",
-                    "submenu2",
-                    "exit"
-                ],
-                "parents": [
-                    "main"
-                ]
-            },
-            {
-                "name": "submenu2",
-                "values": [
-                    "subaction3",
-                    "subaction4",
-                    "back",
-                    "exit"
-                ],
-                "parents": [
-                    "submenu1"
-                ]
-            }
-        ],
-        "actions": [
-            {
-                "name": "subaction1",
-                "type": "function",
-                "global": false
-            },
-            {
-                "name": "subaction2",
-                "type": "function",
-                "global": false
-            },
-            {
-                "name": "subaction3",
-                "type": "function",
-                "global": false
-            },
-            {
-                "name": "subaction4",
-                "type": "function",
-                "global": false
-            }
-        ]
-    },
-    {
-        "name": "exmaple2",
-        "menus": [],
-        "actions": [
-            {
-                "name": "msubmenu2",
-                "type": "goto",
-                "global": false,
-                "to": "submenu2",
-                "from": "main"
-            }
-        ]
-    }
-])
 
 
 //const mainMenu = new Menu('main', [
