@@ -1,3 +1,4 @@
+import input from '@inquirer/input';
 import { Choice, choices } from "@/prompts/Choices";
 
 /**
@@ -5,7 +6,7 @@ import { Choice, choices } from "@/prompts/Choices";
  * Uses a WeakMap to keep track of already-cloned objects.
  * Accepts Menu, Action or string and returns a cloned equivalent.
  */
-function cloneDeep(item: any, map = new WeakMap<any, any>()): any {
+/*function cloneDeep(item: any, map = new WeakMap<any, any>()): any {
     if (typeof item === 'string') return item;
     if (map.has(item)) return map.get(item);
 
@@ -64,17 +65,17 @@ function cloneDeep(item: any, map = new WeakMap<any, any>()): any {
 
     // Fallback: return as-is
     return item;
-}
+}*/
 
 type PluginJson = {
     name: string;
-    menus?: MenuJson[];
+    menus?: MenusJson[];
     actions?: ActionsJson[];
 };
 
 type PluginObject = {
     name: string;
-    menus: Record<string, Menu>;
+    menus: Record<string, MenusClass>;
     actions: Record<string, ActionsClass>;
 };
 
@@ -92,7 +93,7 @@ class Plugin {
 
     constructor(
         nameOrParams: PluginJson | string,
-        menus: Menu[] = [],
+        menus: MenusClass[] = [],
         actions: ActionsClass[] = []
     ) {
         if (typeof nameOrParams === 'string') {
@@ -126,12 +127,24 @@ class Plugin {
     public getName(): string { return this.name; }
 
 
-    public getMenus(): Menu[] { return Object.values(this.menus); }
-    public getMenu(name: string): Menu | undefined { return this.menus[name]; }
+    public getMenus(): MenusClass[] { return Object.values(this.menus); }
+    public getMenu(name: string): MenusClass | undefined { return this.menus[name]; }
     //public addMenu(menu: Menu): this { this.menus[menu.getName()] = menu; return this; }
-    public addMenu(menu: MenuJson | Menu): this {
-        const m = menu instanceof Menu ? menu : new Menu(menu);
-        this.menus[m.getName()] = m;
+    public addMenu(menu: MenusJson | MenusClass): this {
+        let m: MenusClass | undefined = undefined;
+        if (menu instanceof Menu) {
+            m = menu;
+        } else {
+            switch (menu.type) {
+                case 'select': m = new MenuSelect(menu as MenuSelectJson); break;
+                case 'input': m = new MenuInput(menu as MenuInputJson); break;
+            }
+        }
+
+        if(m) {
+            this.menus[m.getName()] = m;
+        }
+
         return this;
     }
 
@@ -206,7 +219,7 @@ class Plugins {
         return this;
     }
 
-    public getMenus(): Menu[] { return this.getAll().flatMap(plugin => plugin.getMenus()); }
+    public getMenus(): MenusClass[] { return this.getAll().flatMap(plugin => plugin.getMenus()); }
     public findMenu(menuName: string = '', pluginName: string = ''): Menu | undefined {
         let menu: Menu | undefined = this.getMenu(menuName, pluginName);
 
@@ -277,30 +290,34 @@ class Plugins {
         const back = this.getGoToAction('back')!;
 
         this.getMenus().forEach(menu => {
-            menu.getValues().forEach(value => {
-                if (typeof value === 'string') {
-                    const item = this.getMenu(value) ?? this.getAction(value);
-                    if (item) {
-                        menu.addValue(item);
-                        if (item instanceof Menu) {
-                            console.log('add', menu.getName(), 'to', item.getName());
-                            if (menu.getName() !== item.getName()) {
-                                menu.addValue(back.clone().setFrom(item));
+            if (menu instanceof MenuSelect) {
+                menu.getValues().forEach(value => {
+                    if (typeof value === 'string') {
+                        const item = this.getMenu(value) ?? this.getAction(value);
+                        if (item) {
+                            menu.addValue(item);
+                            if (item instanceof Menu) {
+                                console.log('add', menu.getName(), 'to', item.getName());
+                                if (menu.getName() !== item.getName()) {
+                                    menu.addValue(back.clone().setFrom(item));
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
             menu.getParents().forEach((parent, index) => {
                 if (typeof parent === 'string') {
                     const item = this.getMenu(parent) ?? this.getAction(parent);
                     if (item) {
                         menu.addParent(item);
-                        if (item instanceof Menu) {
+                        if (item instanceof MenuSelect) {
                             item.addValue(menu);
                             if (menu.getName() !== item.getName()) {
                                 console.log(menu.getName(), 'add back to', item.getName());
-                                menu.addValue(back.clone().setFrom(item));
+                                if (menu instanceof MenuSelect) {
+                                    menu.addValue(back.clone().setFrom(item));
+                                }
                             }
                         }
                     }
@@ -314,7 +331,7 @@ class Plugins {
                         const item = this.getMenu(action.getFrom() as string) ?? this.getAction(action.getFrom() as string);
                         if (item) {
                             action.setFrom(item);
-                            if (item instanceof Menu) {
+                            if (item instanceof MenuSelect) {
                                 item.addValue(action);
                             }
                         }
@@ -325,7 +342,9 @@ class Plugins {
                             if (item instanceof Menu && action.getFrom() instanceof Menu) {
                                 const menu = action.getFrom() as Menu;
                                 if (item.getName() !== menu.getName()) {
-                                    item.addValue(back.clone().setFrom(menu));
+                                    if(item instanceof MenuSelect) {
+                                        item.addValue(back.clone().setFrom(menu));
+                                    }
                                 }
                             }
                             action.setTo(item);
@@ -338,98 +357,67 @@ class Plugins {
             if(action.getName() !== 'back') {
                 this.getAll().forEach(plugin => {
                     plugin.getMenus().forEach(menu => {
-                        menu.addValue(action.clone());
+                        if(menu instanceof MenuSelect) {
+                            menu.addValue(action.clone());
+                        }
                     });
                 });
             }
         });
         this.getMenus().forEach(menu => {
-            menu.getValues().sort((a, b) => {
-                const aIsGlobal = a instanceof Action && a.isGlobal();
-                const bIsGlobal = b instanceof Action && b.isGlobal();
+            if(menu instanceof MenuSelect) {
+                menu.getValues().sort((a, b) => {
+                    const aIsGlobal = a instanceof Action && a.isGlobal();
+                    const bIsGlobal = b instanceof Action && b.isGlobal();
 
-                if (aIsGlobal && !bIsGlobal) return 1;
-                if (!aIsGlobal && bIsGlobal) return -1;
-                
-                return 0;
-            });
+                    if (aIsGlobal && !bIsGlobal) return 1;
+                    if (!aIsGlobal && bIsGlobal) return -1;
+                    
+                    return 0;
+                });
+            }
         });
     }
 }
 
+type MenuType = 'select' | 'input';
+type MenusJson = MenuSelectJson | MenuInputJson;
+type MenusClass = MenuSelect | MenuInput;
 type MenuJson = {
     name: string;
-    values?: Array<string>;
+    type: MenuType;
     parents?: Array<string>;
 };
-type MenuValueObject = Menu | Action | string;
 type MenuParentObject = Menu | Action | string;
 type MenuObject = {
     name: string;
-    values: MenuValueObject[];
+    type: MenuType;
     parents: MenuParentObject[];
 };
 
-class Menu {
+abstract class Menu {
     protected name: MenuObject['name'];
-    protected values: MenuObject['values'];
+    protected abstract type: MenuObject['type'];
     protected parents: MenuObject['parents'];
-
-    constructor(params: MenuJson);
-    constructor(
-        name: string,
-        values?: Array<Menu | Action | string>,
-        parents?: Array<Menu | Action | string>
-    );
 
     constructor(
         nameOrParams: MenuJson | MenuObject['name'],
-        values?: MenuObject['values'],
         parents?: MenuObject['parents']
     ) {
         if (typeof nameOrParams === 'string') {
             const name = nameOrParams as string;
             this.name = name;
-            this.values = values ?? [];
             this.parents = parents ?? [];
         } else {
             const params = nameOrParams as MenuJson;
             this.name = params.name;
-            this.values = (params.values ?? []) as MenuObject['values'];
             this.parents = (params.parents ?? []) as MenuObject['parents'];
         }
     }
 
     public getName(): string { return this.name; }
-
-    public getValues(): MenuObject['values'] { return this.values; }
-    public getValue(name: string): MenuValueObject | undefined {
-        return this.values.find(v => {
-            if (typeof v === 'string') {
-                return v === name ? v : undefined;
-            } else {
-                return v.getName() === name ? v : undefined;
-            }
-        });
-    }
-    public addValues(values: Exclude<MenuValueObject, string>[]): this {
-        values.forEach(value => this.addValue(value));
-        return this;
-    }
-    public addValue(value: Exclude<MenuValueObject, string>): this {
-        if (this.getValue(value.getName())) {
-            const index = this.values.findIndex(
-                v => (typeof v === 'string' ? v : v.getName()) === value.getName()
-            );
-            if (index !== -1) {
-                this.values.splice(index, 1, value);
-            }
-        } else {
-            this.values.push(value);
-        }
-
-        return this;
-    }
+    
+    public abstract getType(): MenuObject['type'];
 
     public getParents(): MenuObject['parents'] { return this.parents; }
     public getParent(name: string): MenuParentObject | undefined {
@@ -459,16 +447,123 @@ class Menu {
     public toJson(): MenuJson {
         return {
             name: this.getName(),
-            values: this.getValues().map(v => typeof v === 'string' ? v : v.getName()),
+            type: this.getType(),
             parents: this.getParents().map(p => typeof p === 'string' ? p : p.getName())
         };
     }
 
-    public clone(): Menu {
-        return new Menu(
-            this.getName(),
-            this.getValues().map(v => typeof v === 'string' ? v : v.clone())
+    public clone(): this {
+        const Constructor = this.constructor as new (name: MenuObject['name'], parents?: MenuObject['parents']) => this;
+        return new Constructor(this.getName(), this.getParents());
+    }
+
+    public abstract print(): Promise<unknown>;
+}
+
+type MenuSelectJson = { type: 'select' } & Omit<MenuJson, 'type'> & {
+    values?: Array<string>;
+};
+type MenuSelectValueObject = Menu | Action | string;
+type MenuSelectObject = { type: MenuSelectJson['type'] } & Omit<MenuObject, 'type'> & {
+    values: MenuSelectValueObject[];
+}
+class MenuSelect extends Menu {
+    protected type: MenuSelectObject['type'] = 'select';
+    protected values: MenuSelectObject['values'];
+
+    constructor(params: MenuSelectJson);
+    constructor(
+        name: string,
+        parents?: MenuSelectObject['parents'],
+        values?: MenuSelectValueObject[],
+    );
+
+    constructor(
+        nameOrParams: MenuSelectJson | string,
+        parents?: MenuSelectObject['parents'],
+        values?: MenuSelectValueObject[],
+    ) {
+        super(nameOrParams, parents);
+
+        if (typeof nameOrParams === 'string') {
+            this.values = values ?? [];
+        } else {
+            this.values = nameOrParams.values ?? [];
+        }
+    }
+
+    public getValues(): MenuSelectObject['values'] { return this.values; }
+    public getValue(name: string): MenuSelectValueObject | undefined {
+        return this.values.find((v: MenuSelectValueObject) => 
+            (typeof v === 'string' ? v : v.getName()) === name ? v : undefined
         );
+    }
+    public hasValue(name: string): boolean { return typeof this.getValue(name) !== 'undefined'; }
+    public setValues(values: MenuSelectObject['values']): this {
+        this.values = [];
+        values.forEach(value => this.setValue(value));
+        return this;
+    }
+    public addValues(values: Exclude<MenuSelectValueObject, string>[]): this {
+        values.forEach(value => this.addValue(value));
+        return this;
+    }
+    public setValue(value: MenuSelectValueObject): this {
+        if(!this.hasValue(typeof value === 'string' ? value : value.getName())) {
+            this.values.push(value);
+        }
+        return this;
+    }
+    public addValue(value: Exclude<MenuSelectValueObject, string>): this {
+        if (this.getValue(value.getName())) {
+            const index = this.values.findIndex(
+                v => (typeof v === 'string' ? v : v.getName()) === value.getName()
+            );
+            if (index !== -1) {
+                this.values.splice(index, 1, value);
+            }
+        } else {
+            this.values.push(value);
+        }
+
+        return this;
+    }
+
+    public getType(): MenuSelectObject['type'] { return this.type; }
+
+    public toJson(): MenuSelectJson {
+        return {
+            ...super.toJson(),
+            type: this.getType(),
+            values: this.getValues().map((v: MenuSelectValueObject) => typeof v === 'string' ? v : v.getName())
+        };
+    }
+
+    public override clone(): this {
+        const menu = super.clone() as this;
+        this.getValues().forEach((value: MenuSelectValueObject) => {
+            let v: MenuSelectValueObject | undefined = undefined;
+            if (typeof value === 'string') {
+                v = value;
+            } else if (value instanceof Menu) {
+                switch (value.getType()) {
+                    case 'select': v = (value as MenuSelect).clone(); break;
+                    //case 'function': v = (value as MenuInput).clone(); break;
+                    default: v = value.clone(); break;
+                }
+            } else if (value instanceof Action) {
+                switch (value.getType()) {
+                    case 'goto': v = (value as ActionGoTo).clone(); break;
+                    case 'function': v = (value as ActionFunction).clone(); break;
+                    default: v = value.clone(); break;
+                }
+            }
+
+            if(v) {
+                menu.setValue(v);
+            }
+        });
+        return menu;
     }
 
     public async print(): Promise<unknown> {
@@ -501,13 +596,67 @@ class Menu {
 
         return this;
     }
+}
+
+type MenuInputJson = { type: 'input' } & Omit<MenuJson, 'type'> & {
+    //value?: string;
+};
+//type MenuInputValueObject = string;
+type MenuInputObject = { type: MenuInputJson['type'] } & Omit<MenuObject, 'type'> & {
+    //values: MenuInputValueObject;
+}
+class MenuInput extends Menu {
+    protected type: MenuInputObject['type'] = 'input';
+    //protected value: MenuInputObject['value'];
+
+    constructor(params: MenuInputJson);
+    constructor(
+        name: string,
+        parents?: MenuInputObject['parents'],
+        //value?: MenuInputValueObject,
+    );
+
+    constructor(
+        nameOrParams: MenuInputJson | string,
+        parents?: MenuInputObject['parents'],
+        //value?: MenuInputValueObject,
+    ) {
+        super(nameOrParams, parents);
+
+        if (typeof nameOrParams === 'string') {
+            //this.value = value;
+        } else {
+            //this.value = nameOrParams.value;
+        }
+    }
+
+    public getType(): MenuInputObject['type'] { return this.type; }
+
+    public toJson(): MenuInputJson {
+        return {
+            ...super.toJson(),
+            type: this.getType(),
+            //value: this.getValue()
+        };
+    }
+
+    public override clone(): this {
+        return super.clone() as this;
+    }
+
+    public async print(): Promise<unknown> {
+        const answer = await input({
+            message: `Enter a value for menu "${this.getName()}"`,
+        });
+
+        return answer;
+    }
 
 }
 
 type ActionType = 'goto' | 'function';
 type ActionsJson = ActionGotoJson | ActionFunctionJson;
 type ActionsClass = ActionGoTo | ActionFunction;
-
 type ActionJson = {
     name: string;
     type: ActionType;
@@ -525,7 +674,7 @@ abstract class Action {
     protected global: ActionObject['global'];
 
     constructor(
-        nameOrParams: ActionJson | string,
+        nameOrParams: ActionJson | ActionObject['name'],
         global: boolean = false
     ) {
         if (typeof nameOrParams === 'string') {
@@ -541,10 +690,10 @@ abstract class Action {
 
     public getName(): ActionObject['name'] { return this.name; }
 
+    public abstract getType(): ActionObject['type'];
+
     public getGlobal(): ActionObject['global'] { return this.global; }
     public isGlobal(): boolean { return this.getGlobal() === true; }
-
-    public abstract getType(): ActionObject['type'];
 
     public toJson(): ActionJson {
         return {
@@ -555,7 +704,7 @@ abstract class Action {
     }
 
     public clone(): this {
-        const Constructor = this.constructor as new (name: string, global: boolean) => this;
+        const Constructor = this.constructor as new (name: ActionObject['name'], global: ActionObject['global']) => this;
         return new Constructor(this.getName(), this.getGlobal());
     }
 
@@ -628,13 +777,21 @@ class ActionGoTo extends Action {
         };
     }
 
+    public cloneTo(): ActionGotoToObject | undefined {
+        return this.isToString() ? this.getTo() : (this.getTo() as Exclude<ActionGotoToObject, string>)?.clone();
+    }
+
+    public cloneFrom(): ActionGotoFromObject | undefined {
+        return this.isFromString() ? this.getFrom() : (this.getFrom() as Exclude<ActionGotoFromObject, string>)?.clone();
+    }
+
     public override clone(): this {
         const action = super.clone() as this;
         if (this.isTo()) {
-            action.to = cloneDeep(this.getTo());
+            action.to = this.cloneTo(); //cloneDeep(this.getTo());
         }
         if (this.isFrom()) {
-            action.from = cloneDeep(this.getFrom());
+            action.from = this.cloneFrom(); //cloneDeep(this.getFrom());
         }
         return action;
     }
@@ -709,6 +866,7 @@ const plugins = new Plugins([
         menus: [
             {
                 name: "main",
+                type: "select",
                 values: [
                     "action1",
                     "action2",
@@ -748,6 +906,7 @@ const plugins = new Plugins([
         menus: [
             {
                 name: "submenu1",
+                type: "select",
                 values: [
                     "subaction1",
                     "subaction2",
@@ -758,6 +917,7 @@ const plugins = new Plugins([
             },
             {
                 name: "submenu2",
+                type: "select",
                 values: [
                     "subaction3",
                     "subaction4",
