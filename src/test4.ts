@@ -454,7 +454,9 @@ abstract class Menu {
 
     public clone(): this {
         const Constructor = this.constructor as new (name: MenuObject['name'], parents?: MenuObject['parents']) => this;
-        return new Constructor(this.getName(), this.getParents());
+        // Don't clone parents to avoid circular references
+        // Just copy the references as they are
+        return new Constructor(this.getName(), [...this.getParents()]);
     }
 
     public abstract print(): Promise<unknown>;
@@ -541,28 +543,9 @@ class MenuSelect extends Menu {
 
     public override clone(): this {
         const menu = super.clone() as this;
-        this.getValues().forEach((value: MenuSelectValueObject) => {
-            let v: MenuSelectValueObject | undefined = undefined;
-            if (typeof value === 'string') {
-                v = value;
-            } else if (value instanceof Menu) {
-                switch (value.getType()) {
-                    case 'select': v = (value as MenuSelect).clone(); break;
-                    //case 'function': v = (value as MenuInput).clone(); break;
-                    default: v = value.clone(); break;
-                }
-            } else if (value instanceof Action) {
-                switch (value.getType()) {
-                    case 'goto': v = (value as ActionGoTo).clone(); break;
-                    case 'function': v = (value as ActionFunction).clone(); break;
-                    default: v = value.clone(); break;
-                }
-            }
-
-            if(v) {
-                menu.setValue(v);
-            }
-        });
+        // Don't clone values to avoid circular references
+        // Just copy the references as they are
+        menu.values = [...this.values];
         return menu;
     }
 
@@ -788,10 +771,10 @@ class ActionGoTo extends Action {
     public override clone(): this {
         const action = super.clone() as this;
         if (this.isTo()) {
-            action.to = this.cloneTo(); //cloneDeep(this.getTo());
+            action.to = this.getTo();
         }
         if (this.isFrom()) {
-            action.from = this.cloneFrom(); //cloneDeep(this.getFrom());
+            action.from = this.getFrom();
         }
         return action;
     }
