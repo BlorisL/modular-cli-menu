@@ -196,7 +196,6 @@ type PluginsJson = PluginJson[];
 type PluginsObject = {
     items: Record<string, Plugin>;
 };
-
 class Plugins {
     protected items: PluginsObject['items'] = {};
 
@@ -643,30 +642,37 @@ type ActionsClass = ActionGoTo | ActionFunction;
 type ActionJson = {
     name: string;
     type: ActionType;
+    parents?: string[];
     global?: boolean;
 };
+type ActionParent = Menu | Action | string;
 type ActionObject = {
     name: string;
     type: ActionType;
+    parents: ActionParent[];
     global: boolean;
 };
 
 abstract class Action {
     protected name: ActionObject['name'];
     protected abstract type: ActionObject['type'];
+    protected parents: ActionObject['parents'];
     protected global: ActionObject['global'];
 
     constructor(
         nameOrParams: ActionJson | ActionObject['name'],
+        parents: ActionObject['parents'] = [],
         global: boolean = false
     ) {
         if (typeof nameOrParams === 'string') {
             const name = nameOrParams as string;
             this.name = name;
-            this.global = global ?? false;
+            this.parents = parents;
+            this.global = global;
         } else {
             const params = nameOrParams as ActionJson;
             this.name = params.name;
+            this.parents = params.parents ?? [];
             this.global = params.global ?? false;
         }
     }
@@ -675,6 +681,31 @@ abstract class Action {
 
     public abstract getType(): ActionObject['type'];
 
+    public getParents(): ActionObject['parents'] { return this.parents; }
+    public getParent(name: string): ActionParent | undefined {
+        return this.parents.find(v => {
+            if (typeof v === 'string') {
+                return v === name ? v : undefined;
+            } else {
+                return v.getName() === name ? v : undefined;
+            }
+        });
+    }
+    public addParent(parent: Exclude<ActionParent, string>): this {
+        if (this.getParent(parent.getName())) {
+            const index = this.parents.findIndex(
+                v => (typeof v === 'string' ? v : v.getName()) === parent.getName()
+            );
+            if (index !== -1) {
+                this.parents.splice(index, 1, parent);
+            }
+        } else {
+            this.parents.push(parent);
+        }
+
+        return this;
+    }
+
     public getGlobal(): ActionObject['global'] { return this.global; }
     public isGlobal(): boolean { return this.getGlobal() === true; }
 
@@ -682,13 +713,18 @@ abstract class Action {
         return {
             name: this.getName(),
             type: this.getType(),
+            parents: this.getParents().map(p => typeof p === 'string' ? p : p.getName()),
             global: this.getGlobal()
         };
     }
 
     public clone(): this {
-        const Constructor = this.constructor as new (name: ActionObject['name'], global: ActionObject['global']) => this;
-        return new Constructor(this.getName(), this.getGlobal());
+        const Constructor = this.constructor as new (
+            name: ActionObject['name'], 
+            parents: ActionObject['parents'],
+            global: ActionObject['global']
+        ) => this;
+        return new Constructor(this.getName(), this.getParents(), this.getGlobal());
     }
 
     public abstract run(): Promise<unknown>;
@@ -713,18 +749,20 @@ class ActionGoTo extends Action {
     constructor(params: ActionGotoJson);
     constructor(
         name: string,
+        to: ActionGotoToObject,
+        from?: ActionGotoFromObject,
+        parents?: ActionGotoObject['parents'],
         global?: boolean,
-        to?: ActionGotoToObject,
-        from?: ActionGotoFromObject
     );
 
     constructor(
         nameOrParams: ActionGotoJson | string,
-        global?: boolean,
         to?: ActionGotoToObject,
-        from?: ActionGotoFromObject
+        from?: ActionGotoFromObject,
+        parents?: ActionGotoObject['parents'],
+        global?: boolean,
     ) {
-        super(nameOrParams, global);
+        super(nameOrParams, parents, global);
 
         if (typeof nameOrParams === 'string') {
             this.to = to;
@@ -760,13 +798,13 @@ class ActionGoTo extends Action {
         };
     }
 
-    public cloneTo(): ActionGotoToObject | undefined {
-        return this.isToString() ? this.getTo() : (this.getTo() as Exclude<ActionGotoToObject, string>)?.clone();
-    }
+    //public cloneTo(): ActionGotoToObject | undefined {
+    //    return this.isToString() ? this.getTo() : (this.getTo() as Exclude<ActionGotoToObject, string>)?.clone();
+    //}
 
-    public cloneFrom(): ActionGotoFromObject | undefined {
-        return this.isFromString() ? this.getFrom() : (this.getFrom() as Exclude<ActionGotoFromObject, string>)?.clone();
-    }
+    //public cloneFrom(): ActionGotoFromObject | undefined {
+    //    return this.isFromString() ? this.getFrom() : (this.getFrom() as Exclude<ActionGotoFromObject, string>)?.clone();
+    //}
 
     public override clone(): this {
         const action = super.clone() as this;
@@ -804,16 +842,18 @@ class ActionFunction extends Action {
     constructor(params: ActionFunctionJson);
     constructor(
         name: string,
-        global: boolean,
-        callback: () => Promise<unknown>
+        callback: () => Promise<unknown>,
+        parents?: ActionFunctionObject['parents'],
+        global?: boolean,
     );
 
     constructor(
         nameOrParams: ActionFunctionJson | string,
+        callback?: () => Promise<unknown>,
+        parents?: ActionFunctionObject['parents'],
         global?: boolean,
-        callback?: () => Promise<unknown>
     ) {
-        super(nameOrParams, global);
+        super(nameOrParams, parents, global);
 
         if (typeof nameOrParams === 'string') {
             this.callback = callback!;
@@ -852,7 +892,7 @@ const plugins = new Plugins([
                 type: "select",
                 values: [
                     "action1",
-                    "action2",
+                    //"action2",
                 ],
                 parents: []
             }
@@ -877,11 +917,11 @@ const plugins = new Plugins([
                 type: "function",
                 callback: async () => { console.log('Action 1 executed'); }
             },
-            {
-                name: "action2",
-                type: "function",
-                callback: async () => { console.log('Action 2 executed'); }
-            }
+            //{
+            //    name: "action2",
+            //    type: "function",
+            //    callback: async () => { console.log('Action 2 executed'); }
+            //}
         ]
     },
     {
@@ -937,6 +977,12 @@ const plugins = new Plugins([
         name: "exmaple2",
         menus: [],
         actions: [
+            {
+                name: "action2",
+                type: "function",
+                parents: [ "main" ],
+                callback: async () => { console.log('Action 2 executed'); }
+            },
             {
                 name: "msubmenu2",
                 type: "goto",
