@@ -127,7 +127,7 @@ class Plugins {
                     const item = this.getMenu(value) || this.getAction(value);
                     console.log('VALUE', menu.getName(), value, menu)
                     if(item) {
-                        const tmp = item.clone().addParent(menu);
+                        const tmp = item.addParent(menu).clone();
                         //if(tmp instanceof Menu) {
                         //    tmp.addValue(back.clone().setFrom(menu));
                         //}
@@ -149,10 +149,12 @@ class Plugins {
                 if(typeof parent === 'string') {
                     const item = this.getMenu(parent) || this.getAction(parent);
                     if(item && item instanceof Menu) {
-                        item.addValue(back.clone().setFrom(menu));
+                        menu.addValue(back.clone().setFrom(item));
                     }
                 } else {
-                    menu.addValue(back.clone().setFrom(menu));
+                    if(parent instanceof Menu) {
+                        menu.addValue(back.clone().setFrom(parent));
+                    }
                 }
             });
         });
