@@ -179,27 +179,48 @@ class Plugins {
     }
 }
 
-class Menu {
-    protected name: string;
-    protected parents: Record<string, Menu | Action | string>;
-    protected values: Array<Menu | Action | string>;
+type MenuType = 'select' | 'input';
 
-    public constructor(name: string, parents: Menu['parents'][string][] = [], values: Menu['values'] = []) {
+abstract class AMenu {
+    protected abstract type: MenuType;
+    protected name: string;
+    protected parents: Record<string, AMenu | Action | string>;
+
+    public constructor(name: string, parents: AMenu['parents'][string][] = []) {
         this.name = name;
         this.parents = {};
-        this.values = values;
 
         parents.map(p => this.parents[typeof p === 'string' ? p : p.getName()] = p);
     }
     
     public getName(): string { return this.name; }
 
-    public getParents(): Menu['parents'][string][] { return Object.values(this.parents); }
-    public getParent(parent: string): Menu['parents'][string] | undefined { return this.parents[parent]; }
-    public addParent(parent: Exclude<Menu['parents'][number], string>): this {
+    public getParents(): AMenu['parents'][string][] { return Object.values(this.parents); }
+    public getParent(parent: string): AMenu['parents'][string] | undefined { return this.parents[parent]; }
+    public addParent(parent: Exclude<AMenu['parents'][number], string>): this {
         this.parents[parent.getName()] = parent;
 
         return this;
+    }
+
+    public clone(): Menu {
+        return new Menu(
+            this.getName(), 
+            this.getParents().map(p => typeof p === 'string' ? p : p.clone())
+        );
+    }
+
+    public abstract print(): Promise<unknown>;
+}
+
+class Menu extends AMenu {
+    protected type: MenuType;
+    protected values: Array<AMenu | Action | string>;
+
+    public constructor(name: string, parents: Menu['parents'][string][] = [], values: Menu['values'] = []) {
+        super(name, parents);
+        this.type = 'select';
+        this.values = values;
     }
 
     public getValues(): Menu['values'] { return this.values; }
@@ -208,6 +229,7 @@ class Menu {
             v => (typeof v === 'string' ? v : v.getName()) === valueName
         );
     }
+    public setValues(values: Menu['values']): this { this.values = values; return this; }
     public addValue(value: Exclude<Menu['values'][number], string>): this {
         if(this.getValue(value.getName())) {
             const index = this.values.findIndex(
@@ -223,12 +245,10 @@ class Menu {
         return this;
     }
 
-    public clone(): Menu {
-        return new Menu(
-            this.getName(), 
-            this.getParents().map(p => typeof p === 'string' ? p : p.clone()), 
-            this.getValues()
-        );
+    public clone(): this {
+        const menu = super.clone() as this;
+        menu.setValues(this.getValues().map(v => typeof v === 'string' ? v : v.clone()));
+        return menu;
     }
 
     public async print(): Promise<unknown> {
@@ -254,7 +274,7 @@ class Menu {
 
             if (item instanceof Action) {
                 item.run();
-            } else if (item instanceof Menu) {
+            } else if (item instanceof AMenu) {
                 item.print();
             }
         });
@@ -266,7 +286,7 @@ class Menu {
 
 class Action {
     protected name: string;
-    protected parents: Record<string, Menu | Action | string>;
+    protected parents: Record<string, AMenu | Action | string>;
     protected from?: Menu | Action;
 
     public constructor(name: string, parents: Action['parents'][string][] = []) {
@@ -281,7 +301,7 @@ class Action {
 
     public getParents(): Action['parents'][string][] { return Object.values(this.parents); }
     public getParent(parent: string): Action['parents'][string] | undefined { return this.parents[parent]; }
-    public addParent(parent: Exclude<Menu['parents'][number], string>): this {
+    public addParent(parent: Exclude<AMenu['parents'][number], string>): this {
         this.parents[parent.getName()] = parent;
 
         return this;
