@@ -125,7 +125,7 @@ class Plugins {
             menu.getValues().forEach(value => {
                 if(typeof value === 'string') {
                     const item = this.getMenu(value) || this.getAction(value);
-                    console.log('VALUE', menu.getName(), value, menu)
+                    //console.log('VALUE', menu.getName(), value, menu)
                     if(item) {
                         const tmp = item.addParent(menu).clone();
                         //if(tmp instanceof Menu) {
@@ -133,7 +133,7 @@ class Plugins {
                         //}
                         menu.addValue(tmp);
                     }
-                    console.log('VALUE', menu.getName(), value, menu)
+                    //console.log('VALUE', menu.getName(), value, menu)
                 } else {
                     value.addParent(menu)
                     //if(value instanceof Menu) {
@@ -142,18 +142,36 @@ class Plugins {
                 }
             });
         });
+        this.getActions().forEach(action => {
+            console.log('###1', action.getName(), action.getParents())
+            action.getParents().map(parent => {
+                console.log(action.getName(), parent)
+                if(typeof parent === 'string') {
+                    const item = this.getMenu(parent) || this.getAction(parent);
+            console.log('###2', item)
+                    if(item && item instanceof Menu) {
+                        item.addValue(action);
+                    }
+                } else {
+                    if(parent instanceof Menu) {
+                        parent.addValue(action);
+                    }
+                }
+            });
+        });
         this.getMenus().forEach(menu => {
-            console.log('###', menu.getName(), menu.getParents())
+            console.log('###1', menu.getName(), menu.getParents())
             menu.getParents().map(parent => {
                 console.log(menu.getName(), parent)
                 if(typeof parent === 'string') {
                     const item = this.getMenu(parent) || this.getAction(parent);
+            console.log('###2', item)
                     if(item && item instanceof Menu) {
-                        menu.addValue(back.clone().setFrom(item));
+                        menu.addValue(back.clone().setFrom(item.addValue(menu)));
                     }
                 } else {
                     if(parent instanceof Menu) {
-                        menu.addValue(back.clone().setFrom(parent));
+                        menu.addValue(back.clone().setFrom(parent.addValue(menu)));
                     }
                 }
             });
@@ -296,18 +314,18 @@ const plugins = new Plugins([
     new Plugin(
         'default',
         [
-            new Menu(
-                'main',
-                [],
-                [
-                    new Action('action1'),
-                    new Action('action2'),
-                    'submenu1'
-                ]
-            ),
+            new Menu('main'),
+        ],
+        [
+            new Action('back'),
+        ]
+    ),
+    new Plugin(
+        'example',
+        [
             new Menu(
                 'submenu1',
-                [],
+                ['main'],
                 [
                     new Action('subaction1'),
                     new Action('subaction2'),
@@ -315,17 +333,19 @@ const plugins = new Plugins([
             ),
             new Menu(
                 'submenu2',
-                [],
+                ['submenu1'],
                 [
                     new Action('subaction3'),
-                    new Action('subaction4'),
+                    'subaction4'
                 ]
             ),
         ],
         [
-            new Action('back'),
+            new Action('action1', ['main']),
+            new Action('action2', ['main']),
+            new Action('subaction4'),
         ]
-    ),
+    )
 ]);
 
 plugins.getMenu('main')?.print();
