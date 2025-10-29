@@ -103,6 +103,51 @@ class Plugins {
         const back = this.getAction('back')!;
 
         this.getMenus().forEach(menu => {
+            menu.getParents().forEach(parent => {
+                if(typeof parent === 'string') {
+                    const item = this.getMenu(parent) || this.getAction(parent);
+                    if(item) {
+                        if(item instanceof Menu) {
+                            item.addValue(menu.clone());
+                        }
+                        menu.addParent(item);
+                    }
+                } else {
+                    if(parent instanceof Menu) {
+                        parent.addValue(menu.clone());
+                    }
+                }
+            });
+        });
+
+        this.getMenus().forEach(menu => {
+            menu.getValues().forEach(value => {
+                if(typeof value === 'string') {
+                    console.log(1.1, value, '->', menu.getName());
+                    const item = this.getMenu(value) || this.getAction(value);
+
+                    if(item) {
+                        if(!item.getParent(menu.getName())) {
+                            item.addParent(menu);
+                        }
+                        if(item instanceof Menu) {
+                            item.addValue(back.clone().setFrom(menu));
+                        }
+                        menu.addValue(item);
+                    }
+                } else {
+                    console.log(1.2, value.getName(), '->', menu.getName());
+                    console.log(2, !value.getParent(menu.getName()));
+                    if(!value.getParent(menu.getName())) {
+                        value.addParent(menu);
+                    }
+                    if(value instanceof Menu) {
+                        value.addValue(back.clone().setFrom(menu));
+                    }
+                }
+            });
+console.log('---');
+console.log(JSON.stringify(menu.toJson()))
             /*menu.getParents().map(parent => {
                 if(typeof parent === 'string') {
                     const item = this.getMenu(parent) || this.getAction(parent);
@@ -122,7 +167,7 @@ class Plugins {
                     //}
                 }
             });*/
-            menu.getValues().forEach(value => {
+            /*menu.getValues().forEach(value => {
                 if(typeof value === 'string') {
                     const item = this.getMenu(value) || this.getAction(value);
                     //console.log('VALUE', menu.getName(), value, menu)
@@ -140,15 +185,15 @@ class Plugins {
                     //    value.addValue(back.clone().setFrom(menu));
                     //}
                 }
-            });
+            });*/
         });
-        this.getActions().forEach(action => {
-            console.log('###1', action.getName(), action.getParents())
+       /* this.getActions().forEach(action => {
+            //console.log('###1', action.getName(), action.getParents())
             action.getParents().map(parent => {
-                console.log(action.getName(), parent)
+                //console.log(action.getName(), parent)
                 if(typeof parent === 'string') {
                     const item = this.getMenu(parent) || this.getAction(parent);
-            console.log('###2', item)
+            //console.log('###2', item)
                     if(item && item instanceof Menu) {
                         item.addValue(action);
                     }
@@ -160,22 +205,31 @@ class Plugins {
             });
         });
         this.getMenus().forEach(menu => {
-            console.log('###1', menu.getName(), menu.getParents())
+            console.log('###1 menu', menu.getName())
             menu.getParents().map(parent => {
-                console.log(menu.getName(), parent)
+            console.log('###2 parent', parent)
                 if(typeof parent === 'string') {
                     const item = this.getMenu(parent) || this.getAction(parent);
-            console.log('###2', item)
+            //console.log('###3 item', item)
                     if(item && item instanceof Menu) {
-                        menu.addValue(back.clone().setFrom(item.addValue(menu)));
+                        const backClone = back.clone().setFrom(item!);
+                        console.log('###4 backClone', backClone)
+                        if(menu instanceof Menu) {
+                            const cloned = menu.clone();
+                            item.addValue(cloned.addValue(backClone));
+                            console.log('###5 menuClone', cloned)
+                            console.log('###6 item', item)
+                        }
+            //            menu.addValue(back.clone().setFrom(item.addValue(menu)));
                     }
-                } else {
-                    if(parent instanceof Menu) {
-                        menu.addValue(back.clone().setFrom(parent.addValue(menu)));
-                    }
+            //    } else {
+            //        if(parent instanceof Menu) {
+            //            const cloned = menu.clone();
+            //            menu.addValue(back.clone().setFrom(parent.addValue(menu)));
+            //        }
                 }
             });
-        });
+        });*/
     }
 }
 
@@ -203,10 +257,17 @@ abstract class AMenu {
         return this;
     }
 
+    public toJson() {
+        return {
+            name: this.getName(),
+            parents: this.getParents().map(p => (typeof p === 'string' ? p : p.getName())),
+        };
+    }
+
     public clone(): Menu {
         return new Menu(
             this.getName(), 
-            this.getParents().map(p => typeof p === 'string' ? p : p.clone())
+            this.getParents()
         );
     }
 
@@ -243,6 +304,13 @@ class Menu extends AMenu {
         }
 
         return this;
+    }
+
+    public override toJson() {
+        return {
+            ...super.toJson(),
+            values: this.getValues().map(v => (typeof v === 'string' ? v : v.toJson())),
+        };
     }
 
     public clone(): this {
@@ -307,13 +375,20 @@ class Action {
         return this;
     }
 
-    public setFrom(from: Menu): this { this.from = from; return this; }
+    public setFrom(from: Menu | Action): this { this.from = from; return this; }
     public getFrom(): Menu | Action | undefined { return this.from; }
+
+    public toJson() {
+        return {
+            name: this.getName(),
+            parents: this.getParents().map(p => (typeof p === 'string' ? p : p.getName())),
+        };
+    }
 
     public clone(): Action {
         const action = new Action(
             this.getName(), 
-            this.getParents().map(p => typeof p === 'string' ? p : p.clone()), 
+            this.getParents()
         );
         //action.setFrom(this.getFrom()!);
         return action;
@@ -353,7 +428,7 @@ const plugins = new Plugins([
             ),
             new Menu(
                 'submenu2',
-                ['submenu1'],
+                ['submenu1', 'main'],
                 [
                     new Action('subaction3'),
                     'subaction4'
