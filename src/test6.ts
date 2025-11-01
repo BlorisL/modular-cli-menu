@@ -1,94 +1,236 @@
-import { Menu } from "./classes/menu";
-
 class Plugins {
-    protected plugins: Record<string, Plugin> = {};
-    protected main: Menu;
+    protected items: Record<string, Plugin> = {};
+    protected main?: Menu;
 
-    constructor(plugins: Plugin[]) {
-        plugins.forEach(plugin => this.addPlugin(plugin));
+    constructor(data: PluginJson[]) {
+        data.forEach(plugin => this.addPlugin(plugin));
+        //this.main = this.getPlugin('default')?.getMenu('main');
     }
 
-    public getPlugins(): Plugin[] { return Object.values(this.plugins); }
-    public getPlugin(name: string): Plugin | undefined { return this.plugins[name]; }
-    public addPlugin(plugin: Plugin): this {
-        this.plugins[plugin.getName()] = new Plugin(
-            plugin.getName(), 
-            plugin.getMenus().map(menu => menu.setParents()), 
-            plugin.getActions().map(menu => menu.setParents()),
-        );
-        return this;
+    public getPlugins(): Plugins['items'][string][] { return Object.values(this.items); }
+    public getPlugin(name: string): Plugins['items'][string] | undefined { 
+        return this.items[name]; 
+    }
+    public addPlugin(data: PluginJson): this { 
+        this.items[data.name] = new Plugin(data); 
+        return this; 
+    }
+
+    public getMenu(name: string, plugin?: string): Menu | undefined {
+        let menu: Menu | undefined = undefined;
+        if(plugin) {
+            menu = this.getPlugin(plugin)?.getMenu(name);
+        } else {
+            this.getPlugins().forEach(p => {
+                const m = p.getMenu(name);
+                if(m) {
+                    menu = m;
+                }
+            })
+        }
+        return menu;
+    }
+
+    public getAction(name: string, plugin?: string): Action | undefined {
+        let action: Action | undefined = undefined;
+        if(plugin) {
+            action = this.getPlugin(plugin)?.getAction(name);
+        } else {
+            this.getPlugins().forEach(p => {
+                const a = p.getAction(name);
+                if(a) {
+                    action = a;
+                }
+            })
+        }
+        return action;
     }
 }
 
+type PluginJson = {
+    name: string;
+    menus: MenuJson[];
+    actions: ActionJson[];
+};
+
 class Plugin {
-    protected name: string;
+    protected name: PluginJson['name'];
     protected menus: Record<string, Menu> = {};
     protected actions: Record<string, Action> = {};
 
-    constructor(name: string, menus: Menu[] = [], actions: Action[] = []) {
-        this.name = name;
+    constructor(data: PluginJson) {
+        this.name = data.name;
+        data.menus.forEach(menu => this.addMenu(menu));
+        data.actions.forEach(action => this.addAction(action));
     }
 
-    public getName(): string { return this.name; }
+    public getName(): Plugin['name'] { return this.name; }
 
-    public getMenus(): Menu[] { return Object.values(this.menus); }
-    public getMenu(name: string): Menu | undefined { return this.menus[name]; }
-    public addMenu(menu: string | Menu): this {
-        if (typeof menu === 'string') {
-            this.menus[menu] = new Menu(menu);
-        } else {
-            this.menus[menu.getName()] = new Menu(menu.getName());
+    public getMenus(): Plugin['menus'][string][] { return Object.values(this.menus); }
+    public getMenu(name: string): Plugin['menus'][string] | undefined { 
+        return this.menus[name]; 
+    }
+    public addMenu(data: MenuJson): this { 
+        let menu: Menu | undefined = undefined;
+        switch(data.type) {
+            case 'choice':
+                menu = new MenuChoice(data as MenuChoiceJson);
+                break;
+            case 'input':
+                //menu = new Menu(data);
+                break;
         }
-        return this;
+
+        if(menu) {
+            this.menus[menu.getName()] = menu; 
+        }
+        
+        return this; 
     }
 
-    public getActions(): Action[] { return Object.values(this.actions); }
-    public getAction(name: string): Action | undefined { return this.actions[name]; }
-    public addAction(action: string | Action): this {
-        if (typeof action === 'string') {
-            this.actions[action] = new Action(action);
-        } else {
-            this.actions[action.getName()] = new Action(action.getName());
-        }
-        return this;
+    public getActions(): Plugin['actions'][string][] { return Object.values(this.actions); }
+    public getAction(name: string): Plugin['actions'][string] | undefined { 
+        return this.actions[name]; 
+    }
+    public addAction(data: ActionJson): this { 
+        this.actions[data.name] = new Action(data); 
+        return this; 
     }
 }
 
-abstract class Item {
-    protected name: string;
-    protected parents: Record<string, string | Item> = {};
+type MenuJson = {
+    name: string;
+    type: 'choice' | 'input';
+    plugin?: string;
+    parents?: string[]
+}
 
-    constructor(name: string, parents: Item['parents'] = {}) {
-        this.name = name;
-        this.parents = parents;
+abstract class Menu {
+    protected name: MenuJson['name'];
+    protected abstract type: MenuJson['type'];
+    protected plugin?: MenuJson['plugin'];
+    protected parents: Record<string, Exclude<MenuJson['parents'], undefined>[number]> = {};
+
+    constructor(data: MenuJson) {
+        this.name = data.name;
+        this.plugin = data.plugin;
+        data.parents?.forEach(parent => this.addParent(parent));
     }
 
-    public getName(): string { return this.name; }
+    public getName(): Menu['name'] { return this.name; }
+    
+    public getPlugin(): Menu['plugin'] { return this.plugin; }
 
-    public getParents(): Item['parents'][string][] { return Object.values(this.parents); }
-    public setParents(parents: Item['parents'] = {}): this { this.parents = parents; return this; }
-    public addParent(parent: string | Item): this {
-        if (typeof parent === 'string') {
+    public getType(): MenuJson['type'] { return this.type; }
+
+    public getParents(): Menu['parents'][string][] { return Object.values(this.parents); }
+    public getParent(name: string): Menu['parents'][string] | undefined { 
+        return this.parents[name]; 
+    }
+    public addParent(parent: Menu['parents'][string]): this {
+        const item = this.getParent(parent);
+        if(!item) {
             this.parents[parent] = parent;
-        } else {
-            this.parents[parent.getName()] = parent;
         }
         return this;
     }
 }
 
-class Menu extends Item {
-    constructor(name: string, parents: Menu['parents'] = {}) {
-        super(name, parents);
-    }
-}
+type MenuChoiceValueJson = {
+    name: string;
+    value: string;
+    isMulti?: boolean;
+};
 
-class Action extends Item {
-    constructor(name: string, parents: Action['parents'] = {}) {
-        super(name, parents);
+class MenuChoiceValue {
+    public name: string;
+    public value: string;
+    public isMulti: boolean;
+
+    constructor(name: string, value?: string, isMulti?: boolean) {
+        this.name = name;
+        this.value = value ?? name;
+        this.isMulti = isMulti ?? false;
     }
 
     public getName(): string { return this.name; }
+    public getValue(): string { return this.value; }
+    public issMulti(): boolean { return this.isMulti === true; }
+
+    public toJson(): MenuChoiceValueJson {
+        return {
+            name: this.name,
+            value: this.value,
+            isMulti: this.isMulti
+        };
+    }
+}
+
+type MenuChoiceJson = MenuJson & {
+    type: 'choice';
+    values: Array<string | MenuChoiceValueJson>;
+};
+
+class MenuChoice extends Menu {
+    protected type: MenuChoiceJson['type'] = 'choice';
+    protected values: Record<string, MenuChoiceValue> = {};
+
+    constructor(data: MenuChoiceJson) {
+        super(data);
+        this.type = data.type;
+        data.values.forEach(value => this.addValue(value));
+    }
+
+    public getValues(): MenuChoice['values'][string][] {
+        return Object.values(this.values);
+    }
+    public getValue(name: string): MenuChoiceValue | undefined { 
+        return this.values[name];
+    }
+    public addValue(data: MenuChoiceJson['values'][number]): this {
+        const tmpValue = typeof data === 'string'
+            ? new MenuChoiceValue(data)
+            : new MenuChoiceValue(data.name, data.value, data.isMulti)
+        ;
+        if(!this.getValue(tmpValue.getName())) {
+            this.values[tmpValue.getName()] = tmpValue;
+        }
+        return this;
+    }
+}
+
+type ActionJson = {
+    name: string;
+    plugin?: string;
+    parents?: string[]
+};
+
+class Action {
+    protected name: ActionJson['name'];
+    protected plugin?: ActionJson['plugin'];
+    protected parents: Record<string, Exclude<ActionJson['parents'], undefined>[number]> = {};
+
+    constructor(data: ActionJson) {
+        this.name = data.name;
+        this.plugin = data.plugin;
+        data.parents?.forEach(parent => this.addParent(parent));
+    }
+
+    public getName(): Action['name'] { return this.name; }
+    
+    public getPlugin(): Action['plugin'] { return this.plugin; }
+
+    public getParents(): Action['parents'][string][] { return Object.values(this.parents); }
+    public getParent(name: string): Action['parents'][string] | undefined { 
+        return this.parents[name]; 
+    }
+    public addParent(parent: Action['parents'][string]): this {
+        const item = this.getParent(parent);
+        if(!item) {
+            this.parents[parent] = parent;
+        }
+        return this;
+    }
 }
 
 const plugins = new Plugins([
@@ -200,3 +342,7 @@ const plugins = new Plugins([
         ]
     }
 ]);
+
+console.log(plugins.getMenu('main'));
+console.log(plugins.getMenu('submenu1'));
+console.log(plugins.getMenu('submenu2'));
