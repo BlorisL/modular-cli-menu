@@ -45,6 +45,11 @@ class Plugins {
         }
         return action;
     }
+
+    protected load(): this {
+
+        return this;
+    }
 }
 
 type PluginJson = {
@@ -68,6 +73,7 @@ class Plugin {
 
     public getMenus(): Plugin['menus'][string][] { return Object.values(this.menus); }
     public getMenu(name: string): Plugin['menus'][string] | undefined { 
+        //console.log(1, name, this.getMenus().map(m => m.getName()));
         return this.menus[name]; 
     }
     public addMenu(data: MenuJson): this { 
@@ -134,6 +140,15 @@ abstract class Menu {
         }
         return this;
     }
+
+    public toJson(): MenuJson {
+        return {
+            name: this.name,
+            type: this.type,
+            plugin: this.plugin,
+            parents: this.getParents()
+        };
+    }
 }
 
 type MenuChoiceValueJson = {
@@ -143,9 +158,9 @@ type MenuChoiceValueJson = {
 };
 
 class MenuChoiceValue {
-    public name: string;
-    public value: string;
-    public isMulti: boolean;
+    public name: MenuChoiceValueJson['name'];
+    public value: MenuChoiceValueJson['value'];
+    public isMulti: MenuChoiceValueJson['isMulti'];
 
     constructor(name: string, value?: string, isMulti?: boolean) {
         this.name = name;
@@ -197,6 +212,13 @@ class MenuChoice extends Menu {
         }
         return this;
     }
+
+    public override toJson() {
+        return {
+            ...super.toJson(),
+            values: this.getValues().map(v => v.toJson())
+        };
+    }
 }
 
 type ActionJson = {
@@ -239,7 +261,7 @@ const plugins = new Plugins([
         menus: [
             {
                 name: "main",
-                type: "select",
+                type: "choice",
                 values: [
                     "action1",
                     //"action2",
@@ -279,7 +301,7 @@ const plugins = new Plugins([
         menus: [
             {
                 name: "submenu1",
-                type: "select",
+                type: "choice",
                 values: [
                     "subaction1",
                     "subaction2",
@@ -290,7 +312,7 @@ const plugins = new Plugins([
             },
             {
                 name: "submenu2",
-                type: "select",
+                type: "choice",
                 values: [
                     "subaction3",
                     "subaction4",
@@ -343,6 +365,6 @@ const plugins = new Plugins([
     }
 ]);
 
-console.log(plugins.getMenu('main'));
-console.log(plugins.getMenu('submenu1'));
-console.log(plugins.getMenu('submenu2'));
+console.log(0, plugins.getMenu('main'));
+console.log(0, plugins.getMenu('submenu1'));
+console.log(0, plugins.getMenu('submenu2'));
