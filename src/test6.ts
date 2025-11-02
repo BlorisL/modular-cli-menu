@@ -13,6 +13,7 @@ class Plugins {
     }
     public addPlugin(data: PluginJson): this { 
         this.items[data.name] = new Plugin(data); 
+        this.load(this.items[data.name]);
         return this; 
     }
 
@@ -46,8 +47,30 @@ class Plugins {
         return action;
     }
 
-    protected load(): this {
-
+    protected load(plugin?: Plugin): this {
+        const plugins = plugin ? [plugin] : this.getPlugins();
+        plugins.forEach(plugin => {
+            plugin.getMenus().forEach(menu => {
+                menu.getParents().forEach(parentName => {
+                    const parent = this.getMenu(parentName) ?? this.getAction(parentName);
+                    if(parent) {
+                        if(parent instanceof MenuChoice) {
+                            parent.addValue(menu.getName());
+                        }
+                    }
+                });
+            });
+            plugin.getActions().forEach(action => {
+                action.getParents().forEach(parentName => {
+                    const parent = this.getMenu(parentName) ?? this.getAction(parentName);
+                    if(parent) {
+                        if(parent instanceof MenuChoice) {
+                            parent.addValue(action.getName());
+                        }
+                    }
+                });
+            });
+        });
         return this;
     }
 }
@@ -366,5 +389,5 @@ const plugins = new Plugins([
 ]);
 
 console.log(0, plugins.getMenu('main'));
-console.log(0, plugins.getMenu('submenu1'));
-console.log(0, plugins.getMenu('submenu2'));
+//console.log(0, plugins.getMenu('submenu2'));
+//console.log(0, plugins.getMenu('submenu1'));
