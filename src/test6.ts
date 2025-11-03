@@ -246,22 +246,29 @@ class MenuChoice extends Menu {
 
 type ActionJson = {
     name: string;
+    type: 'function' | 'goto';
     plugin?: string;
-    parents?: string[]
+    parents?: string[];
+    global?: boolean;
 };
 
-class Action {
+abstract class Action {
     protected name: ActionJson['name'];
+    protected abstract type: ActionJson['type'];
     protected plugin?: ActionJson['plugin'];
     protected parents: Record<string, Exclude<ActionJson['parents'], undefined>[number]> = {};
+    protected global: ActionJson['global'];
 
     constructor(data: ActionJson) {
         this.name = data.name;
         this.plugin = data.plugin;
+        this.global = data.global ?? false;
         data.parents?.forEach(parent => this.addParent(parent));
     }
 
     public getName(): Action['name'] { return this.name; }
+
+    public getType(): ActionJson['type'] { return this.type; }
     
     public getPlugin(): Action['plugin'] { return this.plugin; }
 
@@ -275,6 +282,68 @@ class Action {
             this.parents[parent] = parent;
         }
         return this;
+    }
+
+    public isGlobal(): Action['global'] { return this.global; }
+
+    public toJson(): ActionJson {
+        return {
+            name: this.name,
+            type: this.type,
+            plugin: this.plugin,
+            parents: this.getParents(),
+            global: this.global
+        };
+    }
+}
+
+type ActionFunctionJson = ActionJson & {
+    type: 'function';
+    callback: () => Promise<void>;
+};
+
+class ActionFunction extends Action {
+    protected type: ActionFunctionJson['type'] = 'function';
+    protected callback: () => Promise<void>;
+
+    constructor(data: ActionFunctionJson) {
+        super(data);
+        this.type = data.type;
+        this.callback = data.callback;
+    }
+    
+    public getCallback(): ActionFunction['callback'] { return this.callback; }
+
+    public override toJson() {
+        return {
+            ...super.toJson(),
+            callback: this.getCallback(),
+        };
+    }
+}
+
+type ActionGotoJson = ActionJson & {
+    type: 'goto';
+    to: string;
+};
+
+class ActionGoto extends Action {
+    protected type: ActionGotoJson['type'] = 'goto';
+    protected to: string;
+
+    constructor(data: ActionGotoJson) {
+        super(data);
+        this.type = data.type;
+        this.to = data.to;
+    }
+    
+    public getTo(): ActionGoto['to'] { return this.to; }
+
+    public override toJson() {
+        return {
+            ...super.toJson(),
+            to: this.getTo(),
+        };
     }
 }
 
