@@ -49,18 +49,21 @@ class Plugins {
 
     protected load(plugin?: Plugin): this {
         const plugins = plugin ? [plugin] : this.getPlugins();
-        plugins.forEach(plugin => {
-            plugin.getMenus().forEach(menu => {
+        plugins.forEach(p => {
+            p.getMenus().forEach(menu => {
                 menu.getParents().forEach(parentName => {
                     const parent = this.getMenu(parentName) ?? this.getAction(parentName);
                     if(parent) {
                         if(parent instanceof MenuChoice) {
                             parent.addValue(menu.getName());
                         }
+                        //if(menu instanceof MenuChoice) {
+                        //    menu.addValue(parent.getName());
+                        //}
                     }
                 });
             });
-            plugin.getActions().forEach(action => {
+            p.getActions().forEach(action => {
                 action.getParents().forEach(parentName => {
                     const parent = this.getMenu(parentName) ?? this.getAction(parentName);
                     if(parent) {
@@ -69,6 +72,34 @@ class Plugins {
                         }
                     }
                 });
+            });
+        });
+        this.getPlugins().forEach(p => {
+            p.getMenus().forEach(menu => {
+                if(menu.getType() === 'choice') {
+                    (menu as MenuChoice).getValues().forEach(choice => {
+                        if(typeof choice.getValue() === 'string') {
+                            const value = choice.getValue() as string;
+                            const item = this.getMenu(value) ?? this.getAction(value);
+                            if(item) {
+                                /*if(item instanceof MenuChoice) {
+                                    choice.setValue(new MenuChoice(
+                                        item.toJson()
+                                    ));
+                                } else if(item instanceof ActionFunction) {
+
+                                }*/
+                                choice.setValue(item);
+                            }
+                        } else {
+                            const value = choice.getValue() as Menu | Action;
+                            const item = this.getMenu(value.getName()) ?? this.getAction(value.getName());
+                            if(!item) {
+                                choice.setValue(value);
+                            }
+                        }
+                    });
+                }
             });
         });
         return this;
@@ -122,7 +153,20 @@ class Plugin {
         return this.actions[name]; 
     }
     public addAction(data: ActionJson): this { 
-        this.actions[data.name] = new Action(data); 
+        let action: Action | undefined = undefined;
+        switch(data.type) {
+            case 'function':
+                action = new ActionFunction(data as ActionFunctionJson);
+                break;
+            case 'goto':
+                action = new ActionGoto(data as ActionGotoJson);
+                break;
+        }
+
+        if(action) {
+            this.actions[action.getName()] = action; 
+        }
+        
         return this; 
     }
 }
@@ -176,7 +220,7 @@ abstract class Menu {
 
 type MenuChoiceValueJson = {
     name: string;
-    value: string;
+    value: string | Menu | Action;
     isMulti?: boolean;
 };
 
@@ -185,20 +229,23 @@ class MenuChoiceValue {
     public value: MenuChoiceValueJson['value'];
     public isMulti: MenuChoiceValueJson['isMulti'];
 
-    constructor(name: string, value?: string, isMulti?: boolean) {
+    constructor(name: string, value?: MenuChoiceValueJson['value'], isMulti?: boolean) {
         this.name = name;
         this.value = value ?? name;
         this.isMulti = isMulti ?? false;
     }
 
-    public getName(): string { return this.name; }
-    public getValue(): string { return this.value; }
-    public issMulti(): boolean { return this.isMulti === true; }
+    public getName(): MenuChoiceValueJson['name'] { return this.name; }
+
+    public getValue(): MenuChoiceValueJson['value'] { return this.value; }
+    public setValue(value: MenuChoiceValueJson['value']): this { this.value = value; return this; }
+
+    public issMulti(): MenuChoiceValueJson['isMulti'] { return this.isMulti === true; }
 
     public toJson(): MenuChoiceValueJson {
         return {
             name: this.name,
-            value: this.value,
+            value: typeof this.value === 'string' ? this.value : this.value.getName(),
             isMulti: this.isMulti
         };
     }
@@ -236,9 +283,10 @@ class MenuChoice extends Menu {
         return this;
     }
 
-    public override toJson() {
+    public override toJson(): MenuChoiceJson {
         return {
             ...super.toJson(),
+            type: this.type,
             values: this.getValues().map(v => v.toJson())
         };
     }
@@ -314,9 +362,10 @@ class ActionFunction extends Action {
     
     public getCallback(): ActionFunction['callback'] { return this.callback; }
 
-    public override toJson() {
+    public override toJson(): ActionFunctionJson {
         return {
             ...super.toJson(),
+            type: this.type,
             callback: this.getCallback(),
         };
     }
@@ -339,9 +388,10 @@ class ActionGoto extends Action {
     
     public getTo(): ActionGoto['to'] { return this.to; }
 
-    public override toJson() {
+    public override toJson(): ActionGotoJson {
         return {
             ...super.toJson(),
+            type: this.type,
             to: this.getTo(),
         };
     }
@@ -458,5 +508,5 @@ const plugins = new Plugins([
 ]);
 
 console.log(0, plugins.getMenu('main'));
-//console.log(0, plugins.getMenu('submenu2'));
-//console.log(0, plugins.getMenu('submenu1'));
+console.log(0, plugins.getMenu('submenu1'));
+console.log(0, plugins.getMenu('submenu2'));
