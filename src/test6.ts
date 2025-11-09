@@ -1,3 +1,5 @@
+import { choices } from "./prompts/Choices";
+
 class Plugins {
     protected items: Record<string, Plugin> = {};
     protected main?: Menu;
@@ -47,6 +49,71 @@ class Plugins {
         return action;
     }
 
+    protected loadMenu(menu: Menu): this {
+        if(menu.getType() === 'choice') {
+            (menu as MenuChoice).getValues().forEach(choice => {
+                if(typeof choice.getValue() === 'string') {
+                    const value = choice.getValue() as string;
+                    const item = this.getMenu(value) ?? this.getAction(value);
+                    if(item) {
+                        choice.setValue(item);
+                    }
+                } else {
+                    const value = choice.getValue() as Menu | Action;
+                    const item = this.getMenu(value.getName()) ?? this.getAction(value.getName());
+                    if(item) {
+                        choice.setValue(value);
+                    }
+                }
+
+                if(choice.getValue() instanceof MenuChoice) {
+                    (choice.getValue() as MenuChoice).addValue(
+                        new ActionGoto(
+                            `back_to_${menu.getName()}`,
+                            menu,
+                            (choice.getValue() as MenuChoice).getPlugin(),
+                            true,
+                        )
+                    );
+                } else if(choice.getValue() instanceof ActionGoto) {
+                    let tmp: string | Menu | Action | undefined = (choice.getValue() as ActionGoto).getTo();
+                    if(choice.getName() === 'msubmenu2') {
+                        console.log('1 Adding action ', 
+                            choice.getValue().getName(), 
+                            ' to menu ', 
+                            tmp
+                        );
+                    }
+                    if(tmp instanceof Menu ) {
+                        tmp = this.getMenu(tmp.getName());
+                    } else if(tmp instanceof Action) {
+                        tmp = this.getAction(tmp.getName());
+                    } else {
+                        tmp = this.getMenu(tmp) ?? this.getAction(tmp);
+                    }
+
+                    if(tmp) {
+                        (choice.getValue() as ActionGoto).setTo(tmp); 
+                    }
+                    if(choice.getName() === 'msubmenu2') {
+                        console.log('2 Adding action ', 
+                            choice.getValue().getName(), 
+                            ' to menu ', 
+                            menu.getName(),
+                            menu.getValues()
+                        );
+                    }
+                }
+
+
+                this.loadMenu(choice.getValue() as Menu);
+            });
+            //console.log(3, menu.getName(), (menu as MenuChoice).getValues().map(v => v.getName()));
+        }
+
+        return this;
+    }
+
     protected load(plugin?: Plugin): this {
         const plugins = plugin ? [plugin] : this.getPlugins();
         plugins.forEach(p => {
@@ -76,30 +143,7 @@ class Plugins {
         });
         this.getPlugins().forEach(p => {
             p.getMenus().forEach(menu => {
-                if(menu.getType() === 'choice') {
-                    (menu as MenuChoice).getValues().forEach(choice => {
-                        if(typeof choice.getValue() === 'string') {
-                            const value = choice.getValue() as string;
-                            const item = this.getMenu(value) ?? this.getAction(value);
-                            if(item) {
-                                /*if(item instanceof MenuChoice) {
-                                    choice.setValue(new MenuChoice(
-                                        item.toJson()
-                                    ));
-                                } else if(item instanceof ActionFunction) {
-
-                                }*/
-                                choice.setValue(item);
-                            }
-                        } else {
-                            const value = choice.getValue() as Menu | Action;
-                            const item = this.getMenu(value.getName()) ?? this.getAction(value.getName());
-                            if(!item) {
-                                choice.setValue(value);
-                            }
-                        }
-                    });
-                }
+                this.loadMenu(menu);
             });
         });
         return this;
@@ -108,8 +152,8 @@ class Plugins {
 
 type PluginJson = {
     name: string;
-    menus: MenuJson[];
-    actions: ActionJson[];
+    menus: Array<MenuChoiceJson>;
+    actions: Array<ActionGotoJson | ActionFunctionJson>;
 };
 
 class Plugin {
@@ -184,10 +228,22 @@ abstract class Menu {
     protected plugin?: MenuJson['plugin'];
     protected parents: Record<string, Exclude<MenuJson['parents'], undefined>[number]> = {};
 
-    constructor(data: MenuJson) {
-        this.name = data.name;
-        this.plugin = data.plugin;
-        data.parents?.forEach(parent => this.addParent(parent));
+    constructor(
+        nameOrData: MenuJson | Menu['name'],
+        plugin?: Menu['plugin'],
+        parents?: Menu['parents'][string][]
+    ) {
+        if (typeof nameOrData === 'string') {
+            const name = nameOrData as string;
+            this.name = name;
+            this.plugin = plugin;
+            parents?.forEach(parent => this.addParent(parent));
+        } else {
+            const data = nameOrData as MenuJson;
+            this.name = data.name;
+            this.plugin = plugin;
+            data.parents?.forEach(parent => this.addParent(parent));
+        }
     }
 
     public getName(): Menu['name'] { return this.name; }
@@ -216,37 +272,68 @@ abstract class Menu {
             parents: this.getParents()
         };
     }
+
+    public abstract run(): Promise<unknown>;
 }
 
 type MenuChoiceValueJson = {
     name: string;
     value: string | Menu | Action;
-    isMulti?: boolean;
+    multi?: boolean;
 };
 
 class MenuChoiceValue {
     public name: MenuChoiceValueJson['name'];
     public value: MenuChoiceValueJson['value'];
-    public isMulti: MenuChoiceValueJson['isMulti'];
+    public multi: Exclude<MenuChoiceValueJson['multi'], undefined>;
 
-    constructor(name: string, value?: MenuChoiceValueJson['value'], isMulti?: boolean) {
+    constructor(name: string, value?: MenuChoiceValueJson['value'], multi?: boolean) {
         this.name = name;
         this.value = value ?? name;
-        this.isMulti = isMulti ?? false;
+        this.multi = multi ?? false;
     }
 
-    public getName(): MenuChoiceValueJson['name'] { return this.name; }
+    public getName(): MenuChoiceValue['name'] { return this.name; }
 
-    public getValue(): MenuChoiceValueJson['value'] { return this.value; }
-    public setValue(value: MenuChoiceValueJson['value']): this { this.value = value; return this; }
+    public getValue(): MenuChoiceValue['value'] { return this.value; }
+    public setValue(value: MenuChoiceValue['value']): this { 
+        //this.value = value; 
+        if(value instanceof MenuChoice) {
+            this.value = new MenuChoice(
+                value.getName(), 
+                value.getValues(), 
+                value.getPlugin(), 
+                value.getParents()
+            );
+        } else if(value instanceof ActionFunction) {
+            this.value = new ActionFunction(
+                value.getName(), 
+                value.getCallback(), 
+                value.getPlugin(), 
+                value.isGlobal(), 
+                value.getParents()
+            );
+        } else if(value instanceof ActionGoto) {
+            this.value = new ActionGoto(
+                value.getName(), 
+                value.getTo(), 
+                value.getPlugin(), 
+                value.isGlobal(), 
+                value.getParents()
+            );
+        } else {
+            this.value = value;
+        }
+        return this; 
+    }
 
-    public issMulti(): MenuChoiceValueJson['isMulti'] { return this.isMulti === true; }
+    public isMulti(): MenuChoiceValue['multi'] { return this.multi === true; }
 
     public toJson(): MenuChoiceValueJson {
         return {
             name: this.name,
             value: typeof this.value === 'string' ? this.value : this.value.getName(),
-            isMulti: this.isMulti
+            multi: this.multi
         };
     }
 }
@@ -260,10 +347,21 @@ class MenuChoice extends Menu {
     protected type: MenuChoiceJson['type'] = 'choice';
     protected values: Record<string, MenuChoiceValue> = {};
 
-    constructor(data: MenuChoiceJson) {
-        super(data);
-        this.type = data.type;
-        data.values.forEach(value => this.addValue(value));
+    constructor(
+        nameOrData: MenuChoiceJson | MenuChoice['name'],
+        values?: MenuChoice['values'][string][],
+        plugin?: MenuChoice['plugin'],
+        parents?: MenuChoice['parents'][string][]
+    ) {
+        super(nameOrData, plugin, parents);
+        if (typeof nameOrData === 'string') {
+            this.type = 'choice';
+            values?.forEach(value => this.addValue(value));
+        } else {
+            const data = nameOrData as MenuChoiceJson;
+            this.type = data.type;
+            data.values.forEach(value => this.addValue(value));
+        }
     }
 
     public getValues(): MenuChoice['values'][string][] {
@@ -272,11 +370,16 @@ class MenuChoice extends Menu {
     public getValue(name: string): MenuChoiceValue | undefined { 
         return this.values[name];
     }
-    public addValue(data: MenuChoiceJson['values'][number]): this {
-        const tmpValue = typeof data === 'string'
-            ? new MenuChoiceValue(data)
-            : new MenuChoiceValue(data.name, data.value, data.isMulti)
-        ;
+    public addValue(data: MenuChoiceJson['values'][number] | Menu | Action): this {
+        let tmpValue: MenuChoiceValue;
+        if(data instanceof Menu || data instanceof Action) {
+            tmpValue = new MenuChoiceValue(data.getName(), data);
+        } else if(typeof data === 'string') {
+            tmpValue = new MenuChoiceValue(data);
+        } else {
+            tmpValue = new MenuChoiceValue(data.name, data.value, data.multi);
+        }
+
         if(!this.getValue(tmpValue.getName())) {
             this.values[tmpValue.getName()] = tmpValue;
         }
@@ -289,6 +392,32 @@ class MenuChoice extends Menu {
             type: this.type,
             values: this.getValues().map(v => v.toJson())
         };
+    }
+
+    public async run(): Promise<unknown> {
+        const answers = await choices({
+            message: `Select an action from menu "${this.getName()}"`,
+            choices: this.getValues().map(item => {
+                return {
+                    name: item.getName(),
+                    value: (typeof item.getValue() === 'string') 
+                        ? item.getValue() as string 
+                        : (item.getValue() as Menu | Action).getName(),
+                    multi: item.isMulti(),
+                };
+            }),
+        }) as string[];
+
+        answers.forEach(answer => {
+            console.log(answer)
+            const item = this.getValue(answer);
+
+            if(item && typeof item.getValue() !== 'string') {
+                (item.getValue() as Menu | Action).run();
+            }
+        });
+
+        return this;
     }
 }
 
@@ -307,11 +436,25 @@ abstract class Action {
     protected parents: Record<string, Exclude<ActionJson['parents'], undefined>[number]> = {};
     protected global: ActionJson['global'];
 
-    constructor(data: ActionJson) {
-        this.name = data.name;
-        this.plugin = data.plugin;
-        this.global = data.global ?? false;
-        data.parents?.forEach(parent => this.addParent(parent));
+    constructor(
+        nameOrData: ActionJson | Action['name'],
+        plugin?: Action['plugin'],
+        global?: Action['global'],
+        parents?: Action['parents'][string][]
+    ) {
+        if (typeof nameOrData === 'string') {
+            const name = nameOrData as string;
+            this.name = name;
+            this.plugin = plugin;
+            this.global = global ?? false;
+            parents?.forEach(parent => this.addParent(parent));
+        } else {
+            const data = nameOrData as ActionJson;
+            this.name = data.name;
+            this.plugin = data.plugin;
+            this.global = data.global ?? false;
+            data.parents?.forEach(parent => this.addParent(parent));
+        }
     }
 
     public getName(): Action['name'] { return this.name; }
@@ -343,6 +486,8 @@ abstract class Action {
             global: this.global
         };
     }
+
+    public abstract run(): Promise<unknown>;
 }
 
 type ActionFunctionJson = ActionJson & {
@@ -352,12 +497,22 @@ type ActionFunctionJson = ActionJson & {
 
 class ActionFunction extends Action {
     protected type: ActionFunctionJson['type'] = 'function';
-    protected callback: () => Promise<void>;
+    protected callback: ActionFunctionJson['callback'];
 
-    constructor(data: ActionFunctionJson) {
-        super(data);
-        this.type = data.type;
-        this.callback = data.callback;
+    constructor(
+        nameOrData: ActionFunctionJson | ActionFunction['name'],
+        callback?: ActionFunction['callback'],
+        plugin?: ActionFunction['plugin'],
+        global?: ActionFunction['global'],
+        parents?: ActionFunction['parents'][string][]
+    ) {
+        super(nameOrData, plugin, global, parents);
+        if (typeof nameOrData === 'string') {
+            this.callback = callback!;
+        } else {
+            const data = nameOrData as ActionFunctionJson;
+            this.callback = data.callback;
+        }
     }
     
     public getCallback(): ActionFunction['callback'] { return this.callback; }
@@ -369,6 +524,10 @@ class ActionFunction extends Action {
             callback: this.getCallback(),
         };
     }
+
+    public async run(): Promise<unknown> {
+        return await this.callback();
+    }
 }
 
 type ActionGotoJson = ActionJson & {
@@ -378,22 +537,43 @@ type ActionGotoJson = ActionJson & {
 
 class ActionGoto extends Action {
     protected type: ActionGotoJson['type'] = 'goto';
-    protected to: string;
+    protected to: string | Menu | Action;
 
-    constructor(data: ActionGotoJson) {
-        super(data);
-        this.type = data.type;
-        this.to = data.to;
+    constructor(
+        nameOrData: ActionGotoJson | ActionGoto['name'],
+        to?: ActionGoto['to'],
+        plugin?: ActionGoto['plugin'],
+        global?: ActionGoto['global'],
+        parents?: ActionGoto['parents'][string][]
+    ) {
+        super(nameOrData, plugin, global, parents);
+        if (typeof nameOrData === 'string') {
+            this.to = to!;
+        } else {
+            const data = nameOrData as ActionGotoJson;
+            this.to = data.to;
+        }
     }
     
     public getTo(): ActionGoto['to'] { return this.to; }
+    public setTo(to: ActionGoto['to']): this { 
+        this.to = to; 
+        return this; 
+    }
 
     public override toJson(): ActionGotoJson {
         return {
             ...super.toJson(),
             type: this.type,
-            to: this.getTo(),
+            to: typeof this.getTo() === 'string' ? this.getTo() as string : (this.getTo() as Menu | Action).getName(),
         };
+    }
+
+    public async run(): Promise<unknown> {
+        console.log(`Navigating to "${typeof this.to === 'string' ? this.to : this.to.getName()}"...`, typeof this.to === 'string');
+        if(typeof this.to !== 'string') {
+            return await this.to.run();
+        }
     }
 }
 
@@ -412,11 +592,11 @@ const plugins = new Plugins([
             }
         ],
         actions: [
-            {
-                name: "back",
-                type: "goto",
-                global: true
-            },
+            //{
+            //    name: "back",
+            //    type: "goto",
+            //    global: true
+            //},
             {
                 name: "exit",
                 type: "function",
@@ -457,7 +637,6 @@ const plugins = new Plugins([
                 type: "choice",
                 values: [
                     "subaction3",
-                    "subaction4",
                 ],
                 parents: [
                     "submenu1"
@@ -483,6 +662,7 @@ const plugins = new Plugins([
             {
                 name: "subaction4",
                 type: "function",
+                parents: [ "submenu2" ],
                 callback: async () => { console.log('SubAction 4 executed'); }
             }
         ]
@@ -501,12 +681,13 @@ const plugins = new Plugins([
                 name: "msubmenu2",
                 type: "goto",
                 to: "submenu2",
-                from: "main"
+                parents: ["main"]
             }
         ]
     }
 ]);
 
-console.log(0, plugins.getMenu('main'));
-console.log(0, plugins.getMenu('submenu1'));
-console.log(0, plugins.getMenu('submenu2'));
+plugins.getMenu('main').run();
+//console.log(0, plugins.getMenu('main'));
+//console.log(0, (plugins.getMenu('main') as MenuChoice).getValue('submenu1').getValue());
+//console.log(0, plugins.getMenu('submenu2'));

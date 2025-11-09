@@ -4,7 +4,7 @@ import chalk from 'chalk';
 export interface Choice {
     name: string;
     value: string;
-    isMulti: boolean;
+    multi: boolean;
 }
 
 interface Config {
@@ -37,7 +37,7 @@ const choices = createPrompt<PromptValue, Config>(
                 if (!isSeparator(selectedItem)) {
                     // Type cast to Choice since we know it's not a Separator
                     const choiceItem = selectedItem as Choice;
-                    if (choiceItem.isMulti) {
+                    if (choiceItem.multi) {
                         setStatus('done');
                         done(Array.from(selected));
                     } else {
@@ -47,7 +47,7 @@ const choices = createPrompt<PromptValue, Config>(
                 }
             } else if (isSpaceKey(key)) {
                 const choice = allItems[activeIndex];
-                if (!isSeparator(choice) && (choice as Choice).isMulti) {
+                if (!isSeparator(choice) && (choice as Choice).multi) {
                     const choiceItem = choice as Choice;
                     const choiceValue = choiceItem.value;
                     const newSelected = new Set(selected);
@@ -84,7 +84,7 @@ const choices = createPrompt<PromptValue, Config>(
                 lines.push(new Separator().separator);
             } else {
                 const choice = item as Choice;
-                if (choice.isMulti) {
+                if (choice.multi) {
                     const isChecked = selected.has(choice.value);
                     const checkbox = isChecked ? chalk.green('◉') : '◯';
                     const prefix = isActive ? chalk.cyan('❯') : ' ';
