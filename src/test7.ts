@@ -47,6 +47,7 @@ abstract class Menu {
         };
     }
 
+    public abstract run(): Promise<unknown>;
 }
 
 type MenuChoiceValueJson = {
@@ -154,6 +155,13 @@ class MenuChoice extends Menu {
             values: Object.values(this.values).map(v => v.toJson())
         };
     }
+
+    public async run(): Promise<string[]> {
+        return await choices({
+            message: `Select an action from menu "${this.getName()}"`,
+            choices: this.getValues().map(item => item.toJson()),
+        }) as string[];
+    }
 }
 
 type ActionJson = {
@@ -208,6 +216,8 @@ abstract class Action {
             global: this.global
         };
     }
+
+    public abstract run(): Promise<unknown>;
 }
 
 type ActionFunctionJson = ActionJson & {
@@ -237,6 +247,10 @@ class ActionFunction extends Action {
             callback: this.callback
         };
     }
+
+    public async run(): Promise<void> {
+        return await this.getCallback();
+    }
 }
 
 type ActionGotoJson = ActionJson & {
@@ -253,6 +267,11 @@ class ActionGoto extends Action {
         this.to = data.to;
     }
 
+    public setName(name: ActionGoto['name']): this { 
+        this.name = name; 
+        return this; 
+    }
+
     public getTo(): ActionGoto['to'] { return this.to; }
     public setTo(to: ActionGoto['to']): this { 
         this.to = to; 
@@ -265,6 +284,10 @@ class ActionGoto extends Action {
             type: this.type,
             to: this.to
         };
+    }
+
+    public async run(): Promise<this> {
+        return this;
     }
 }
 
@@ -341,6 +364,17 @@ class Plugins {
 
         return this.load();
     }
+    public delAction(name: string): this {
+        delete this.actions[name];
+        return this;
+    }
+    protected getActionTypeBack(menu: MenuChoice): ActionGoto | undefined {
+        const item = menu.getValues().find(v => v.getName().startsWith('back_'));
+        return this.getAction(item?.getName() || '') as ActionGoto | undefined;
+    }
+    protected hasBackInParents(back: ActionGoto, menu: MenuChoice): boolean {
+        return menu.getParents().includes(back.getTo());
+    }
 
     public load(): this {
         this.getMenus().forEach(menu => {
@@ -368,38 +402,56 @@ class Plugins {
         return this;
     }
 
-    public async runMenuChoice(menu: MenuChoice): Promise<this> {
-        const answers = await choices({
-            message: `Select an action from menu "${menu.getName()}"`,
-            choices: menu.getValues().map(item => item.toJson()),
-        }) as string[];
-
-        for (const answer of answers) {
-            console.log(answer);
-            await this.run(answer);
+    public async run(
+        value: string | Menu | Action = 'main',
+        parent?: string | Menu | Action
+    ): Promise<this> {
+        if(typeof parent === 'string') {
+            parent = this.getMenu(parent) || this.getAction(parent);
         }
-
-        return this;
-    }
-
-    public async runActionFunction(action: ActionFunction): Promise<void> {
-        return await action.getCallback();
-    }
-
-    public async runActionGoto(action: ActionGoto): Promise<this> {
-        const item = this.getMenu(action.getTo()) ?? this.getAction(action.getTo());
-        return item ? await this.run(item.getName()) : this;
-    }
-
-    public async run(name: string = 'main'): Promise<this> {
-        const item = this.getMenu(name) || this.getAction(name);
+        const item = typeof value === 'string' 
+            ? (this.getMenu(value) || this.getAction(value))
+            : value
+        ;
+        console.log('###1', value, !!item, parent?.getName())
         
         if(item instanceof MenuChoice) {
-            return await this.runMenuChoice(item);
+            const parentName = parent 
+                ? (typeof parent === 'string' ? parent : parent.getName()) 
+                : undefined
+            ;
+
+            let back = this.getActionTypeBack(item);
+            if(back) {
+                if(!this.hasBackInParents(back!, item)) {
+                console.log('###2.1', item.getName(), back!.getName());
+                    this.delAction(back!.getName());
+                    back = undefined;
+                }
+            }
+            if(!back && item.getName() !== 'main') {
+                this.addAction(
+                    new ActionGoto(
+                        ((this.getAction('back') as ActionGoto).toJson())
+                    )
+                    .setName(`back_${item.getName()}`)
+                    .setTo(parentName ?? 'main')
+                )
+                item.addValue(`back_${item.getName()}`)
+            }
+
+            item.addValue('exit');
+
+            (await item.run()).forEach(async answer => 
+                await this.run(
+                    answer, 
+                    item
+                )
+            );
         } else if(item instanceof ActionFunction) {
-            await this.runActionFunction(item);
+            await item.run();
         } else if(item instanceof ActionGoto) {
-            return await this.runActionGoto(item);
+            return await this.run(item.getTo());
         }
 
         return this;
@@ -427,7 +479,23 @@ plugins
                 ]
             }
         ],
-        actions: []
+        actions: [
+            {
+                name: 'back',
+                type: 'goto',
+                to: 'main',
+                global: true
+            },
+            {
+                name: 'exit',
+                type: 'function',
+                callback: async () => {
+                    console.log('Exiting...');
+                    process.exit(0);
+                },
+                global: true
+            },
+        ]
     })
     .addPlugin({
         name: 'test1',
