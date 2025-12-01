@@ -9,6 +9,7 @@ plugins
             {
                 name: 'main',
                 type: 'choice',
+                color: 'green',
                 values: [
                 ]
             }
@@ -23,6 +24,7 @@ plugins
             {
                 name: 'exit',
                 type: 'function',
+                color: 'red',
                 callback: async () => {
                     console.log('Exiting...');
                     process.exit(0);
@@ -59,6 +61,7 @@ plugins
             {
                 name: 'action1',
                 type: 'function',
+                color: 'blue',
                 callback: async () => {
                     console.log('Action 1 executed');
                 },

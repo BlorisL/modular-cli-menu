@@ -2,8 +2,8 @@ import { createPrompt, useState, useKeypress, usePrefix, isEnterKey, isSpaceKey,
 import chalk from 'chalk';
 
 export interface Choice {
-    name: string;
     value: string;
+    label: string;
     multi: boolean;
 }
 
@@ -88,10 +88,10 @@ const choices = createPrompt<PromptValue, Config>(
                     const isChecked = selected.has(choice.value);
                     const checkbox = isChecked ? chalk.green('◉') : '◯';
                     const prefix = isActive ? chalk.cyan('❯') : ' ';
-                    lines.push(`${prefix} ${checkbox} ${choice.name}`);
+                    lines.push(`${prefix} ${checkbox} ${choice.label}`);
                 } else {
                     const prefix = isActive ? chalk.cyan('❯') : ' ';
-                    lines.push(`${prefix} ${choice.name}`);
+                    lines.push(`${prefix} ${choice.label}`);
                 }
             }
         });

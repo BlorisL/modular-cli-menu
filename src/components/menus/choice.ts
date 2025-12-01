@@ -1,29 +1,41 @@
 import { choices } from "@/prompts/Choices";
 import { Menu, MenuJson } from "./menu";
 import { Action } from "../actions";
+import chalk, { ColorName } from "chalk";
 
 
-type MenuChoiceValueJson = {
-    name: string;
+type MenuChoiceOptionJson = {
     value: string;
+    label?: string;
     multi?: boolean;
+    color?: ColorName;
 };
 
-class MenuChoiceValue {
-    public name: MenuChoiceValueJson['name'];
-    public value: MenuChoiceValueJson['value'];
-    public multi: Exclude<MenuChoiceValueJson['multi'], undefined>;
+class MenuChoiceOption {
+    protected value: MenuChoiceOptionJson['value'];
+    protected label: MenuChoiceOptionJson['label'];
+    protected multi: Exclude<MenuChoiceOptionJson['multi'], undefined>;
+    protected color?: MenuChoiceOptionJson['color'];
 
-    constructor(name: string, value?: MenuChoiceValueJson['value'], multi?: boolean) {
-        this.name = name;
-        this.value = value ?? name;
+    constructor(
+        value: MenuChoiceOptionJson['value'], 
+        label?: MenuChoiceOptionJson['label'], 
+        multi?: MenuChoiceOptionJson['multi'], 
+        color?: MenuChoiceOptionJson['color']
+    ) {
+        this.value = value;
+        this.label = label ?? value;
         this.multi = multi ?? false;
+        this.color = color;
     }
 
-    public getName(): MenuChoiceValue['name'] { return this.name; }
+    public getValue(): MenuChoiceOption['value'] { return this.value; }
 
-    public getValue(): MenuChoiceValue['value'] { return this.value; }
-    public setValue(value: MenuChoiceValue['value']): this { 
+    public getLabel(): MenuChoiceOption['label'] { 
+        const color = this.getColor();
+        return color ? chalk[color](this.label) : this.label; 
+    }
+    public setValue(value: MenuChoiceOption['value']): this { 
         this.value = value; 
         /*if(value instanceof MenuChoice) {
             this.value = new MenuChoice(
@@ -54,25 +66,29 @@ class MenuChoiceValue {
         return this; 
     }
 
-    public isMulti(): MenuChoiceValue['multi'] { return this.multi === true; }
+    public getColor(): MenuChoiceOption['color'] | undefined { return this.color; }
+    public setColor(color: MenuChoiceOption['color']): this { this.color = color; return this; }
+
+    public isMulti(): MenuChoiceOption['multi'] { return this.multi === true; }
 
     public toJson() {
         return {
-            name: this.name,
-            value: this.value, //typeof this.value === 'string' ? this.value : this.value.getName(),
-            multi: this.multi
+            value: this.value, 
+            label: this.label, //typeof this.value === 'string' ? this.value : this.value.getName(),
+            multi: this.multi,
+            color: this.color
         };
     }
 }
 
 type MenuChoiceJson = MenuJson & {
     type: 'choice';
-    values?: Array<string | MenuChoiceValueJson>;
+    values?: Array<string | MenuChoiceOptionJson>;
 };
 
 class MenuChoice extends Menu {
     protected type: MenuChoiceJson['type'] = 'choice';
-    protected values: Record<string, MenuChoiceValue> = {};
+    protected values: Record<string, MenuChoiceOption> = {};
 
     constructor(data: MenuChoiceJson) {
         super(data);
@@ -90,13 +106,23 @@ class MenuChoice extends Menu {
         value: Menu | Action | MenuChoice['values'][string] | Exclude<MenuChoiceJson['values'], undefined>[number]
     ): this {
         if(value instanceof Menu || value instanceof Action) {
-            this.values[value.getName()] = new MenuChoiceValue(value.getName());
-        } else if(value instanceof MenuChoiceValue) {
-            this.values[value.getName()] = value;
+            this.values[value.getName()] = new MenuChoiceOption(
+                value.getName(),
+                value.getName(),
+                false,
+                value.getColor()
+            );
+        } else if(value instanceof MenuChoiceOption) {
+            this.values[value.getValue()] = value;
         } else if(typeof value === 'string') {
-            this.values[value] = new MenuChoiceValue(value);
+            this.values[value] = new MenuChoiceOption(value);
         } else if(!!value) {
-            this.values[value.name] = new MenuChoiceValue(value.name, value.value, value.multi);
+            this.values[value.value] = new MenuChoiceOption(
+                value.value, 
+                value.label, 
+                value.multi, 
+                value.color
+            );
         }
         return this;
     }
@@ -110,11 +136,15 @@ class MenuChoice extends Menu {
     }
 
     public async run(): Promise<string[]> {
+        const color = this.getColor();
         return await choices({
-            message: `Select an action from menu "${this.getName()}"`,
+            message: color
+                ? chalk[color](`Select an action from menu "${this.getName()}"`)
+                : `Select an action from menu "${this.getName()}"`
+            ,
             choices: this.getValues().map(item => item.toJson()),
         }) as string[];
     }
 }
 
-export { MenuChoice, type MenuChoiceJson, MenuChoiceValue, type MenuChoiceValueJson };
+export { MenuChoice, type MenuChoiceJson, MenuChoiceOption, type MenuChoiceOptionJson };

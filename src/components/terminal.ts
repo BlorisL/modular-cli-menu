@@ -74,8 +74,8 @@ class Terminal {
     }
     
     protected getActionTypeBack(menu: MenuChoice): ActionGoto | undefined {
-        const item = menu.getValues().find(v => v.getName().startsWith('back_'));
-        return this.getAction(item?.getName() || '') as ActionGoto | undefined;
+        const item = menu.getValues().find(v => v.getValue().startsWith('back_'));
+        return this.getAction(item?.getValue() || '') as ActionGoto | undefined;
     }
     protected hasBackInParents(back: ActionGoto, menu: MenuChoice): boolean {
         return menu.getParents().includes(back.getTo());
