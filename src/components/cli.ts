@@ -1,26 +1,39 @@
+import chalk, { ColorName } from "chalk";
 import { Action, ActionFunction, ActionFunctionJson, ActionGoto, ActionGotoJson } from "./actions";
 import { Menu, MenuChoice } from "./menus";
 import { PluginJson } from "./plugins";
+import { Language, TranslationJson, Translations } from "./translations";
 
-class Terminal {
+class Cli {
     protected menus: Record<string, Menu>;
     protected actions: Record<string, Action>;
+    protected translations: TranslationJson;
+
     constructor() {
         this.menus = {};
         this.actions = {};
+        this.translations = {};
+    }
+
+    public static write(text: string, color?: ColorName): string {
+        return color ? chalk[color](text) : text;
     }
 
     public addPlugin(plugin: PluginJson): this {
         plugin.menus?.forEach(menu => this.addMenu(menu, plugin.name));
         plugin.actions?.forEach(action => this.addAction(action, plugin.name));
 
+        if(plugin.translations) {
+            Translations.addTranslations(plugin.translations);
+        }
+
         return this;
     }
 
-    public getMenus(): Terminal['menus'][string][] { return Object.values(this.menus); }
-    public getMenu(name: string): Terminal['menus'][string] | undefined { return this.menus[name]; }
+    public getMenus(): Cli['menus'][string][] { return Object.values(this.menus); }
+    public getMenu(name: string): Cli['menus'][string] | undefined { return this.menus[name]; }
     public addMenu(
-        menu: Exclude<PluginJson['menus'], undefined>[number] | Terminal['menus'][string],
+        menu: Exclude<PluginJson['menus'], undefined>[number] | Cli['menus'][string],
         plugin?: string
     ): this {
     let menuInstance: Menu | undefined = undefined;
@@ -40,12 +53,12 @@ class Terminal {
         return this.load();
     }
 
-    public getActions(): Terminal['actions'][string][] { return Object.values(this.actions); }
-    public getAction(name: string): Terminal['actions'][string] | undefined { 
+    public getActions(): Cli['actions'][string][] { return Object.values(this.actions); }
+    public getAction(name: string): Cli['actions'][string] | undefined { 
         return this.actions[name]; 
     }
     public addAction(
-        action: Exclude<PluginJson['actions'], undefined>[number] | Terminal['actions'][string],
+        action: Exclude<PluginJson['actions'], undefined>[number] | Cli['actions'][string],
         plugin?: string
     ): this {
         let actionInstance: Action | undefined = undefined;
@@ -119,7 +132,7 @@ class Terminal {
             : value
         ;
         
-    if(item instanceof MenuChoice) {
+        if(item instanceof MenuChoice) {
             const parentName = parent 
                 ? (typeof parent === 'string' ? parent : parent.getName()) 
                 : undefined
@@ -141,10 +154,16 @@ class Terminal {
                     .setName(`back_${item.getName()}`)
                     .setTo(parentName ?? 'main')
                 )
-                item.addValue(`back_${item.getName()}`)
+                const backAction = this.getAction(`back_${item.getName()}`);
+                if(backAction) {
+                    item.addValue(backAction);
+                }
             }
 
-            item.addValue('exit');
+            const exitAction = this.getAction('exit');
+            if(exitAction) {
+                item.addValue(exitAction);
+            }
 
             (await item.run()).forEach(async answer => 
                 await this.run(
@@ -169,4 +188,4 @@ class Terminal {
     }
 }
 
-export { Terminal };
+export { Cli };

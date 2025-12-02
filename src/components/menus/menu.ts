@@ -1,4 +1,5 @@
 import { ColorName } from "chalk";
+import { Language, Translations } from "../translations";
 
 type MenuJson = {
     name: string;
@@ -48,6 +49,22 @@ abstract class Menu {
     public addParent(name: Menu['parents'][string]): this { 
         this.parents[name] = name; 
         return this; 
+    }
+
+    public getQuestionName(menu: Menu): string {
+        return `${menu.getPlugin() ?? 'default'}.${menu.getName()}.question`;
+    }
+    public getQuestionLabel(menu: Menu, language?: Language): string {
+        const name = this.getQuestionName(menu);
+        return Translations.getTranslation(name, language) ?? name;
+    }
+
+    public getTitleName(menu: Menu): string {
+        return `${menu.getPlugin() ?? 'default'}.${menu.getName()}.title`;
+    }
+    public getTitleLabel(menu: Menu, language?: Language): string {
+        const name = this.getTitleName(menu);
+        return Translations.getTranslation(name, language) ?? name;
     }
 
     public toJson(): MenuJson {

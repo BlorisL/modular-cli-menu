@@ -1,6 +1,7 @@
-import { Terminal } from "./components/terminal";
+import { it } from "node:test";
+import { Cli } from "./components/cli";
 
-const plugins = new Terminal();
+const plugins = new Cli();
 
 plugins
     .addPlugin({
@@ -26,12 +27,26 @@ plugins
                 type: 'function',
                 color: 'red',
                 callback: async () => {
-                    console.log('Exiting...');
+                    console.log(Cli.write('Exiting...', 'red'));
                     process.exit(0);
                 },
                 global: true
             },
-        ]
+        ],
+        translations: {
+            'default.main.question': {
+                en: 'Please choose an option:',
+                it: "Per favore scegli un'opzione:",
+                fr: 'Veuillez choisir une option :',
+                de: 'Bitte wählen Sie eine Option:',
+                es: 'Por favor, elija una opción:',
+                pl: 'Proszę wybrać opcję:',
+                ru: 'Пожалуйста, выберите опцию:',
+                cn: '请选择一个选项：',
+                jp: 'オプションを選択してください：',
+                ar: 'يرجى اختيار خيار:',
+            }
+        }
     })
     .addPlugin({
         name: 'translate',

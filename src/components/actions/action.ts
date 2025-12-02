@@ -1,4 +1,5 @@
 import { ColorName } from "chalk";
+import { Language, Translations } from "../translations";
 
 type ActionJson = {
     name: string;
@@ -54,6 +55,14 @@ abstract class Action {
     }
 
     public isGlobal(): Action['global'] { return this.global === true; }
+
+    public getTitleName(menu: Action): string {
+        return `${menu.getPlugin() ?? 'default'}.${menu.getName()}.title`;
+    }
+    public getTitleLabel(menu: Action, language?: Language): string {
+        const name = this.getTitleName(menu);
+        return Translations.getTranslation(name, language) ?? name;
+    }
 
     public toJson(): ActionJson {
         return {

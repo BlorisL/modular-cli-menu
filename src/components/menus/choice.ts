@@ -2,6 +2,7 @@ import { choices } from "@/prompts/Choices";
 import { Menu, MenuJson } from "./menu";
 import { Action } from "../actions";
 import chalk, { ColorName } from "chalk";
+import { Translations } from "../translations";
 
 
 type MenuChoiceOptionJson = {
@@ -12,28 +13,29 @@ type MenuChoiceOptionJson = {
 };
 
 class MenuChoiceOption {
-    protected value: MenuChoiceOptionJson['value'];
-    protected label: MenuChoiceOptionJson['label'];
+    protected value: MenuChoiceOptionJson['value'] | Menu | Action;
+    protected label: Exclude<MenuChoiceOptionJson['label'], undefined>;
     protected multi: Exclude<MenuChoiceOptionJson['multi'], undefined>;
     protected color?: MenuChoiceOptionJson['color'];
 
     constructor(
-        value: MenuChoiceOptionJson['value'], 
+        value: MenuChoiceOptionJson['value'] | Menu | Action, 
         label?: MenuChoiceOptionJson['label'], 
         multi?: MenuChoiceOptionJson['multi'], 
         color?: MenuChoiceOptionJson['color']
     ) {
         this.value = value;
-        this.label = label ?? value;
+        this.label = label ?? (typeof value === 'string' ? value : value.getName());
         this.multi = multi ?? false;
         this.color = color;
     }
 
-    public getValue(): MenuChoiceOption['value'] { return this.value; }
+    public getValue(): string { 
+        return typeof this.value === 'string' ? this.value : this.value.getName();
+    }
 
-    public getLabel(): MenuChoiceOption['label'] { 
-        const color = this.getColor();
-        return color ? chalk[color](this.label) : this.label; 
+    public getItem(): Menu | Action | undefined {
+        return typeof this.value === 'string' ? undefined : this.value;
     }
     public setValue(value: MenuChoiceOption['value']): this { 
         this.value = value; 
@@ -66,6 +68,11 @@ class MenuChoiceOption {
         return this; 
     }
 
+    public getLabel(): MenuChoiceOption['label'] { 
+        const color = this.getColor();
+        return color ? chalk[color](this.label) : this.label; 
+    }
+
     public getColor(): MenuChoiceOption['color'] | undefined { return this.color; }
     public setColor(color: MenuChoiceOption['color']): this { this.color = color; return this; }
 
@@ -73,10 +80,10 @@ class MenuChoiceOption {
 
     public toJson() {
         return {
-            value: this.value, 
-            label: this.label, //typeof this.value === 'string' ? this.value : this.value.getName(),
-            multi: this.multi,
-            color: this.color
+            value: this.getValue(), 
+            label: this.getLabel(), //typeof this.value === 'string' ? this.value : this.value.getName(),
+            multi: this.isMulti(),
+            color: this.getColor()
         };
     }
 }
@@ -98,16 +105,57 @@ class MenuChoice extends Menu {
         }
     }
 
-    public getValues(): MenuChoice['values'][string][] { return Object.values(this.values); }
+    public getValues(): MenuChoice['values'][string][] { return this.sortValues(); }
     public getValue(name: string): MenuChoice['values'][string] | undefined { 
         return this.values[name]; 
     }
+
+    protected sortValues(): MenuChoice['values'][string][] {
+        return Object.values(this.values).sort((a, b) => {
+            const aItem = a.getItem();
+            const bItem = b.getItem();
+            
+            const aIsGlobal = aItem instanceof Action && aItem.isGlobal();
+            const bIsGlobal = bItem instanceof Action && bItem.isGlobal();
+            
+            // Azioni globali sempre in fondo
+            if(aIsGlobal && !bIsGlobal) return 1;
+            if(!aIsGlobal && bIsGlobal) return -1;
+            
+            // Se entrambe globali, ordina per indice
+            if(aIsGlobal && bIsGlobal) {
+                const aIndex = aItem instanceof Action ? (aItem.getIndex() ?? Infinity) : Infinity;
+                const bIndex = bItem instanceof Action ? (bItem.getIndex() ?? Infinity) : Infinity;
+                return aIndex - bIndex;
+            }
+            
+            // Per non-globali: ordina prima per indice
+            const aIndex = aItem ? (aItem.getIndex() ?? Infinity) : Infinity;
+            const bIndex = bItem ? (bItem.getIndex() ?? Infinity) : Infinity;
+            
+            if(aIndex !== bIndex) return aIndex - bIndex;
+            
+            // Se stesso indice: azioni prima, poi menu
+            const aIsAction = aItem instanceof Action;
+            const bIsAction = bItem instanceof Action;
+            
+            if(aIsAction && !bIsAction) return -1;
+            if(!aIsAction && bIsAction) return 1;
+            
+            // Se stesso tipo e indice: ordinamento alfabetico
+            const aName = aItem ? aItem.getName() : a.getValue();
+            const bName = bItem ? bItem.getName() : b.getValue();
+            
+            return aName.localeCompare(bName);
+        });
+    }
+
     public addValue(
         value: Menu | Action | MenuChoice['values'][string] | Exclude<MenuChoiceJson['values'], undefined>[number]
     ): this {
         if(value instanceof Menu || value instanceof Action) {
             this.values[value.getName()] = new MenuChoiceOption(
-                value.getName(),
+                value,
                 value.getName(),
                 false,
                 value.getColor()
@@ -139,10 +187,15 @@ class MenuChoice extends Menu {
         const color = this.getColor();
         return await choices({
             message: color
-                ? chalk[color](`Select an action from menu "${this.getName()}"`)
-                : `Select an action from menu "${this.getName()}"`
+                ? chalk[color](this.getQuestionLabel(this))
+                : this.getQuestionLabel(this)
             ,
-            choices: this.getValues().map(item => item.toJson()),
+            choices: this.getValues().map(item => {
+                return {
+                    ...item.toJson(),
+                    label: Translations.getTranslation(item.getLabel())
+                };
+            }),
         }) as string[];
     }
 }
