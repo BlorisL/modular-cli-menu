@@ -2,7 +2,7 @@ import { choices } from "@/prompts/Choices";
 import { Menu, MenuJson } from "./menu";
 import { Action } from "../actions";
 import chalk, { ColorName } from "chalk";
-import { Translations } from "../translations";
+import { Language, Translations } from "../translations";
 
 
 type MenuChoiceOptionJson = {
@@ -32,10 +32,6 @@ class MenuChoiceOption {
 
     public getValue(): string { 
         return typeof this.value === 'string' ? this.value : this.value.getName();
-    }
-
-    public getItem(): Menu | Action | undefined {
-        return typeof this.value === 'string' ? undefined : this.value;
     }
     public setValue(value: MenuChoiceOption['value']): this { 
         this.value = value; 
@@ -77,6 +73,19 @@ class MenuChoiceOption {
     public setColor(color: MenuChoiceOption['color']): this { this.color = color; return this; }
 
     public isMulti(): MenuChoiceOption['multi'] { return this.multi === true; }
+
+    public getIndex(): number | undefined {
+        return typeof this.value === 'string' ? undefined : this.value.getIndex();
+    }
+
+    public getItem(): Exclude<MenuChoiceOption['value'], string> | undefined { 
+        return typeof this.value === 'string' ? undefined : this.value; 
+    }
+    public getTranslationLabel(language?: Language): string {
+        return this.getItem()?.getTitleLabel(language) 
+            ?? Translations.getTranslation(this.getValue(), language)
+        ;
+    }
 
     public toJson() {
         return {
@@ -184,16 +193,14 @@ class MenuChoice extends Menu {
     }
 
     public async run(): Promise<string[]> {
-        const color = this.getColor();
+        console.clear();
+
         return await choices({
-            message: color
-                ? chalk[color](this.getQuestionLabel(this))
-                : this.getQuestionLabel(this)
-            ,
-            choices: this.getValues().map(item => {
+            message: this.getQuestionLabel(),
+            choices: this.getValues().map(choice => {
                 return {
-                    ...item.toJson(),
-                    label: Translations.getTranslation(item.getLabel())
+                    ...choice.toJson(),
+                    label: choice.getTranslationLabel()
                 };
             }),
         }) as string[];

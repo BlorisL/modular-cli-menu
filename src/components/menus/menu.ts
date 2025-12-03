@@ -1,4 +1,4 @@
-import { ColorName } from "chalk";
+import chalk, { ColorName } from "chalk";
 import { Language, Translations } from "../translations";
 
 type MenuJson = {
@@ -51,20 +51,28 @@ abstract class Menu {
         return this; 
     }
 
-    public getQuestionName(menu: Menu): string {
-        return `${menu.getPlugin() ?? 'default'}.${menu.getName()}.question`;
+    public getQuestionName(): string {
+        return `${this.getPlugin() ?? 'default'}.${this.getName()}.question`;
     }
-    public getQuestionLabel(menu: Menu, language?: Language): string {
-        const name = this.getQuestionName(menu);
-        return Translations.getTranslation(name, language) ?? name;
+    public getQuestionLabel(language?: Language): string {
+        const color = this.getColor();
+        const name = this.getQuestionName();
+
+        return color
+            ? chalk[color](Translations.getTranslation(name, language) ?? name)
+            : Translations.getTranslation(name, language) ?? name;
     }
 
-    public getTitleName(menu: Menu): string {
-        return `${menu.getPlugin() ?? 'default'}.${menu.getName()}.title`;
+    public getTitleName(): string {
+        return `${this.getPlugin() ?? 'default'}.${this.getName()}.title`;
     }
-    public getTitleLabel(menu: Menu, language?: Language): string {
-        const name = this.getTitleName(menu);
-        return Translations.getTranslation(name, language) ?? name;
+    public getTitleLabel(language?: Language): string {
+        const color = this.getColor();
+        const name = this.getTitleName();
+        
+        return color
+            ? chalk[color](Translations.getTranslation(name, language) ?? name)
+            : Translations.getTranslation(name, language) ?? name;
     }
 
     public toJson(): MenuJson {
