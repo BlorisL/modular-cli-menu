@@ -1,4 +1,4 @@
-import { choices } from "@/prompts/Choices";
+import { choices, Separator } from "@/prompts/Choices";
 import { Menu, MenuJson } from "./menu";
 import { Action } from "../actions";
 import chalk, { ColorName } from "chalk";
@@ -195,10 +195,19 @@ class MenuChoice extends Menu {
     public async run(): Promise<string[]> {
         console.clear();
 
+        const values: Array<MenuChoiceOption | Separator> = this.getValues();
+        
+        const globalIndex = this.getValues().findIndex(v => {
+            const item = v.getItem();
+            return item instanceof Action && item.isGlobal();
+        });
+
+        values.splice(globalIndex, 0, new Separator());
+
         return await choices({
             message: this.getQuestionLabel(),
-            choices: this.getValues().map(choice => {
-                return {
+            choices: values.map(choice => {
+                return choice instanceof Separator ? choice : {
                     ...choice.toJson(),
                     label: choice.getTranslationLabel()
                 };

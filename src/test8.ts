@@ -1,4 +1,3 @@
-import { it } from "node:test";
 import { Cli } from "./components/cli";
 
 const plugins = new Cli();
