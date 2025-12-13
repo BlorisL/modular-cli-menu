@@ -17,6 +17,14 @@ class Translations {
         Translations.selectedLanguage = process.env.SELECTED_LANGUAGE || process.env.MENU_LANGUAGE || 'en';
     }
 
+    public static getLanguages(): Language[] {
+        const langs = new Set<Language>();
+        Object.values(Translations.items).forEach(langObj => {
+            Object.keys(langObj).forEach(lang => langs.add(lang));
+        });
+        return Array.from(langs);
+    }
+
     public static getDefaultLanguage(): Language { return Translations.defaultLanguage; }
 
     public static getSelectedLanguage(): Language { return Translations.selectedLanguage; }

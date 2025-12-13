@@ -1,4 +1,5 @@
 import { Cli } from "./components/cli";
+import { Translations } from "./components/translations";
 
 const plugins = new Cli();
 
@@ -12,6 +13,13 @@ plugins
                 color: 'green',
                 values: [
                 ]
+            },
+            {
+                name: 'language',
+                type: 'choice',
+                parents: ['main'],
+                global: true,
+                values: () => Translations.getLanguages()
             }
         ],
         actions: [
@@ -33,6 +41,7 @@ plugins
             },
         ],
         translations: {
+            //'default.language'
             'default.main.question': {
                 en: 'Please choose an option:',
                 it: "Per favore scegli un'opzione:",

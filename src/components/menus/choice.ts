@@ -97,29 +97,55 @@ class MenuChoiceOption {
     }
 }
 
+type MenuChoiceJsonValue = string | MenuChoiceOptionJson;
+
 type MenuChoiceJson = MenuJson & {
     type: 'choice';
-    values?: Array<string | MenuChoiceOptionJson>;
+    values?: Array<MenuChoiceJsonValue> | (() => Array<MenuChoiceJsonValue>);
 };
+
+type MenuChoiceValues = Record<string, MenuChoiceOption>;
 
 class MenuChoice extends Menu {
     protected type: MenuChoiceJson['type'] = 'choice';
-    protected values: Record<string, MenuChoiceOption> = {};
+    protected values: MenuChoiceValues | (() => MenuChoiceValues) = {};
 
     constructor(data: MenuChoiceJson) {
         super(data);
         
-        if(data.values) {
+        if(Array.isArray(data.values)) {
             data.values.forEach(v => this.addValue(v));
+        } else if(typeof data.values === 'function') {
+            this.values = () => {
+                const result: MenuChoiceValues = {};
+                (data.values as Function)().forEach((v: MenuChoiceJsonValue) => {
+                    if(typeof v === 'string') {
+                        result[v] = new MenuChoiceOption(v);
+                    } else {
+                        result[v.value] = new MenuChoiceOption(v.value, v.label, v.multi, v.color);
+                    }
+                });
+                return result;
+            };
         }
     }
 
-    public getValues(): MenuChoice['values'][string][] { return this.sortValues(); }
-    public getValue(name: string): MenuChoice['values'][string] | undefined { 
-        return this.values[name]; 
+    public getValues(): MenuChoiceValues[string][] { return this.sortValues(); }
+    public getValue(name: string): MenuChoiceValues[string] | undefined { 
+        return (typeof this.values === 'function') ? this.values()[name] : this.values[name]; 
+    }
+    public setValue(name:string, value: MenuChoiceValues[string]): this { 
+        if(typeof this.values === 'function') {
+            const vals = this.values();
+            vals[name] = value;
+            this.values = vals;
+        } else {
+            this.values[name] = value; 
+        }
+        return this; 
     }
 
-    protected sortValues(): MenuChoice['values'][string][] {
+    protected sortValues(): MenuChoiceValues[string][] {
         return Object.values(this.values).sort((a, b) => {
             const aItem = a.getItem();
             const bItem = b.getItem();
@@ -160,26 +186,26 @@ class MenuChoice extends Menu {
     }
 
     public addValue(
-        value: Menu | Action | MenuChoice['values'][string] | Exclude<MenuChoiceJson['values'], undefined>[number]
+        value: Menu | Action | MenuChoiceOption | MenuChoiceJsonValue
     ): this {
         if(value instanceof Menu || value instanceof Action) {
-            this.values[value.getName()] = new MenuChoiceOption(
+            this.setValue(value.getName(), new MenuChoiceOption(
                 value,
                 value.getName(),
                 false,
                 value.getColor()
-            );
+            ));
         } else if(value instanceof MenuChoiceOption) {
-            this.values[value.getValue()] = value;
+            this.setValue(value.getValue(), value);
         } else if(typeof value === 'string') {
-            this.values[value] = new MenuChoiceOption(value);
+            this.setValue(value, new MenuChoiceOption(value));
         } else if(!!value) {
-            this.values[value.value] = new MenuChoiceOption(
+            this.setValue(value.value, new MenuChoiceOption(
                 value.value, 
                 value.label, 
                 value.multi, 
                 value.color
-            );
+            ));
         }
         return this;
     }
@@ -199,7 +225,7 @@ class MenuChoice extends Menu {
         
         const globalIndex = this.getValues().findIndex(v => {
             const item = v.getItem();
-            return item instanceof Action && item.isGlobal();
+            return item?.isGlobal();
         });
 
         values.splice(globalIndex, 0, new Separator());
@@ -207,6 +233,9 @@ class MenuChoice extends Menu {
         return await choices({
             message: this.getQuestionLabel(),
             choices: values.map(choice => {
+                if(!(choice instanceof Separator)) {
+                    console.log(choice.getTranslationLabel());
+                }
                 return choice instanceof Separator ? choice : {
                     ...choice.toJson(),
                     label: choice.getTranslationLabel()

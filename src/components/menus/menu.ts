@@ -7,7 +7,8 @@ type MenuJson = {
     plugin?: string;
     index?: number;
     color?: ColorName;
-    parents?: string[]
+    parents?: string[];
+    global?: boolean;
 }
 
 abstract class Menu {
@@ -17,12 +18,14 @@ abstract class Menu {
     protected parents: Record<string, Exclude<MenuJson['parents'], undefined>[number]> = {};
     protected index: MenuJson['index'];
     protected color: MenuJson['color'];
+    protected global: Exclude<MenuJson['global'], undefined>;
 
     constructor(data: MenuJson) {
         this.name = data.name;
         this.plugin = data.plugin;
         this.index = data.index;
         this.color = data.color;
+        this.global = data.global ?? false;
 
         if(data.parents) {
             data.parents.forEach(parent => this.addParent(parent));
@@ -50,6 +53,8 @@ abstract class Menu {
         this.parents[name] = name; 
         return this; 
     }
+
+    public isGlobal(): Menu['global'] { return this.global === true; }
 
     public getQuestionName(): string {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.question`;
