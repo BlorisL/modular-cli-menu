@@ -63,8 +63,6 @@ abstract class Action {
         const color = this.getColor();
         const name = this.getTitleName();
 
-        console.log('Getting translation for', name, 'in', language);
-
         return color
             ? chalk[color](Translations.getTranslation(name, language) ?? name)
             : Translations.getTranslation(name, language) ?? name;

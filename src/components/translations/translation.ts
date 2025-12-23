@@ -1,21 +1,11 @@
-import { config } from 'dotenv';
+import { Utility } from "../utility";
 
 type Language = string; //'en' | 'it' | 'fr' | 'de' | 'es' | 'pl' | 'ru' | 'cn' | 'jp' | 'ar';
 
 type TranslationJson = Record<string, Partial<Record<Language, string>>>;
 
 class Translations {
-    protected static defaultLanguage: Language; // = 'en';
-    protected static selectedLanguage: Language; // = 'en';
     protected static items: TranslationJson = {};
-
-    static {
-        config({ path: '.env' });
-        config({ path: '.env.local', override: true });
-        
-        Translations.defaultLanguage = process.env.DEFAULT_LANGUAGE || process.env.MENU_LANGUAGE || 'en';
-        Translations.selectedLanguage = process.env.SELECTED_LANGUAGE || process.env.MENU_LANGUAGE || 'en';
-    }
 
     public static getLanguages(): Language[] {
         const langs = new Set<Language>();
@@ -25,13 +15,7 @@ class Translations {
         return Array.from(langs);
     }
 
-    public static getDefaultLanguage(): Language { return Translations.defaultLanguage; }
-
-    public static getSelectedLanguage(): Language { return Translations.selectedLanguage; }
-    public static setSelectedLanguage(language: Language): Translations {
-        Translations.selectedLanguage = language;
-        return this;
-    }
+    public static getDefaultLanguage(): Language { return Utility.getDefaultLanguage(); }
 
     public static getTranslations(): TranslationJson { return Translations.items; }
     public static getTranslation(
@@ -45,8 +29,8 @@ class Translations {
             value = Translations.items[name]?.[language];
         }
         if(!value) {
-            lang = Translations.selectedLanguage;
-            value = Translations.items[name]?.[Translations.selectedLanguage];
+            lang = Translations.getDefaultLanguage();
+            value = Translations.items[name]?.[Translations.getDefaultLanguage()];
         }
 
         return value ?? `${name}.${lang}`;
