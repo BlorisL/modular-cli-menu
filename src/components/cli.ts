@@ -20,12 +20,12 @@ class Cli {
     }
 
     public addPlugin(plugin: PluginJson): this {
-        plugin.menus?.forEach(menu => this.addMenu(menu, plugin.name));
-        plugin.actions?.forEach(action => this.addAction(action, plugin.name));
-
         if(plugin.translations) {
             Translations.addTranslations(plugin.translations);
         }
+
+        plugin.menus?.forEach(menu => this.addMenu(menu, plugin.name));
+        plugin.actions?.forEach(action => this.addAction(action, plugin.name));
 
         return this;
     }

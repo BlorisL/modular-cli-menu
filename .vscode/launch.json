@@ -5,7 +5,7 @@
             "name": "Debug con tsx",
             "type": "node",
             "request": "launch",
-            "program": "${file}", // Debugga il file attualmente aperto
+            "program": "${file}", // Debug the file actually opened
             "runtimeExecutable": "npx",
             "runtimeArgs": [
                 "tsx"

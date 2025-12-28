@@ -103,9 +103,15 @@ class MenuChoiceOption {
     public getSelected(): MenuChoiceOptionSelected | undefined { return this.selected; }
 
     public getSelectedPrefix(): string | undefined { return this.selected?.getPrefix(); }
-    public setSelectedPrefix(prefix?: string): this { this.selected?.setPrefix(prefix); return this; }
+    public setSelectedPrefix(prefix?: string): this { 
+        (this.getSelected() ?? new MenuChoiceOptionSelected()).setPrefix(prefix);
+        return this;
+    }
     public getSelectedColor(): ColorName | undefined { return this.selected?.getColor(); }
-    public setSelectedColor(color?: ColorName): this { this.selected?.setColor(color); return this; }
+    public setSelectedColor(color?: ColorName): this { 
+        (this.getSelected() ?? new MenuChoiceOptionSelected()).setColor(color);
+        return this;
+    }
 
     public toJson() {
         const item: {
@@ -145,26 +151,17 @@ class MenuChoice extends Menu {
     protected values: MenuChoiceValues | (() => MenuChoiceValues) = {};
     protected selectedValues: string[] = [];
 
-    protected enableSelectedValues: Exclude<MenuChoiceJson['enableSelectedValues'], undefined> = false;
+    protected enableSelectedValues?: MenuChoiceOptionSelected = undefined;
 
     constructor(data: MenuChoiceJson) {
         super(data);
-        this.enableSelectedValues = data.enableSelectedValues ?? false;
+        this.setEnableSelectedValues(data.enableSelectedValues ?? false);
         
         if(Array.isArray(data.values)) {
             data.values.forEach(v => this.addValue(v));
-        } else if(typeof data.values === 'function') {
-            this.values = () => {
-                const result: MenuChoiceValues = {};
-                (data.values as Function)().forEach((v: MenuChoiceJsonValue) => {
-                    if(typeof v === 'string') {
-                        result[v] = new MenuChoiceOption(v);
-                    } else {
-                        result[v.value] = new MenuChoiceOption(v.value, v.label, v.multi, v.color, v.selected);
-                    }
-                });
-                return result;
-            };
+        } else if(typeof data.values === 'function') {            console.log(data.values());
+            (data.values as Function)().forEach((v: MenuChoiceJsonValue) => 
+                this.addValue(v));
         }
     }
 
@@ -259,7 +256,31 @@ class MenuChoice extends Menu {
         return this;
     }
 
-    public isEnableSelectedValues(): MenuChoice['enableSelectedValues'] { return !!this.enableSelectedValues; }
+    public getEnableSelectedValues(): MenuChoice['enableSelectedValues'] | undefined { 
+        return this.enableSelectedValues; 
+    }
+    public setEnableSelectedValues(
+        data: MenuChoice['enableSelectedValues'] | Exclude<MenuChoiceJson['enableSelectedValues'], undefined>
+    ): this {
+        if(data instanceof MenuChoiceOptionSelected) {
+            this.enableSelectedValues = new MenuChoiceOptionSelected(
+                data.getPrefix(),
+                data.getColor()
+            );
+        } else if(typeof data === 'object') {
+            this.enableSelectedValues = new MenuChoiceOptionSelected(
+                data.prefix ?? Utility.getDefaultLanguagePrefix(),
+                data.color ?? Utility.getDefaultLanguageColor()
+            );
+        } else if(data === true) {
+            this.enableSelectedValues = new MenuChoiceOptionSelected(
+                Utility.getDefaultLanguagePrefix(),
+                Utility.getDefaultLanguageColor()
+            );
+        }
+        return this;
+    }
+    public isEnableSelectedValues(): boolean { return !!this.enableSelectedValues; }
 
     public setSelectedValues(values: string[]): this { this.selectedValues = values; return this; }
     public getSelectedValues(): string[] { return this.selectedValues; }
@@ -294,15 +315,26 @@ class MenuChoice extends Menu {
 
         values.splice(globalIndex, 0, new Separator());
 
+                console.clear()
         this.setSelectedValues(await choices({
             message: this.getQuestionLabel(),
             choices: values.map(choice => {
-                if(!(choice instanceof Separator)) {
-                    console.log(choice.getTranslationLabel());
+                const label = [];
+                if(choice instanceof Separator) {
+                    return choice;
                 }
-                return choice instanceof Separator ? choice : {
+
+                if(this.isEnableSelectedValues()) {
+                    if(this.getSelectedValues().includes(choice.getValue())) {
+                        label.push(this.getEnableSelectedValues()?.getPrefix());
+                    }
+                }
+                label.push(choice.getTranslationLabel());
+                console.log(label);
+
+                return {
                     ...choice.toJson(),
-                    label: choice.getTranslationLabel()
+                    label: label.join(' ')
                 };
             }),
         }) as string[]);
