@@ -1,4 +1,4 @@
-import chalk, { ColorName } from "chalk";
+import { ColorName } from "chalk";
 import { Language, Translations } from "../translations";
 
 type ActionJson = {
@@ -60,12 +60,9 @@ abstract class Action {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.title`;
     }
     public getTitleLabel(language?: Language): string {
-        const color = this.getColor();
         const name = this.getTitleName();
 
-        return color
-            ? chalk[color](Translations.getTranslation(name, language) ?? name)
-            : Translations.getTranslation(name, language) ?? name;
+        return Translations.getTranslation(name, language) ?? name;
     }
 
     public toJson(): ActionJson {

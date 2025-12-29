@@ -19,14 +19,21 @@ plugins
                 type: 'choice',
                 parents: ['main'],
                 global: true,
-                enableSelectedValues: {
-                    prefix: '✓ ',
+                configs: {
+                    defaults: {
+                        values: [Translations.getDefaultLanguage()]
+                    },
+                    selected: {
+                        prefix: '#',
+                        //color: 'magenta'
+                    },
                 },
                 values: () => Translations.getLanguages().map(lang => ({
                     value: lang,
-                    //selected: {
-                    //    prefix: '✓ ',
-                    //},
+                    selected: lang == 'fr' ? {
+                        prefix: '✓ ',
+                        color: 'red'
+                    } : undefined,
                     label: `default.language.answer.${lang}`
                 }))
             }

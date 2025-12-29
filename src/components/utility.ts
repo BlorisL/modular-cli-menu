@@ -1,11 +1,11 @@
 import { config } from 'dotenv';
 import { Language } from './translations';
-import { ColorName } from 'chalk';
+import chalk, { ColorName } from 'chalk';
 
 class Utility {
     protected static defaultLanguage: Language; // = 'en';
-    protected static defaultLanguagePrefix?: string;
-    protected static defaultLanguageColor?: ColorName;
+    protected static defaultPrefix?: string;
+    protected static defaultColor?: ColorName;
     protected static debugLog: boolean;
     
     static {
@@ -18,25 +18,29 @@ class Utility {
             ? env.DEFAULT_LANGUAGE as Language
             : 'en'
         ;
-        Utility.defaultLanguagePrefix = (env.DEFAULT_LANGUAGE_PREFIX && env.DEFAULT_LANGUAGE_PREFIX.length > 0) 
-            ? env.DEFAULT_LANGUAGE_PREFIX
+        Utility.defaultPrefix = (env.DEFAULT_CHOICE_PREFIX && env.DEFAULT_CHOICE_PREFIX.length > 0) 
+            ? env.DEFAULT_CHOICE_PREFIX
             : undefined
         ;
-        Utility.defaultLanguageColor = (env.DEFAULT_LANGUAGE_COLOR && env.DEFAULT_LANGUAGE_COLOR.length > 0) 
-            ? env.DEFAULT_LANGUAGE_COLOR as ColorName
+        Utility.defaultColor = (env.DEFAULT_CHOICE_COLOR && env.DEFAULT_CHOICE_COLOR.length > 0) 
+            ? env.DEFAULT_CHOICE_COLOR as ColorName
             : undefined
         ;
         Utility.debugLog = env.DEBUG_LOG === 'true';
     }
 
     public static getDefaultLanguage(): Language { return Utility.defaultLanguage; }
-    public static getDefaultLanguagePrefix(): string | undefined { 
-        return Utility.defaultLanguagePrefix; 
+    public static getDefaultPrefix(): string | undefined { 
+        return Utility.defaultPrefix; 
     }
-    public static getDefaultLanguageColor(): ColorName | undefined { 
-        return Utility.defaultLanguageColor; 
+    public static getDefaultColor(): ColorName | undefined { 
+        return Utility.defaultColor; 
     }
     public static isDebugLog(): boolean { return Utility.debugLog === true; }
+
+    public static write(text?: string, color?: ColorName): string {
+        return text ? ((color && chalk[color]) ? chalk[color](text) : text) : '';
+    }
 }
 
 export { Utility };

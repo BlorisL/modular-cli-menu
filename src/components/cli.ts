@@ -1,8 +1,9 @@
-import chalk, { ColorName } from "chalk";
+import { ColorName } from "chalk";
 import { Action, ActionFunction, ActionFunctionJson, ActionGoto, ActionGotoJson } from "./actions";
 import { Menu, MenuChoice } from "./menus";
 import { PluginJson } from "./plugins";
-import { Language, TranslationJson, Translations } from "./translations";
+import { TranslationJson, Translations } from "./translations";
+import { Utility } from "./utility";
 
 class Cli {
     protected menus: Record<string, Menu>;
@@ -16,7 +17,7 @@ class Cli {
     }
 
     public static write(text: string, color?: ColorName): string {
-        return color ? chalk[color](text) : text;
+        return Utility.write(text, color);
     }
 
     public addPlugin(plugin: PluginJson): this {
@@ -141,7 +142,6 @@ class Cli {
             let back = this.getActionTypeBack(item);
             if(back) {
                 if(!this.hasBackInParents(back!, item)) {
-                console.log('###2.1', item.getName(), back!.getName());
                     this.delAction(back!.getName());
                     back = undefined;
                 }
