@@ -40,8 +40,8 @@ class MenuChoice extends Menu {
             const aItem = a.getItem();
             const bItem = b.getItem();
             
-            const aIsGlobal = aItem instanceof Action && aItem.isGlobal();
-            const bIsGlobal = bItem instanceof Action && bItem.isGlobal();
+            const aIsGlobal = aItem?.isGlobal();
+            const bIsGlobal = bItem?.isGlobal();
             
             // Azioni globali sempre in fondo
             if(aIsGlobal && !bIsGlobal) return 1;
@@ -49,9 +49,25 @@ class MenuChoice extends Menu {
             
             // Se entrambe globali, ordina per indice
             if(aIsGlobal && bIsGlobal) {
-                const aIndex = aItem instanceof Action ? (aItem.getIndex() ?? Infinity) : Infinity;
-                const bIndex = bItem instanceof Action ? (bItem.getIndex() ?? Infinity) : Infinity;
-                return aIndex - bIndex;
+                // Se entrambe globali: ordina prima per indice
+                const aIndex = aItem?.getIndex() ?? Infinity;
+                const bIndex = bItem?.getIndex() ?? Infinity;
+                
+                if(aIndex !== bIndex) return aIndex - bIndex;
+                
+                // Se stesso indice: azioni prima, poi menu
+                const aIsAction = aItem instanceof Action;
+                const bIsAction = bItem instanceof Action;
+                
+                if(aIsAction && !bIsAction) return -1;
+                if(!aIsAction && bIsAction) return 1;
+                
+            
+                // Se stesso tipo e indice: ordinamento alfabetico
+                const aName = aItem ? aItem.getName() : a.getValue();
+                const bName = bItem ? bItem.getName() : b.getValue();
+                
+                return aName.localeCompare(bName);
             }
             
             // Per non-globali: ordina prima per indice
@@ -200,7 +216,9 @@ class MenuChoice extends Menu {
             return item?.isGlobal();
         });
 
-        values.splice(globalIndex, 0, new Separator());
+        if(globalIndex >= 0) {
+            values.splice(globalIndex, 0, new Separator());
+        }
 
         this.setSelectedValues(await choices({
             message: this.getQuestionLabel(),

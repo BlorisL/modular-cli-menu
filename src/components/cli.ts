@@ -86,6 +86,24 @@ class Cli {
         delete this.actions[name];
         return this;
     }
+
+    protected getGlobalItems(): Array<Menu | Action> {
+        const items: Array<Menu | Action> = [];
+
+        this.getMenus().forEach(menu => {
+            if(menu.isGlobal()) {
+                items.push(menu);
+            }
+        });
+
+        this.getActions().forEach(action => {
+            if(action.isGlobal()) {
+                items.push(action);
+            }
+        });
+
+        return items;
+    }
     
     protected getActionTypeBack(menu: MenuChoice): ActionGoto | undefined {
         const item = menu.getValues().find(v => v.getValue().startsWith('back_'));
@@ -150,7 +168,52 @@ class Cli {
                 : undefined
             ;
 
-            let back = this.getActionTypeBack(item);
+            this.getGlobalItems().forEach(globalItem => {
+                if(globalItem.getName() != item.getName()) {
+                    if(globalItem.getName() == 'back') {
+                        let back = this.getActionTypeBack(item);
+                        if(back) {
+                            if(!this.hasBackInParents(back!, item)) {
+                                this.delAction(back!.getName());
+                                back = undefined;
+                            }
+                        }
+                        if(!back && item.getName() !== 'main') {
+                            this.addAction(
+                                new ActionGoto(
+                                    ((this.getAction('back') as ActionGoto).toJson())
+                                )
+                                .setName(`back_${item.getName()}`)
+                                .setTo(parentName ?? 'main')
+                            )
+                            const backAction = this.getAction(`back_${item.getName()}`);
+                            if(backAction) {
+                                item.addValue(backAction);
+                            }
+                        }
+                    } else if(globalItem.getName() == 'exit') {
+                        const exitAction = this.getAction('exit');
+                        if(exitAction) {
+                            item.addValue(exitAction);
+                        }
+                    } else {
+                        // TO DO!!!!!!!
+                        if(!item.getValue(globalItem.getName()) || ) {
+                            let back = this.getActionTypeBack(item);
+                            if(back) {
+                                item.del
+                                this.delAction(back!.getName());
+                                back = undefined;
+                            }
+                            if(!back) {
+                                item.addValue(globalItem);
+                            }
+                        }
+                    }
+                }
+            });
+
+            /*let back = this.getActionTypeBack(item);
             if(back) {
                 if(!this.hasBackInParents(back!, item)) {
                     this.delAction(back!.getName());
@@ -174,7 +237,7 @@ class Cli {
             const exitAction = this.getAction('exit');
             if(exitAction) {
                 item.addValue(exitAction);
-            }
+            }*/
 
             (await item.run()).forEach(async answer => 
                 await this.run(

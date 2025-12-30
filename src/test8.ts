@@ -18,7 +18,7 @@ cli
             {
                 name: 'language',
                 type: 'choice',
-                parents: ['main'],
+                //parents: ['main'],
                 global: true,
                 configs: {
                     defaults: {
