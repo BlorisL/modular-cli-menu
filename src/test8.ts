@@ -1,9 +1,10 @@
 import { Cli } from "./components/cli";
 import { Translations } from "./components/translations";
+import { Utility } from "./components/utility";
 
-const plugins = new Cli();
+const cli = new Cli();
 
-plugins
+cli
     .addPlugin({
         name: 'default',
         menus: [
@@ -21,20 +22,28 @@ plugins
                 global: true,
                 configs: {
                     defaults: {
-                        values: [Translations.getDefaultLanguage()]
+                        values: [Translations.getDefaultLanguage()],
+                        callback: async (data) => {
+                            if(data.values.length > 0) {
+                                Cli.write(data.menu.getSuccessLabel(data.language), 'green');
+                                setTimeout(() => {
+                                    cli.trigger(data.menu, 'back');
+                                }, 3000);
+                            }
+                        }
                     },
                     selected: {
                         prefix: '#',
                         //color: 'magenta'
                     },
                 },
-                values: () => Translations.getLanguages().map(lang => ({
+                values: (data) => Translations.getLanguages().map(lang => ({
                     value: lang,
                     selected: lang == 'fr' ? {
                         prefix: '✓ ',
                         color: 'red'
                     } : undefined,
-                    label: `default.language.answer.${lang}`
+                    label: data.menu.getAnswerName(lang)
                 }))
             }
         ],
@@ -50,7 +59,7 @@ plugins
                 type: 'function',
                 color: 'red',
                 callback: async () => {
-                    console.log(Cli.write('Exiting...', 'red'));
+                    Cli.write('Exiting...', 'red');
                     process.exit(0);
                 },
                 global: true
@@ -190,7 +199,18 @@ plugins
                 jp: 'アラビア語',
                 ar: 'العربية',
             },
-            
+            'default.language.success': {
+                en: 'Language set successfully.',
+                it: 'Lingua impostata con successo.',
+                fr: 'Langue définie avec succès.',
+                de: 'Sprache erfolgreich eingestellt.',
+                es: 'Idioma establecido con éxito.',
+                pl: 'Język został pomyślnie ustawiony.',
+                ru: 'Язык успешно установлен.',
+                cn: '语言设置成功。',
+                jp: '言語が正常に設定されました。',
+                ar: 'تم تعيين اللغة بنجاح.',
+            }
         }
     })
     .addPlugin({
@@ -237,4 +257,4 @@ plugins
         ]
     })
 
-plugins.run();
+cli.run();

@@ -16,8 +16,8 @@ class Cli {
         this.translations = {};
     }
 
-    public static write(text: string, color?: ColorName): string {
-        return Utility.write(text, color);
+    public static write(text: string, color?: ColorName): void {
+        console.log(Utility.write(text, color));
     }
 
     public addPlugin(plugin: PluginJson): this {
@@ -93,6 +93,17 @@ class Cli {
     }
     protected hasBackInParents(back: ActionGoto, menu: MenuChoice): boolean {
         return menu.getParents().includes(back.getTo());
+    }
+
+    public getSelectedLanguage(): string {
+        return (this.getMenu('language') as MenuChoice).getSelectedValues()[0];
+    }
+
+    public trigger(menu: MenuChoice, type: 'back' | 'exit' | string) {
+        switch(type) {
+            case 'back': return this.getActionTypeBack(menu)?.run(); break;
+            case 'exit': return this.getAction('exit')?.run(); break;
+        }
     }
 
     public load(): this {
@@ -175,6 +186,12 @@ class Cli {
             await item.run();
         } else if(item instanceof ActionGoto) {
             return await this.run(item.getTo());
+        } else if(typeof value === 'string' &&parent instanceof MenuChoice) {
+            await parent.getConfigs()?.getDefaults()?.getCallback()?.({ 
+                menu: parent,
+                language: this.getSelectedLanguage(),
+                values: [value], 
+            });
         }
 
         return this;

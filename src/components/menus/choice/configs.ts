@@ -30,7 +30,7 @@ class MenuChoiceConfigs {
         if(defaults instanceof MenuChoiceConfigDefaults) {
             this.defaults = new MenuChoiceConfigDefaults(
                 defaults.getValues(),
-                defaults.getCallback() ? async (values: string[]) => { await defaults.getCallback(); } : undefined
+                defaults.getCallback()
             );
         } else if(typeof defaults === 'object') {
             this.defaults = new MenuChoiceConfigDefaults(

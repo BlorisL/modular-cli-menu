@@ -22,15 +22,12 @@ class Translations {
         name: string, 
         language?: keyof TranslationJson[string]
     ): string {
-        let lang = language;
-        let value: string | undefined = undefined;
+        let lang = Translations.getDefaultLanguage();
+        let value = Translations.items[name]?.[Translations.getDefaultLanguage()];
 
         if(language) {
+            lang = language;
             value = Translations.items[name]?.[language];
-        }
-        if(!value) {
-            lang = Translations.getDefaultLanguage();
-            value = Translations.items[name]?.[Translations.getDefaultLanguage()];
         }
 
         return value ?? `${name}.${lang}`;

@@ -1,6 +1,12 @@
+import { MenuChoice } from ".";
+
 type MenuChoiceConfigDefaultsJson = {
     values?: string[];
-    callback?: (selected: string[]) => Promise<void>;
+    callback?: (data: { 
+        menu: MenuChoice, 
+        values: string[], 
+        language: string,
+    }) => Promise<void>;
 };
 
 class MenuChoiceConfigDefaults {
@@ -17,8 +23,8 @@ class MenuChoiceConfigDefaults {
 
     public getValues(): MenuChoiceConfigDefaults['values'] { return this.values; }
     public setValues(values: MenuChoiceConfigDefaults['values']): this { this.values = values; return this; }
-    
-    public getCallback(): Promise<void> | undefined { return this.callback?.(this.getValues()); }
+
+    public getCallback(): MenuChoiceConfigDefaults['callback'] | undefined { return this.callback; }
 }
 
 export {

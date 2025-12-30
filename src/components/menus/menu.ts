@@ -74,6 +74,24 @@ abstract class Menu {
         return Translations.getTranslation(name, language) ?? name;
     }
 
+    public getAnswerName(name: string): string {
+        return `${this.getPlugin() ?? 'default'}.${this.getName()}.answer.${name}`;
+    }
+    public getAnswerLabel(name: string, language?: Language): string {
+        const label = this.getAnswerName(name);
+
+        return Translations.getTranslation(label, language) ?? name;
+    }
+
+    public getSuccessName(): string {
+        return `${this.getPlugin() ?? 'default'}.${this.getName()}.success`;
+    }
+    public getSuccessLabel(language?: Language): string {
+        const name = this.getSuccessName();
+
+        return Translations.getTranslation(name, language) ?? name;
+    }
+
     public toJson(): MenuJson {
         return {
             name: this.name,

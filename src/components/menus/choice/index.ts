@@ -10,7 +10,7 @@ type MenuChoiceJsonValue = string | MenuChoiceOptionJson;
 
 type MenuChoiceJson = MenuJson & {
     type: 'choice';
-    values?: Array<MenuChoiceJsonValue> | (() => Array<MenuChoiceJsonValue>);
+    values?: Array<MenuChoiceJsonValue> | ((data: { menu: MenuChoice }) => Array<MenuChoiceJsonValue>);
     configs?: MenuChoiceConfigsJson;
 };
 
@@ -18,7 +18,7 @@ type MenuChoiceValues = Record<string, MenuChoiceOption>;
 
 class MenuChoice extends Menu {
     protected type: MenuChoiceJson['type'] = 'choice';
-    protected values: MenuChoiceValues | (() => MenuChoiceValues) = {};
+    protected values: MenuChoiceValues | ((data: { menu: MenuChoice }) => MenuChoiceValues) = {};
     protected selectedValues: string[] = [];
 
     protected configs?: MenuChoiceConfigs = undefined;
@@ -30,7 +30,7 @@ class MenuChoice extends Menu {
         if(Array.isArray(data.values)) {
             data.values.forEach(v => this.addValue(v));
         } else if(typeof data.values === 'function') {
-            (data.values as Function)().forEach((v: MenuChoiceJsonValue) => this.addValue(v));
+            (data.values as Function)({ menu: this }).forEach((v: MenuChoiceJsonValue) => this.addValue(v));
         }
     }
 
@@ -76,11 +76,11 @@ class MenuChoice extends Menu {
     }
 
     public getValue(name: string): MenuChoiceValues[string] | undefined { 
-        return (typeof this.values === 'function') ? this.values()[name] : this.values[name]; 
+        return (typeof this.values === 'function') ? this.values({ menu: this })[name] : this.values[name]; 
     }
     public setValue(name: string, value: MenuChoiceValues[string]): this { 
         if(typeof this.values === 'function') {
-            const vals = this.values();
+            const vals = this.values({ menu: this });
             vals[name] = value;
             this.values = vals;
         } else {
