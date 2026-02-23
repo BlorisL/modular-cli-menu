@@ -1,6 +1,6 @@
 import { ColorName } from "chalk";
 import { Action, ActionFunction, ActionFunctionJson, ActionGoto, ActionGotoJson } from "./actions";
-import { Menu, MenuChoice } from "./menus";
+import { Menu, MenuChoice, MenuInput } from "./menus";
 import { PluginJson } from "./plugins";
 import { TranslationJson, Translations } from "./translations";
 import { Utility } from "./utility";
@@ -44,6 +44,9 @@ class Cli {
         switch(menu.type) {
             case 'choice':
                 menuInstance = new MenuChoice(menu);
+                break;
+            case 'input':
+                menuInstance = new MenuInput(menu);
                 break;
         }
     }
@@ -119,12 +122,21 @@ class Cli {
         return (this.getMenu('language') as MenuChoice).getSelectedValues()[0];
     }
 
-    public trigger(menu: MenuChoice, type: 'back' | 'exit' | string) {
+    public trigger(menu: Menu, type: 'back' | 'exit' | string) {
         switch(type) {
             case 'back': {
-                const back = this.getActionTypeBack(menu);
-                if(back) {
-                    const targetName = back.getTo();
+                if(menu instanceof MenuChoice) {
+                    const back = this.getActionTypeBack(menu);
+                    if(back) {
+                        const targetName = back.getTo();
+                        const targetMenu = this.getMenu(targetName) as MenuChoice | undefined;
+                        const targetParent = targetMenu ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
+                        return this.run(targetName, targetParent);
+                    }
+                } else {
+                    // MenuInput (and other non-choice menus) have no back_ action:
+                    // fall back to the first declared parent, defaulting to 'main'.
+                    const targetName = menu.getParents()[0] ?? 'main';
                     const targetMenu = this.getMenu(targetName) as MenuChoice | undefined;
                     const targetParent = targetMenu ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
                     return this.run(targetName, targetParent);
@@ -172,6 +184,7 @@ class Cli {
             ? (
                 this.getMenu(value) || 
                 this.getAction(value) ||
+                // back_ actions are no longer stored globally; look them up in the parent menu's values
                 (value.startsWith('back_') && parent instanceof MenuChoice
                     ? parent.getValue(value)?.getItem() as ActionGoto | undefined
                     : undefined)
@@ -225,6 +238,8 @@ class Cli {
                     item
                 )
             );
+        } else if(item instanceof MenuInput) {
+            await item.run();
         } else if(item instanceof ActionFunction) {
             await item.run();
         } else if(item instanceof ActionGoto) {

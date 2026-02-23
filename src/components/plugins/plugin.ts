@@ -1,10 +1,10 @@
 import { ActionFunctionJson, ActionGotoJson } from "../actions";
-import { MenuChoiceJson } from "../menus";
+import { MenuChoiceJson, MenuInputJson } from "../menus";
 import { TranslationJson } from "../translations";
 
 type PluginJson = {
     name: string;
-    menus?: Array<MenuChoiceJson>;
+    menus?: Array<MenuChoiceJson | MenuInputJson>;
     actions?: Array<ActionGotoJson | ActionFunctionJson>;
     translations?: TranslationJson;
 };

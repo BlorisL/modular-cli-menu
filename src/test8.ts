@@ -222,7 +222,8 @@ cli
                 parents: ['main'],
                 values: [
                     'subaction1',
-                    'submenu2'
+                    'submenu2',
+                    'nickname',
                 ]
             },
             {
@@ -231,6 +232,19 @@ cli
                 values: [
                     'subaction2',
                 ]
+            },
+            {
+                name: 'nickname',
+                type: 'input',
+                parents: ['submenu1'],
+                placeholder: 'Enter your nickname...',
+                validate: (value) => value.trim().length > 0 || 'Nickname cannot be empty',
+                callback: async (data) => {
+                    Cli.write(`Nickname set to: ${data.value}`, 'green');
+                    setTimeout(() => {
+                        cli.trigger(data.menu, 'back');
+                    }, 2000);
+                }
             }
         ],
         actions: [
