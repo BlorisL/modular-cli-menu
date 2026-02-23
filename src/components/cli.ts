@@ -97,7 +97,7 @@ class Cli {
         });
 
         this.getActions().forEach(action => {
-            if(action.isGlobal()) {
+            if(action.isGlobal() && !action.getName().startsWith('back_')) {
                 items.push(action);
             }
         });
@@ -107,6 +107,8 @@ class Cli {
     
     protected getActionTypeBack(menu: MenuChoice): ActionGoto | undefined {
         const item = menu.getValues().find(v => v.getValue().startsWith('back_'));
+        const action = item?.getItem();
+        if(action instanceof ActionGoto) return action;
         return this.getAction(item?.getValue() || '') as ActionGoto | undefined;
     }
     protected hasBackInParents(back: ActionGoto, menu: MenuChoice): boolean {
@@ -119,7 +121,16 @@ class Cli {
 
     public trigger(menu: MenuChoice, type: 'back' | 'exit' | string) {
         switch(type) {
-            case 'back': return this.getActionTypeBack(menu)?.run(); break;
+            case 'back': {
+                const back = this.getActionTypeBack(menu);
+                if(back) {
+                    const targetName = back.getTo();
+                    const targetMenu = this.getMenu(targetName) as MenuChoice | undefined;
+                    const targetParent = targetMenu ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
+                    return this.run(targetName, targetParent);
+                }
+                break;
+            }
             case 'exit': return this.getAction('exit')?.run(); break;
         }
     }
@@ -158,7 +169,13 @@ class Cli {
             parent = this.getMenu(parent) || this.getAction(parent);
         }
         const item = typeof value === 'string' 
-            ? (this.getMenu(value) || this.getAction(value))
+            ? (
+                this.getMenu(value) || 
+                this.getAction(value) ||
+                (value.startsWith('back_') && parent instanceof MenuChoice
+                    ? parent.getValue(value)?.getItem() as ActionGoto | undefined
+                    : undefined)
+            )
             : value
         ;
         
@@ -168,27 +185,24 @@ class Cli {
                 : undefined
             ;
 
+
             this.getGlobalItems().forEach(globalItem => {
                 if(globalItem.getName() != item.getName()) {
                     if(globalItem.getName() == 'back') {
-                        let back = this.getActionTypeBack(item);
-                        if(back) {
-                            if(!this.hasBackInParents(back!, item)) {
-                                this.delAction(back!.getName());
-                                back = undefined;
-                            }
-                        }
-                        if(!back && item.getName() !== 'main') {
-                            this.addAction(
-                                new ActionGoto(
-                                    ((this.getAction('back') as ActionGoto).toJson())
-                                )
-                                .setName(`back_${item.getName()}`)
-                                .setTo(parentName ?? 'main')
-                            )
-                            const backAction = this.getAction(`back_${item.getName()}`);
-                            if(backAction) {
-                                item.addValue(backAction);
+                        if(item.getName() !== 'main') {
+                            const backTemplate = this.getAction('back') as ActionGoto;
+                            if(backTemplate) {
+                                const backName = `back_${item.getName()}`;
+                                const existing = this.getActionTypeBack(item);
+                                if(existing) {
+                                    // Just update the destination in-place
+                                    existing.setTo(parentName ?? 'main');
+                                } else {
+                                    const backAction = new ActionGoto(backTemplate.toJson())
+                                        .setName(backName)
+                                        .setTo(parentName ?? 'main');
+                                    item.addValue(backAction);
+                                }
                             }
                         }
                     } else if(globalItem.getName() == 'exit') {
@@ -197,47 +211,13 @@ class Cli {
                             item.addValue(exitAction);
                         }
                     } else {
-                        // TO DO!!!!!!!
-                        if(!item.getValue(globalItem.getName()) || ) {
-                            let back = this.getActionTypeBack(item);
-                            if(back) {
-                                item.del
-                                this.delAction(back!.getName());
-                                back = undefined;
-                            }
-                            if(!back) {
-                                item.addValue(globalItem);
-                            }
+                        // Other global items (menus/actions): add if missing
+                        if(!item.getValue(globalItem.getName())) {
+                            item.addValue(globalItem);
                         }
                     }
                 }
             });
-
-            /*let back = this.getActionTypeBack(item);
-            if(back) {
-                if(!this.hasBackInParents(back!, item)) {
-                    this.delAction(back!.getName());
-                    back = undefined;
-                }
-            }
-            if(!back && item.getName() !== 'main') {
-                this.addAction(
-                    new ActionGoto(
-                        ((this.getAction('back') as ActionGoto).toJson())
-                    )
-                    .setName(`back_${item.getName()}`)
-                    .setTo(parentName ?? 'main')
-                )
-                const backAction = this.getAction(`back_${item.getName()}`);
-                if(backAction) {
-                    item.addValue(backAction);
-                }
-            }
-
-            const exitAction = this.getAction('exit');
-            if(exitAction) {
-                item.addValue(exitAction);
-            }*/
 
             (await item.run()).forEach(async answer => 
                 await this.run(
@@ -248,7 +228,10 @@ class Cli {
         } else if(item instanceof ActionFunction) {
             await item.run();
         } else if(item instanceof ActionGoto) {
-            return await this.run(item.getTo());
+            const targetName = item.getTo();
+            const targetMenu = this.getMenu(targetName) as MenuChoice | undefined;
+            const targetParent = targetMenu ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
+            return await this.run(targetName, targetParent);
         } else if(typeof value === 'string' &&parent instanceof MenuChoice) {
             await parent.getConfigs()?.getDefaults()?.getCallback()?.({ 
                 menu: parent,

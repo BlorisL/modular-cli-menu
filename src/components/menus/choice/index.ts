@@ -1,4 +1,5 @@
 import { choices, Separator } from "@/prompts/Choices";
+import { appendFileSync } from "fs";
 import { Menu, MenuJson } from "../menu";
 import { Action } from "../../actions";
 import { Utility } from "../../utility";
@@ -218,6 +219,19 @@ class MenuChoice extends Menu {
 
         if(globalIndex >= 0) {
             values.splice(globalIndex, 0, new Separator());
+        }
+
+        // Log rendered menu to menu.log
+        try {
+            const logPath = `${process.cwd()}/menu.log`;
+            const header = `${new Date().toISOString()} ${this.getName()} - ${this.getQuestionLabel()}\n`;
+            const lines = values.map(choice => {
+                return (choice instanceof Separator) ? '──────────────' : choice.getTranslationLabel(false);
+            }).join('\n');
+
+            appendFileSync(logPath, header + lines + '\n\n');
+        } catch (e) {
+            // don't break execution on logging errors
         }
 
         this.setSelectedValues(await choices({
