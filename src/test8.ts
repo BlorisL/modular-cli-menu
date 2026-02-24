@@ -23,12 +23,12 @@ cli
                 configs: {
                     defaults: {
                         values: [Translations.getDefaultLanguage()],
-                        callback: async (data) => {
-                            if(data.values.length > 0) {
-                                Cli.write(data.menu.getSuccessLabel(data.language), 'green');
-                                setTimeout(() => {
-                                    cli.trigger(data.menu, 'back');
-                                }, 3000);
+                        callback: async ({ values, menu, language }) => {
+                            if (values.length > 0) {
+                                Cli.write(menu.getSuccessLabel(language), 'green');
+
+                                await Utility.pressAnyKey();
+                                cli.trigger(menu, 'back');
                             }
                         }
                     },
@@ -238,12 +238,13 @@ cli
                 type: 'input',
                 parents: ['submenu1'],
                 placeholder: 'Enter your nickname...',
+                value: 'test',
                 validate: (value) => value.trim().length > 0 || 'Nickname cannot be empty',
-                callback: async (data) => {
-                    Cli.write(`Nickname set to: ${data.value}`, 'green');
-                    setTimeout(() => {
-                        cli.trigger(data.menu, 'back');
-                    }, 2000);
+                callback: async ({ menu, value }) => {
+                    Cli.write(`Nickname set to: ${value}`, 'green');
+
+                    await Utility.pressAnyKey();
+                    cli.trigger(menu, 'back');
                 }
             }
         ],
@@ -257,7 +258,45 @@ cli
                 },
                 parents: ['main'],
             }
-        ]
+        ],
+        translations: {
+            'test1.nickname.placeholder': {
+                en: 'Enter your nickname...',
+                it: 'Inserisci il tuo nickname...',
+                fr: 'Entrez votre pseudo...',
+                de: 'Geben Sie Ihren Spitznamen ein...',
+                es: 'Ingrese su apodo...',
+                pl: 'Wprowadź swój pseudonim...',
+                ru: 'Введите ваш никнейм...',
+                cn: '请输入您的昵称...',
+                jp: 'ニックネームを入力してください...',
+                ar: 'أدخل لقبك...',
+            },
+            'test1.nickname.error': {
+                en: 'Nickname cannot be empty',
+                it: 'Il nickname non può essere vuoto',
+                fr: 'Le pseudo ne peut pas être vide',
+                de: 'Der Spitzname darf nicht leer sein',
+                es: 'El apodo no puede estar vacío',
+                pl: 'Pseudonim nie może być pusty',
+                ru: 'Никнейм не может быть пустым',
+                cn: '昵称不能为空',
+                jp: 'ニックネームは空にできません',
+                ar: 'لا يمكن أن يكون اللقب فارغًا',
+            },
+            'test1.nickname.success': {
+                en: 'Nickname set to:',
+                it: 'Nickname impostato:',
+                fr: 'Nickname défini sur :',
+                de: 'Nickname gesetzt auf:',
+                es: 'Nickname establecido en:',
+                pl: 'Pseudonim ustawiony na:',
+                ru: 'Никнейм установлен на:',
+                cn: '昵称设置为：',
+                jp: 'ニックネームが設定されました：',
+                ar: 'تم تعيين اللقب إلى:',
+            }
+        },
     })
     .addPlugin({
         name: 'test2',

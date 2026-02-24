@@ -421,6 +421,19 @@ for (const def of inputMenuDefs) {
     assert(instance instanceof MenuInput,        `"${def.name}" è istanza di MenuInput`);
     assert(instance?.getPlugin() === def.pluginName, `"${def.name}" → plugin "${def.pluginName}"`);
 
+    if ((def as any).value !== undefined) {
+        assert(
+            (instance as MenuInput).getValue() === (def as any).value,
+            `"${def.name}".value === "${(def as any).value}"`,
+            `trovato: ${(instance as MenuInput).getValue()}`
+        );
+    } else {
+        assert(
+            (instance as MenuInput).getValue() === '',
+            `"${def.name}".value inizia vuoto`
+        );
+    }
+
     if ((def as any).placeholder !== undefined) {
         assert(
             (instance as MenuInput).getPlaceholder() === (def as any).placeholder,

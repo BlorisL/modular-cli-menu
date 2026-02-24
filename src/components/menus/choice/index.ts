@@ -21,7 +21,6 @@ class MenuChoice extends Menu {
     protected type: MenuChoiceJson['type'] = 'choice';
     protected values: MenuChoiceValues | ((data: { menu: MenuChoice }) => MenuChoiceValues) = {};
     protected selectedValues: string[] = [];
-
     protected configs?: MenuChoiceConfigs = undefined;
 
     constructor(data: MenuChoiceJson) {
@@ -235,7 +234,7 @@ class MenuChoice extends Menu {
         }
 
         this.setSelectedValues(await choices({
-            message: this.getQuestionLabel(),
+            message: Utility.write(this.getQuestionLabel(), this.getColor()),
             choices: values.map(choice => {
                 return (choice instanceof Separator) ? choice : {
                     ...choice.toJson(),

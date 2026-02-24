@@ -1,27 +1,36 @@
-import input from "@inquirer/input";
+import { inputPrompt } from "@/prompts/Input";
 import { appendFileSync } from "fs";
 import { Menu, MenuJson } from "../menu";
+import { Translations } from "../../translations";
 
 type MenuInputJson = MenuJson & {
     type: 'input';
+    value?: string;
     placeholder?: string;
+    clear?: boolean;
     validate?: (value: string) => boolean | string;
     callback?: (data: { menu: MenuInput; value: string }) => Promise<void>;
 };
 
 class MenuInput extends Menu {
     protected type: MenuInputJson['type'] = 'input';
+    protected value: string;
     protected placeholder?: MenuInputJson['placeholder'];
+    protected clear: MenuInputJson['clear'];
     protected validate?: MenuInputJson['validate'];
     protected callback?: MenuInputJson['callback'];
-    protected lastValue: string = '';
 
     constructor(data: MenuInputJson) {
         super(data);
+        this.value       = data.value ?? '';
         this.placeholder = data.placeholder;
+        this.clear = data.clear === undefined ? true : data.clear;
         this.validate    = data.validate;
         this.callback    = data.callback;
     }
+
+    public getValue(): string { return this.value; }
+    public setValue(value: string): this { this.value = value; return this; }
 
     public getPlaceholder(): MenuInput['placeholder'] { return this.placeholder; }
     public setPlaceholder(placeholder: MenuInput['placeholder']): this { this.placeholder = placeholder; return this; }
@@ -32,26 +41,45 @@ class MenuInput extends Menu {
     public getCallback(): MenuInput['callback'] { return this.callback; }
     public setCallback(callback: MenuInput['callback']): this { this.callback = callback; return this; }
 
-    public getLastValue(): string { return this.lastValue; }
+    public setClear(clear: boolean): this { this.clear = clear; return this; }
+    public isClear(): boolean { return this.clear === true; }
+
+    public getPlaceholderName(): string {
+        return `${this.getPlugin() ?? 'default'}.${this.getName()}.placeholder`;
+    }
+
+    public getPlaceholderLabel(language?: any): string {
+        const name = this.getPlaceholderName();
+        const all = Translations.getTranslations();
+        if (all[name]) {
+            return Translations.getTranslation(name, language);
+        }
+        return this.placeholder ?? '';
+    }
 
     public toJson(): MenuInputJson {
         return {
             ...super.toJson(),
             type:        this.type,
+            value:       this.value || undefined,
             placeholder: this.placeholder,
+            clear: this.clear,
         };
     }
 
     public async run(): Promise<string> {
-        console.clear();
+        if (this.isClear()) {
+            console.clear();
+        }
 
-        const answer = await input({
+        const answer = await inputPrompt({
             message:     this.getQuestionLabel(),
-            default:     this.placeholder,
+            value:       this.value || undefined,
+            placeholder: this.getPlaceholderLabel(),
             validate:    this.validate,
         });
 
-        this.lastValue = answer;
+        this.value = answer;
 
         // Log rendered menu (same pattern as MenuChoice)
         try {

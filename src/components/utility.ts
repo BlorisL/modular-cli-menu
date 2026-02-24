@@ -1,6 +1,7 @@
 import { config } from 'dotenv';
 import { Language } from './translations';
 import chalk, { ColorName } from 'chalk';
+import { MenuInput } from './menus/input';
 
 class Utility {
     protected static defaultLanguage: Language; // = 'en';
@@ -40,6 +41,24 @@ class Utility {
 
     public static write(text?: string, color?: ColorName): string {
         return text ? ((color && chalk[color]) ? chalk[color](text) : text) : '';
+    }
+
+    public static async pressAnyKey(message?: string): Promise<void> {
+        // Use the new `input` prompt to pause and let the user press Enter.
+        try {
+            const pause = new MenuInput({
+                name: 'press-to-continue',
+                type: 'input',
+                value: '',
+                placeholder: message,
+                clear: false,
+            });
+
+            await pause.run();
+        } catch {
+            // If prompt fails for any reason, fallback to a short delay so execution continues.
+            await new Promise((resolve) => setTimeout(resolve, 300));
+        }
     }
 }
 

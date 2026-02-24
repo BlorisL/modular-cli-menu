@@ -1,6 +1,6 @@
 import { ColorName } from "chalk";
 import { Action, ActionFunction, ActionFunctionJson, ActionGoto, ActionGotoJson } from "./actions";
-import { Menu, MenuChoice, MenuInput } from "./menus";
+import { Menu, MenuChoice, MenuChoiceJson, MenuInput, MenuInputJson } from "./menus";
 import { PluginJson } from "./plugins";
 import { TranslationJson, Translations } from "./translations";
 import { Utility } from "./utility";
@@ -43,10 +43,10 @@ class Cli {
     } else {
         switch(menu.type) {
             case 'choice':
-                menuInstance = new MenuChoice(menu);
+                menuInstance = new MenuChoice(menu as MenuChoiceJson);
                 break;
             case 'input':
-                menuInstance = new MenuInput(menu);
+                menuInstance = new MenuInput(menu as MenuInputJson);
                 break;
         }
     }
