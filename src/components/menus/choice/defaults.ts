@@ -2,7 +2,7 @@ import { MenuChoice } from ".";
 
 type MenuChoiceConfigDefaultsJson = {
     values?: string[];
-    callback?: (data: { menu: MenuChoice; values: string[]; language: string }) => Promise<void>;
+    callback?: (data: { menu: MenuChoice; values: string[]; language: string; parent?: string }) => Promise<void>;
 };
 
 class MenuChoiceConfigDefaults {

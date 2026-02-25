@@ -1,6 +1,5 @@
 import { Cli } from "./components/cli";
 import { Translations } from "./components/translations";
-import { Utility } from "./components/utility";
 
 const cli = new Cli();
 
@@ -16,6 +15,16 @@ cli
                 ]
             },
             {
+                name: 'press-to-continue',
+                type: 'input',
+                value: '',
+                clear: false,
+                fastSubmit: true,
+                callback: async ({ menu, parent }) => {
+                    cli.run(parent ?? 'main');
+                }
+            },
+            {
                 name: 'language',
                 type: 'choice',
                 //parents: ['main'],
@@ -23,12 +32,10 @@ cli
                 configs: {
                     defaults: {
                         values: [Translations.getDefaultLanguage()],
-                        callback: async ({ values, menu, language }) => {
+                        callback: async ({ values, menu, language, parent }) => {
                             if (values.length > 0) {
                                 Cli.write(menu.getSuccessLabel(language), 'green');
-
-                                await Utility.pressAnyKey();
-                                cli.trigger(menu, 'back');
+                                cli.run('press-to-continue', parent);
                             }
                         }
                     },
@@ -252,12 +259,10 @@ cli
                 //placeholder: 'Enter your nickname...',
                 //value: 'test',
                 validate: (value) => value.trim().length > 0 || 'Nickname cannot be empty',
-                callback: async ({ menu, value, language }) => {
+                callback: async ({ menu, value, language, parent }) => {
                     //Cli.write(menu.getSuccessLabel(language), 'green');
                     //Cli.write(`Nickname set to: ${value}`, 'green');
-
-                    await Utility.pressAnyKey();
-                    cli.trigger(menu, 'back');
+                    cli.run('press-to-continue', parent);
                 }
             }
         ],

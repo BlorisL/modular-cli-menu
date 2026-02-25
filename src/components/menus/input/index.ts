@@ -10,7 +10,7 @@ type MenuInputJson = MenuJson & {
     clear?: boolean;
     fastSubmit?: boolean;
     validate?: (value: string) => boolean | string;
-    callback?: (data: { menu: MenuInput; value: string, language?: Language }) => Promise<void>;
+    callback?: (data: { menu: MenuInput; value: string, language?: Language, parent?: string }) => Promise<void>;
 };
 
 class MenuInput extends Menu {
