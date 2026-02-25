@@ -5,21 +5,28 @@ interface InputConfig {
     message: string;
     value?: string;
     placeholder?: string;
+    fastSubmit?: boolean;
     validate?: (value: string) => boolean | string;
 }
 
-const inputPrompt = createPrompt<string, InputConfig>((config, done) => {
+const input = createPrompt<string, InputConfig>((config, done) => {
     const { message, placeholder } = config;
     const initial = config.value ?? '';
 
     // cursor position within `input`
-    const [input, setInput]     = useState<string>(initial);
-    const [cursor, setCursor]   = useState<number>(initial.length);
-    const [error, setError]     = useState<string>('');
-    const [status, setStatus]   = useState<'pending' | 'done'>('pending');
+    const [input, setInput] = useState<string>(initial);
+    const [cursor, setCursor] = useState<number>(initial.length);
+    const [error, setError] = useState<string>('');
+    const [status, setStatus] = useState<'pending' | 'done'>('pending');
     const prefix = usePrefix({ status });
 
     useKeypress((key) => {
+        if (config.fastSubmit) {
+            setStatus('done');
+            done(input);
+            return;
+        }
+
         if (isEnterKey(key)) {
             const validation = config.validate?.(input);
             if (validation !== undefined && validation !== true) {
@@ -64,13 +71,13 @@ const inputPrompt = createPrompt<string, InputConfig>((config, done) => {
     });
 
     // Render: split at cursor to show a blinking-style cursor block
-    const before = input.slice(0, cursor-1);
-    const at     = input[cursor-1] ?? ' ';
-    const after  = input.slice(cursor);
+    const before = input.slice(0, cursor);
+    const at     = input[cursor] ?? ' ';
+    const after  = input.slice(cursor + 1);
 
     const displayValue = input.length > 0 || status === 'done'
         ? before + at + after
-        : input;
+        : ((!config.fastSubmit && placeholder) ? chalk.dim(placeholder) : '');
 
     const lines = [`${prefix} ${chalk.bold(message)} ${displayValue}`];
     if (error) lines.push(chalk.red(`  > ${error}`));
@@ -78,4 +85,4 @@ const inputPrompt = createPrompt<string, InputConfig>((config, done) => {
     return lines.join('\n');
 });
 
-export { inputPrompt, type InputConfig };
+export { input, type InputConfig };

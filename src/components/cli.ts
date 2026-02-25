@@ -247,11 +247,26 @@ class Cli {
             const targetMenu = this.getMenu(targetName) as MenuChoice | undefined;
             const targetParent = targetMenu ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
             return await this.run(targetName, targetParent);
-        } else if(typeof value === 'string' &&parent instanceof MenuChoice) {
-            await parent.getConfigs()?.getDefaults()?.getCallback()?.({ 
-                menu: parent,
+        } 
+        //else if(typeof value === 'string' && parent instanceof MenuChoice) {
+        //    await parent.getConfigs()?.getDefaults()?.getCallback()?.({ 
+        //        menu: parent,
+        //        language: this.getSelectedLanguage(),
+        //        values: [value], 
+        //    });
+        //}
+
+        if(item instanceof MenuChoice) {
+            await item.getConfigs()?.getDefaults()?.getCallback()?.({ 
+                menu: item,
                 language: this.getSelectedLanguage(),
-                values: [value], 
+                values: item.getSelectedValues(),
+            });
+        } else if(item instanceof MenuInput) {
+            await item?.getCallback()?.({ 
+                menu: item,
+                value: item.getValue(),
+                language: this.getSelectedLanguage(),
             });
         }
 

@@ -79,6 +79,18 @@ cli
                 jp: 'オプションを選択してください：',
                 ar: 'يرجى اختيار خيار:',
             },
+            'default.press_to_continue.question': {
+                en: 'Press Enter to continue...',
+                it: 'Premi Invio per continuare...',
+                fr: 'Appuyez sur Entrée pour continuer...',
+                de: 'Drücken Sie die Eingabetaste, um fortzufahren...',
+                es: 'Presione Enter para continuar...',
+                pl: 'Naciśnij Enter, aby kontynuować...',
+                ru: 'Нажмите Enter, чтобы продолжить...',
+                cn: '按Enter键继续...',
+                jp: '続行するにはEnterキーを押してください...',
+                ar: 'اضغط Enter للمتابعة...',
+            },
             'default.language.answer.en': {
                 en: 'English',
                 it: 'Inglese',
@@ -237,11 +249,12 @@ cli
                 name: 'nickname',
                 type: 'input',
                 parents: ['submenu1'],
-                placeholder: 'Enter your nickname...',
-                value: 'test',
+                //placeholder: 'Enter your nickname...',
+                //value: 'test',
                 validate: (value) => value.trim().length > 0 || 'Nickname cannot be empty',
-                callback: async ({ menu, value }) => {
-                    Cli.write(`Nickname set to: ${value}`, 'green');
+                callback: async ({ menu, value, language }) => {
+                    //Cli.write(menu.getSuccessLabel(language), 'green');
+                    //Cli.write(`Nickname set to: ${value}`, 'green');
 
                     await Utility.pressAnyKey();
                     cli.trigger(menu, 'back');

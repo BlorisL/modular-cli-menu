@@ -30,7 +30,7 @@ class Translations {
             value = Translations.items[name]?.[language];
         }
 
-        return value ?? `${name}.${lang}`;
+        return value ?? name; //`${name}.${lang}`;
     }
     public static addTranslations(items: TranslationJson): Translations {
         Object.entries(items).forEach(([name, langs]) => {

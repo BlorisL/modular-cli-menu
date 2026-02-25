@@ -1,39 +1,45 @@
-import { inputPrompt } from "@/prompts/Input";
+import { input } from "@/prompts/Input";
 import { appendFileSync } from "fs";
 import { Menu, MenuJson } from "../menu";
-import { Translations } from "../../translations";
+import { Language, Translations } from "../../translations";
 
 type MenuInputJson = MenuJson & {
     type: 'input';
     value?: string;
     placeholder?: string;
     clear?: boolean;
+    fastSubmit?: boolean;
     validate?: (value: string) => boolean | string;
-    callback?: (data: { menu: MenuInput; value: string }) => Promise<void>;
+    callback?: (data: { menu: MenuInput; value: string, language?: Language }) => Promise<void>;
 };
 
 class MenuInput extends Menu {
     protected type: MenuInputJson['type'] = 'input';
-    protected value: string;
-    protected placeholder?: MenuInputJson['placeholder'];
-    protected clear: MenuInputJson['clear'];
+    protected value: NonNullable<MenuInputJson['value']>;
+    protected placeholder: NonNullable<MenuInputJson['placeholder']>;
+    protected clear: NonNullable<MenuInputJson['clear']>;
+    protected fastSubmit?: NonNullable<MenuInputJson['fastSubmit']>;
     protected validate?: MenuInputJson['validate'];
     protected callback?: MenuInputJson['callback'];
 
     constructor(data: MenuInputJson) {
         super(data);
-        this.value       = data.value ?? '';
-        this.placeholder = data.placeholder;
+        this.value = data.value ?? '';
+        this.placeholder = data.placeholder ?? '';
         this.clear = data.clear === undefined ? true : data.clear;
-        this.validate    = data.validate;
-        this.callback    = data.callback;
+        this.fastSubmit = data.fastSubmit ?? false;
+        this.validate = data.validate;
+        this.callback = data.callback;
     }
 
     public getValue(): string { return this.value; }
     public setValue(value: string): this { this.value = value; return this; }
 
     public getPlaceholder(): MenuInput['placeholder'] { return this.placeholder; }
-    public setPlaceholder(placeholder: MenuInput['placeholder']): this { this.placeholder = placeholder; return this; }
+    public setPlaceholder(placeholder: NonNullable<MenuInput['placeholder']>): this { 
+        this.placeholder = placeholder; 
+        return this; 
+    }
 
     public getValidate(): MenuInput['validate'] { return this.validate; }
     public setValidate(validate: MenuInput['validate']): this { this.validate = validate; return this; }
@@ -44,26 +50,34 @@ class MenuInput extends Menu {
     public setClear(clear: boolean): this { this.clear = clear; return this; }
     public isClear(): boolean { return this.clear === true; }
 
+    public setFastSubmit(value: boolean): this { this.fastSubmit = value; return this; }
+    public isFastSubmit(): boolean { return this.fastSubmit === true; }
+
     public getPlaceholderName(): string {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.placeholder`;
     }
 
-    public getPlaceholderLabel(language?: any): string {
-        const name = this.getPlaceholderName();
-        const all = Translations.getTranslations();
-        if (all[name]) {
-            return Translations.getTranslation(name, language);
-        }
-        return this.placeholder ?? '';
+    public getPlaceholderLabel(language?: Language): string {
+        const name = this.getPlaceholder().length > 0 
+            ? this.getPlaceholder() 
+            : this.getPlaceholderName()
+        ;
+
+        return Translations.getTranslation(name, language) ?? name;
     }
 
-    public toJson(): MenuInputJson {
+    public toJson(): Omit<MenuInputJson, 'value' | 'placeholder' | 'clear'> & { 
+        value: string; 
+        placeholder: string; 
+        clear: boolean;
+    } {
         return {
             ...super.toJson(),
-            type:        this.type,
-            value:       this.value || undefined,
+            type: this.type,
+            value: this.value,
             placeholder: this.placeholder,
             clear: this.clear,
+            fastSubmit: this.fastSubmit ?? false,
         };
     }
 
@@ -72,11 +86,12 @@ class MenuInput extends Menu {
             console.clear();
         }
 
-        const answer = await inputPrompt({
-            message:     this.getQuestionLabel(),
-            value:       this.value || undefined,
+        const answer = await input({
+            message: this.getQuestionLabel(),
+            value: this.getValue(),
             placeholder: this.getPlaceholderLabel(),
-            validate:    this.validate,
+            validate: this.validate,
+            fastSubmit: this.fastSubmit ?? false,
         });
 
         this.value = answer;
@@ -90,9 +105,9 @@ class MenuInput extends Menu {
             // don't break execution on logging errors
         }
 
-        if (this.callback) {
-            await this.callback({ menu: this, value: answer });
-        }
+        //if (this.callback) {
+        //    await this.callback({ menu: this, value: answer });
+        //}
 
         return answer;
     }
