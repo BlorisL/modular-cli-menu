@@ -3,7 +3,9 @@ import { promises as fs } from "fs";
 import * as path from "path";
 
 const EXTENSIONS = [".vue", ".ts", ".js"];
-const IGNORED_DIRS = ["node_modules", "dist"]; // opzionale
+const IGNORED_DIRS = [
+    "node_modules", "dist", "OLD", "src.old", "src.ori", "src2", "classes"
+]; // opzionale
 
 // Directory di partenza passata da CLI, altrimenti default = current dir
 const ROOT_DIR = path.resolve(process.argv[2] || ".");

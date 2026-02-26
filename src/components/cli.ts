@@ -1,6 +1,7 @@
 import { ColorName } from "chalk";
 import { Action, ActionFunction, ActionFunctionJson, ActionGoto, ActionGotoJson } from "./actions";
-import { Menu, MenuChoice, MenuChoiceJson, MenuInput, MenuInputJson } from "./menus";
+import { Menu, MenuChoice, MenuChoiceJson, MenuChoiceOption, MenuInput, MenuInputJson } from "./menus";
+import { Choice, Separator } from "@/prompts/Choices";
 import { PluginJson } from "./plugins";
 import { TranslationJson, Translations } from "./translations";
 import { Utility } from "./utility";
@@ -37,29 +38,29 @@ class Cli {
         menu: Exclude<PluginJson['menus'], undefined>[number] | Cli['menus'][string],
         plugin?: string
     ): this {
-    let menuInstance: Menu | undefined = undefined;
-    if(menu instanceof Menu) {
-        menuInstance = menu;
-    } else {
-        switch(menu.type) {
-            case 'choice':
-                menuInstance = new MenuChoice(menu as MenuChoiceJson);
-                break;
-            case 'input':
-                menuInstance = new MenuInput(menu as MenuInputJson);
-                break;
+        let menuInstance: Menu | undefined = undefined;
+        if(menu instanceof Menu) {
+            menuInstance = menu;
+        } else {
+            switch(menu.type) {
+                case 'choice':
+                    menuInstance = new MenuChoice(menu as MenuChoiceJson);
+                    break;
+                case 'input':
+                    menuInstance = new MenuInput(menu as MenuInputJson);
+                    break;
+            }
         }
-    }
-    if(menuInstance) {
-        menuInstance.setPlugin(plugin ?? menuInstance.getPlugin() ?? 'default');
-        this.menus[menuInstance.getName()] = menuInstance;
-    }
+        if(menuInstance) {
+            menuInstance.setPlugin(plugin ?? menuInstance.getPlugin() ?? 'default');
+            this.menus[menuInstance.getName()] = menuInstance;
+        }
         return this.load();
     }
 
     public getActions(): Cli['actions'][string][] { return Object.values(this.actions); }
-    public getAction(name: string): Cli['actions'][string] | undefined { 
-        return this.actions[name]; 
+    public getAction(name: string): Cli['actions'][string] | undefined {
+        return this.actions[name];
     }
     public addAction(
         action: Exclude<PluginJson['actions'], undefined>[number] | Cli['actions'][string],
@@ -94,9 +95,7 @@ class Cli {
         const items: Array<Menu | Action> = [];
 
         this.getMenus().forEach(menu => {
-            if(menu.isGlobal()) {
-                items.push(menu);
-            }
+            if(menu.isGlobal()) items.push(menu);
         });
 
         this.getActions().forEach(action => {
@@ -107,15 +106,12 @@ class Cli {
 
         return items;
     }
-    
+
     protected getActionTypeBack(menu: MenuChoice): ActionGoto | undefined {
         const item = menu.getValues().find(v => v.getValue().startsWith('back_'));
         const action = item?.getItem();
         if(action instanceof ActionGoto) return action;
         return this.getAction(item?.getValue() || '') as ActionGoto | undefined;
-    }
-    protected hasBackInParents(back: ActionGoto, menu: MenuChoice): boolean {
-        return menu.getParents().includes(back.getTo());
     }
 
     public getSelectedLanguage(): string {
@@ -128,17 +124,18 @@ class Cli {
                 if(menu instanceof MenuChoice) {
                     const back = this.getActionTypeBack(menu);
                     if(back) {
-                        const targetName = back.getTo();
-                        const targetMenu = this.getMenu(targetName) as MenuChoice | undefined;
-                        const targetParent = targetMenu ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
-                        return this.run(targetName, targetParent);
+                        const targetMenu = this.getMenu(back.getTo());
+                        const targetParent = targetMenu instanceof MenuChoice
+                            ? this.getActionTypeBack(targetMenu)?.getTo()
+                            : undefined;
+                        return this.run(back.getTo(), targetParent);
                     }
                 } else {
-                    // MenuInput (and other non-choice menus) have no back_ action:
-                    // the caller must supply the parent explicitly.
                     const targetName = parent ?? 'main';
-                    const targetMenu = this.getMenu(targetName) as MenuChoice | undefined;
-                    const targetParent = targetMenu ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
+                    const targetMenu = this.getMenu(targetName);
+                    const targetParent = targetMenu instanceof MenuChoice
+                        ? this.getActionTypeBack(targetMenu)?.getTo()
+                        : undefined;
                     return this.run(targetName, targetParent);
                 }
                 break;
@@ -151,7 +148,7 @@ class Cli {
         this.getMenus().forEach(menu => {
             menu.getParents().forEach(parentName => {
                 const parentMenu = this.getMenu(parentName);
-                if(parentMenu && parentMenu instanceof MenuChoice) {
+                if(parentMenu instanceof MenuChoice) {
                     if(!parentMenu.getValue(menu.getName())) {
                         parentMenu.addValue(menu);
                     }
@@ -162,7 +159,7 @@ class Cli {
         this.getActions().forEach(action => {
             action.getParents().forEach(parentName => {
                 const parentMenu = this.getMenu(parentName);
-                if(parentMenu && parentMenu instanceof MenuChoice) {
+                if(parentMenu instanceof MenuChoice) {
                     if(!parentMenu.getValue(action.getName())) {
                         parentMenu.addValue(action);
                     }
@@ -173,6 +170,38 @@ class Cli {
         return this;
     }
 
+    /**
+     * Builds the Choice list shown at the bottom of a MenuInput prompt.
+     * First entry is always a correctly-targeted back (pointing to parentName),
+     * followed by all other global items except the raw 'back' template.
+     */
+    protected buildInputGlobalChoices(parentName: string | undefined): (Choice | Separator)[] {
+        const choices: (Choice | Separator)[] = [];
+
+        const backTemplate = this.getAction('back') as ActionGoto | undefined;
+        if(backTemplate) {
+            const backAction = new ActionGoto(backTemplate.toJson())
+                .setName('back_input')
+                .setTo(parentName ?? 'main');
+            const label = new MenuChoiceOption(
+                backAction, backAction.getName(), false, backAction.getColor(),
+            ).getTranslationLabel(false);
+            choices.push(new Separator());
+            choices.push({ value: backAction.getTo(), label, multi: false });
+        }
+
+        this.getGlobalItems()
+            .filter(g => g.getName() !== 'back')
+            .forEach(globalItem => {
+                const label = new MenuChoiceOption(
+                    globalItem, globalItem.getName(), false, globalItem.getColor(),
+                ).getTranslationLabel(false);
+                choices.push({ value: globalItem.getName(), label, multi: false });
+            });
+
+        return choices;
+    }
+
     public async run(
         value: string | Menu | Action = 'main',
         parent?: string | Menu | Action
@@ -180,110 +209,114 @@ class Cli {
         if(typeof parent === 'string') {
             parent = this.getMenu(parent) || this.getAction(parent);
         }
-        const parentName = parent 
-            ? (typeof parent === 'string' ? parent : parent.getName()) 
-            : undefined
-        ;
-        const item = typeof value === 'string' 
+        const parentName = parent
+            ? (typeof parent === 'string' ? parent : parent.getName())
+            : undefined;
+
+        const item = typeof value === 'string'
             ? (
-                this.getMenu(value) || 
+                this.getMenu(value) ||
                 this.getAction(value) ||
-                // back_ actions are no longer stored globally; look them up in the parent menu's values
                 (value.startsWith('back_') && parent instanceof MenuChoice
                     ? parent.getValue(value)?.getItem() as ActionGoto | undefined
                     : undefined)
             )
-            : value
-        ;
-        
-        if(item instanceof MenuChoice) {
+            : value;
 
+        // ── MenuChoice ───────────────────────────────────────────────────────
+        if(item instanceof MenuChoice) {
             this.getGlobalItems().forEach(globalItem => {
-                if(globalItem.getName() != item.getName()) {
-                    if(globalItem.getName() == 'back') {
-                        if(item.getName() !== 'main') {
-                            const backTemplate = this.getAction('back') as ActionGoto;
-                            if(backTemplate) {
-                                const backName = `back_${item.getName()}`;
-                                const existing = this.getActionTypeBack(item);
-                                if(existing) {
-                                    // Only update the destination if the parent is not a global item
-                                    // and if a real parent was provided (parentName !== undefined).
-                                    // This prevents cli.run('submenu2') calls without a parent
-                                    // (e.g. from press-to-continue) from resetting the back action.
-                                    const isParentGlobal = parentName 
-                                        ? (this.getMenu(parentName)?.isGlobal() || this.getAction(parentName)?.isGlobal())
-                                        : false;
-                                    if(parentName !== undefined && !isParentGlobal) {
-                                        existing.setTo(parentName);
-                                    }
-                                } else {
-                                    const backAction = new ActionGoto(backTemplate.toJson())
-                                        .setName(backName)
-                                        .setTo(parentName ?? 'main');
-                                    item.addValue(backAction);
-                                }
-                            }
-                        }
-                    } else if(globalItem.getName() == 'exit') {
-                        const exitAction = this.getAction('exit');
-                        if(exitAction) {
-                            item.addValue(exitAction);
+                if(globalItem.getName() === item.getName()) return;
+
+                if(globalItem.getName() === 'back') {
+                    if(item.getName() === 'main') return;
+                    const backTemplate = this.getAction('back') as ActionGoto;
+                    if(!backTemplate) return;
+                    const backName = `back_${item.getName()}`;
+                    const existing = this.getActionTypeBack(item);
+                    if(existing) {
+                        const isParentGlobal = parentName
+                            ? (this.getMenu(parentName)?.isGlobal() || this.getAction(parentName)?.isGlobal())
+                            : false;
+                        if(parentName !== undefined && !isParentGlobal) {
+                            existing.setTo(parentName);
                         }
                     } else {
-                        // Other global items (menus/actions): add if missing
-                        if(!item.getValue(globalItem.getName())) {
-                            item.addValue(globalItem);
-                        }
+                        item.addValue(
+                            new ActionGoto(backTemplate.toJson())
+                                .setName(backName)
+                                .setTo(parentName ?? 'main')
+                        );
                     }
+                } else if(globalItem.getName() === 'exit') {
+                    const exitAction = this.getAction('exit');
+                    if(exitAction) item.addValue(exitAction);
+                } else {
+                    if(!item.getValue(globalItem.getName())) item.addValue(globalItem);
                 }
             });
 
-            (await item.run()).forEach(async answer => 
-                await this.run(
-                    answer, 
-                    item
-                )
-            );
-        } else if(item instanceof MenuInput) {
-            await item.run();
-        } else if(item instanceof ActionFunction) {
-            await item.run();
-        } else if(item instanceof ActionGoto) {
-            const targetName = item.getTo();
-            const targetMenu = this.getMenu(targetName) as MenuChoice | undefined;
-            // For back_ actions: trust the already-stored back of the target menu
-            // (set when it was originally opened), so we don't overwrite it.
-            // For normal goto actions (e.g. msubmenu2 → submenu2): use the current
-            // parentName so the target gets the correct back destination.
-            const isBackAction = item.getName().startsWith('back_');
-            const targetParent = isBackAction
-                ? (targetMenu ? this.getActionTypeBack(targetMenu)?.getTo() : undefined)
-                : parentName;
-            return await this.run(targetName, targetParent);
-        } 
-        //else if(typeof value === 'string' && parent instanceof MenuChoice) {
-        //    await parent.getConfigs()?.getDefaults()?.getCallback()?.({ 
-        //        menu: parent,
-        //        language: this.getSelectedLanguage(),
-        //        values: [value], 
-        //    });
-        //}
+            const answers = await item.run();
+            for(const answer of answers) {
+                await this.run(answer, item);
+            }
 
-        if(item instanceof MenuChoice) {
-            await item.getConfigs()?.getDefaults()?.getCallback()?.({ 
+            await item.getConfigs()?.getDefaults()?.getCallback()?.({
                 menu: item,
                 language: this.getSelectedLanguage(),
                 values: item.getSelectedValues(),
                 parent: parentName,
             });
+
+        // ── MenuInput ────────────────────────────────────────────────────────
         } else if(item instanceof MenuInput) {
-            await item?.getCallback()?.({ 
+            // Persist parent so re-opens without explicit parent still work correctly
+            if(parentName !== undefined) item.setLastParent(parentName);
+            const effectiveParent = parentName ?? item.getLastParent();
+
+            item.setGlobalChoices(this.buildInputGlobalChoices(effectiveParent));
+            const inputResult = await item.run();
+
+            // Global action selected (language, exit, …)
+            const globalAction = this.getGlobalItems().find(g => g.getName() === inputResult);
+            if(globalAction) {
+                await this.run(globalAction, item);
+                return this;
+            }
+
+            // Back navigation: result is a known menu name the user did NOT type
+            const isBackNavigation = inputResult !== item.getValue()
+                && this.getMenu(inputResult) !== undefined;
+            if(isBackNavigation) {
+                const targetMenu = this.getMenu(inputResult);
+                const targetParent = targetMenu instanceof MenuChoice
+                    ? this.getActionTypeBack(targetMenu)?.getTo()
+                    : undefined;
+                await this.run(inputResult, targetParent);
+                return this;
+            }
+
+            // Normal submit — run the callback
+            await item.getCallback()?.({
                 menu: item,
                 value: item.getValue(),
                 language: this.getSelectedLanguage(),
-                parent: parentName,
+                parent: effectiveParent,
             });
+
+        // ── ActionFunction ───────────────────────────────────────────────────
+        } else if(item instanceof ActionFunction) {
+            await item.run();
+
+        // ── ActionGoto ───────────────────────────────────────────────────────
+        } else if(item instanceof ActionGoto) {
+            const targetName = item.getTo();
+            const targetMenu = this.getMenu(targetName);
+            const isBackAction = item.getName().startsWith('back_');
+            const targetParent = isBackAction
+                ? (targetMenu instanceof MenuChoice ? this.getActionTypeBack(targetMenu)?.getTo() : undefined)
+                : parentName;
+            await this.run(targetName, targetParent);
         }
 
         return this;

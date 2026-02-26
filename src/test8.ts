@@ -21,7 +21,7 @@ cli
                 clear: false,
                 fastSubmit: true,
                 callback: async ({ menu, parent }) => {
-                    cli.run(parent ?? 'main');
+                    await cli.run(parent ?? 'main');
                 }
             },
             {
@@ -35,7 +35,7 @@ cli
                         callback: async ({ values, menu, language, parent }) => {
                             if (values.length > 0) {
                                 Cli.write(menu.getSuccessLabel(language), 'green');
-                                cli.run('press-to-continue', parent);
+                                await cli.run('press-to-continue', parent);
                             }
                         }
                     },
@@ -260,9 +260,8 @@ cli
                 //value: 'test',
                 validate: (value) => value.trim().length > 0 || 'Nickname cannot be empty',
                 callback: async ({ menu, value, language, parent }) => {
-                    //Cli.write(menu.getSuccessLabel(language), 'green');
-                    //Cli.write(`Nickname set to: ${value}`, 'green');
-                    cli.run('press-to-continue', parent);
+                    Cli.write(menu.getSuccessLabel(language), 'green');
+                    await cli.run('press-to-continue', parent);
                 }
             }
         ],

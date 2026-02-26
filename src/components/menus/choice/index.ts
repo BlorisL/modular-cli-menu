@@ -233,7 +233,7 @@ class MenuChoice extends Menu {
             // don't break execution on logging errors
         }
 
-        this.setSelectedValues(await choices({
+        const selected = await choices({
             message: Utility.write(this.getQuestionLabel(), this.getColor()),
             choices: values.map(choice => {
                 return (choice instanceof Separator) ? choice : {
@@ -241,9 +241,22 @@ class MenuChoice extends Menu {
                     label: choice.getTranslationLabel(this.isSelectedValue(choice.getValue()))
                 };
             }),
-        }) as string[]);
+        }) as string[];
 
-        return this.getSelectedValues();
+        // Persist only non-action values (back, exit, …) so they don't show
+        // the selected prefix next time the menu opens.
+        // If the user picked only actions (e.g. back), keep the previous
+        // selectedValues unchanged so the highlight stays correct.
+        const nonActionSelected = selected.filter(val => {
+            const option = this.getValue(val);
+            return option ? !(option.getItem() instanceof Action) : true;
+        });
+        if(nonActionSelected.length > 0) {
+            this.setSelectedValues(nonActionSelected);
+        }
+
+        // Return the full selection (including actions) so cli.ts can route it.
+        return selected;
     }
 }
 
