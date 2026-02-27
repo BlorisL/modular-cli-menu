@@ -1,11 +1,28 @@
 import { Utility } from "../utility";
 
-type Language = string; //'en' | 'it' | 'fr' | 'de' | 'es' | 'pl' | 'ru' | 'cn' | 'jp' | 'ar';
+type Language = string;
 
 type TranslationJson = Record<string, Partial<Record<Language, string>>>;
 
 class Translations {
     protected static items: TranslationJson = {};
+    protected static currentLanguage: Language | undefined = Utility.getDefaultLanguage();
+
+    /**
+     * Returns the active language, or undefined if translations are disabled
+     * (i.e. DEFAULT_LANGUAGE is not set in the environment).
+     */
+    public static getCurrentLanguage(): Language | undefined { return Translations.currentLanguage; }
+    public static setCurrentLanguage(language: Language): void { Translations.currentLanguage = language; }
+
+    /** Returns true when translations are active (DEFAULT_LANGUAGE is set). */
+    public static isEnabled(): boolean { return Translations.currentLanguage !== undefined; }
+
+    /**
+     * Returns the currently selected language.
+     * Returns undefined when translations are disabled (DEFAULT_LANGUAGE not set).
+     */
+    public static getSelectedLanguage(): Language | undefined { return Translations.currentLanguage; }
 
     public static getLanguages(): Language[] {
         const langs = new Set<Language>();
@@ -15,23 +32,19 @@ class Translations {
         return Array.from(langs);
     }
 
-    public static getDefaultLanguage(): Language { return Utility.getDefaultLanguage(); }
+    public static getDefaultLanguage(): Language | undefined { return Utility.getDefaultLanguage(); }
 
     public static getTranslations(): TranslationJson { return Translations.items; }
     public static getTranslation(
-        name: string, 
+        name: string,
         language?: keyof TranslationJson[string]
     ): string {
-        let lang = Translations.getDefaultLanguage();
-        let value = Translations.items[name]?.[Translations.getDefaultLanguage()];
+        const lang = language ?? Translations.currentLanguage;
+        if(!lang) return name;
 
-        if(language) {
-            lang = language;
-            value = Translations.items[name]?.[language];
-        }
-
-        return value ?? name; //`${name}.${lang}`;
+        return Translations.items[name]?.[lang] ?? name;
     }
+
     public static addTranslations(items: TranslationJson): Translations {
         Object.entries(items).forEach(([name, langs]) => {
             Object.entries(langs).forEach(([language, text]) => {
@@ -41,8 +54,8 @@ class Translations {
         return this;
     }
     public static addTranslation(
-        name: string, 
-        language: keyof TranslationJson[string], 
+        name: string,
+        language: keyof TranslationJson[string],
         text: string
     ): Translations {
         if(!Translations.items[name]) {

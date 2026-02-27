@@ -3,18 +3,16 @@ import { Action, ActionFunction, ActionFunctionJson, ActionGoto, ActionGotoJson 
 import { Menu, MenuChoice, MenuChoiceJson, MenuChoiceOption, MenuInput, MenuInputJson } from "./menus";
 import { Choice, Separator } from "@/prompts/Choices";
 import { PluginJson } from "./plugins";
-import { TranslationJson, Translations } from "./translations";
+import { Translations } from "./translations";
 import { Utility } from "./utility";
 
 class Cli {
     protected menus: Record<string, Menu>;
     protected actions: Record<string, Action>;
-    protected translations: TranslationJson;
 
     constructor() {
         this.menus = {};
         this.actions = {};
-        this.translations = {};
     }
 
     public static write(text: string, color?: ColorName): void {
@@ -38,23 +36,32 @@ class Cli {
         menu: Exclude<PluginJson['menus'], undefined>[number] | Cli['menus'][string],
         plugin?: string
     ): this {
-        let menuInstance: Menu | undefined = undefined;
-        if(menu instanceof Menu) {
-            menuInstance = menu;
-        } else {
-            switch(menu.type) {
-                case 'choice':
-                    menuInstance = new MenuChoice(menu as MenuChoiceJson);
-                    break;
-                case 'input':
-                    menuInstance = new MenuInput(menu as MenuInputJson);
-                    break;
+        const menuName = menu instanceof Menu ? menu.getName() : menu.name;
+        if(menuName !== 'language' || Translations.isEnabled()) {
+            let menuInstance: Menu | undefined = undefined;
+            if(menu instanceof Menu) {
+                menuInstance = menu;
+            } else {
+                switch(menu.type) {
+                    case 'choice':
+                        menuInstance = new MenuChoice(menu as MenuChoiceJson);
+                        break;
+                    case 'input':
+                        menuInstance = new MenuInput(menu as MenuInputJson);
+                        break;
+                }
+            }
+            if(menuInstance) {
+                menuInstance.setPlugin(plugin ?? menuInstance.getPlugin() ?? 'default');
+                if(menuInstance.isGlobal() && menuInstance.getIndex() === undefined) {
+                    const reservedIndexes: Record<string, number> = { language: -2 };
+                    const reserved = reservedIndexes[menuInstance.getName()];
+                    if(reserved !== undefined) menuInstance.setIndex(reserved);
+                }
+                this.menus[menuInstance.getName()] = menuInstance;
             }
         }
-        if(menuInstance) {
-            menuInstance.setPlugin(plugin ?? menuInstance.getPlugin() ?? 'default');
-            this.menus[menuInstance.getName()] = menuInstance;
-        }
+
         return this.load();
     }
 
@@ -81,6 +88,11 @@ class Cli {
         }
         if(actionInstance) {
             actionInstance.setPlugin(plugin ?? actionInstance.getPlugin() ?? 'default');
+            if(actionInstance.isGlobal() && actionInstance.getIndex() === undefined) {
+                const reservedIndexes: Record<string, number> = { back: -1, exit: -3 };
+                const reserved = reservedIndexes[actionInstance.getName()];
+                if(reserved !== undefined) actionInstance.setIndex(reserved);
+            }
             this.actions[actionInstance.getName()] = actionInstance;
         }
 
@@ -112,10 +124,6 @@ class Cli {
         const action = item?.getItem();
         if(action instanceof ActionGoto) return action;
         return this.getAction(item?.getValue() || '') as ActionGoto | undefined;
-    }
-
-    public getSelectedLanguage(): string {
-        return (this.getMenu('language') as MenuChoice).getSelectedValues()[0];
     }
 
     public trigger(menu: Menu, type: 'back' | 'exit' | string, parent?: string) {
@@ -170,37 +178,6 @@ class Cli {
         return this;
     }
 
-    /**
-     * Builds the Choice list shown at the bottom of a MenuInput prompt.
-     * First entry is always a correctly-targeted back (pointing to parentName),
-     * followed by all other global items except the raw 'back' template.
-     */
-    protected buildInputGlobalChoices(parentName: string | undefined): (Choice | Separator)[] {
-        const choices: (Choice | Separator)[] = [];
-
-        const backTemplate = this.getAction('back') as ActionGoto | undefined;
-        if(backTemplate) {
-            const backAction = new ActionGoto(backTemplate.toJson())
-                .setName('back_input')
-                .setTo(parentName ?? 'main');
-            const label = new MenuChoiceOption(
-                backAction, backAction.getName(), false, backAction.getColor(),
-            ).getTranslationLabel(false);
-            choices.push(new Separator());
-            choices.push({ value: backAction.getTo(), label, multi: false });
-        }
-
-        this.getGlobalItems()
-            .filter(g => g.getName() !== 'back')
-            .forEach(globalItem => {
-                const label = new MenuChoiceOption(
-                    globalItem, globalItem.getName(), false, globalItem.getColor(),
-                ).getTranslationLabel(false);
-                choices.push({ value: globalItem.getName(), label, multi: false });
-            });
-
-        return choices;
-    }
 
     public async run(
         value: string | Menu | Action = 'main',
@@ -223,7 +200,6 @@ class Cli {
             )
             : value;
 
-        // ── MenuChoice ───────────────────────────────────────────────────────
         if(item instanceof MenuChoice) {
             this.getGlobalItems().forEach(globalItem => {
                 if(globalItem.getName() === item.getName()) return;
@@ -263,18 +239,36 @@ class Cli {
 
             await item.getConfigs()?.getDefaults()?.getCallback()?.({
                 menu: item,
-                language: this.getSelectedLanguage(),
+                language: Translations.getSelectedLanguage(),
                 values: item.getSelectedValues(),
                 parent: parentName,
             });
-
-        // ── MenuInput ────────────────────────────────────────────────────────
         } else if(item instanceof MenuInput) {
             // Persist parent so re-opens without explicit parent still work correctly
             if(parentName !== undefined) item.setLastParent(parentName);
             const effectiveParent = parentName ?? item.getLastParent();
 
-            item.setGlobalChoices(this.buildInputGlobalChoices(effectiveParent));
+            const globalChoices: (Choice | Separator)[] = [];
+            const backTemplate = this.getAction('back') as ActionGoto | undefined;
+            if(backTemplate) {
+                const backAction = new ActionGoto(backTemplate.toJson())
+                    .setName('back_input')
+                    .setTo(effectiveParent ?? 'main');
+                const label = new MenuChoiceOption(
+                    backAction, backAction.getName(), false, backAction.getColor(),
+                ).getTranslationLabel(false);
+                globalChoices.push(new Separator());
+                globalChoices.push({ value: backAction.getTo(), label, multi: false });
+            }
+            this.getGlobalItems()
+                .filter(g => g.getName() !== 'back')
+                .forEach(globalItem => {
+                    const label = new MenuChoiceOption(
+                        globalItem, globalItem.getName(), false, globalItem.getColor(),
+                    ).getTranslationLabel(false);
+                    globalChoices.push({ value: globalItem.getName(), label, multi: false });
+                });
+            item.setGlobalChoices(globalChoices);
             const inputResult = await item.run();
 
             // Global action selected (language, exit, …)
@@ -300,15 +294,11 @@ class Cli {
             await item.getCallback()?.({
                 menu: item,
                 value: item.getValue(),
-                language: this.getSelectedLanguage(),
+                language: Translations.getSelectedLanguage(),
                 parent: effectiveParent,
             });
-
-        // ── ActionFunction ───────────────────────────────────────────────────
         } else if(item instanceof ActionFunction) {
             await item.run();
-
-        // ── ActionGoto ───────────────────────────────────────────────────────
         } else if(item instanceof ActionGoto) {
             const targetName = item.getTo();
             const targetMenu = this.getMenu(targetName);

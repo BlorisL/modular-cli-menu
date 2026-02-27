@@ -1,17 +1,14 @@
-import { Choice } from "@/prompts/Choices";
+import { Choice, Separator } from "@/prompts/Choices";
 import { InputConfig, InputState, renderInputLine, handleInputKey } from "@/prompts/Input";
-import { createPrompt, useState, useKeypress, usePrefix, isEnterKey, Separator } from '@inquirer/core';
+import { createPrompt, useState, useKeypress, usePrefix, isEnterKey } from '@inquirer/core';
 import chalk from 'chalk';
+import { isSeparator, renderChoiceLines } from "../choice";
 
 interface InputChoiceConfig extends InputConfig {
     choices: (Choice | Separator)[];
 }
 
 type InputChoiceResult = { type: 'input'; value: string } | { type: 'choice'; value: string };
-
-const isSeparator = (item: any): boolean =>
-    item && typeof item === 'object' &&
-    ('separator' in item || ('type' in item && item.type === 'separator'));
 
 const inputChoice = createPrompt<InputChoiceResult, InputChoiceConfig>((config, done) => {
     const { message } = config;
@@ -128,15 +125,7 @@ const inputChoice = createPrompt<InputChoiceResult, InputChoiceConfig>((config, 
             lines.push(new Separator().separator);
         }
 
-        allItems.forEach((item, index) => {
-            if (isSeparator(item)) {
-                lines.push(new Separator().separator);
-            } else {
-                const choice = item as Choice;
-                const isActive = focus === 'list' && index === activeIndex;
-                lines.push(`${isActive ? chalk.cyan('❯') : ' '} ${choice.label}`);
-            }
-        });
+        lines.push(...renderChoiceLines(allItems, activeIndex, focus === 'list'));
     }
 
     return lines.join('\n');

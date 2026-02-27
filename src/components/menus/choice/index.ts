@@ -1,10 +1,39 @@
-import { choices, Separator } from "@/prompts/Choices";
+import { choices, Choice, Separator } from "@/prompts/Choices";
 import { appendFileSync } from "fs";
 import { Menu, MenuJson } from "../menu";
 import { Action } from "../../actions";
 import { Utility } from "../../utility";
 import { MenuChoiceOption, MenuChoiceOptionJson } from "./option";
 import { MenuChoiceConfigs, MenuChoiceConfigsJson } from "./configs";
+import chalk from "chalk";
+
+// ── Shared list utilities ────────────────────────────────────────────────────
+
+/**
+ * Returns true if the item is an inquirer Separator.
+ * Centralised here so both Choice and InputChoice prompts use the same check.
+ */
+const isSeparator = (item: any): boolean =>
+    item != null &&
+    typeof item === 'object' &&
+    ('separator' in item || ('type' in item && item.type === 'separator'));
+
+/**
+ * Renders a scrollable choice list as an array of strings.
+ * Used by both the standalone Choice prompt and the InputChoice prompt.
+ */
+const renderChoiceLines = (
+    items: (Choice | Separator)[],
+    activeIndex: number,
+    focusedOnList: boolean,
+): string[] => {
+    return items.map((item, index) => {
+        if(isSeparator(item)) return new Separator().separator;
+        const choice = item as Choice;
+        const isActive = focusedOnList && index === activeIndex;
+        return `${isActive ? chalk.cyan('❯') : ' '} ${choice.label}`;
+    });
+};
 
 
 type MenuChoiceJsonValue = string | MenuChoiceOptionJson;
@@ -39,54 +68,52 @@ class MenuChoice extends Menu {
         return Object.values(this.values).sort((a, b) => {
             const aItem = a.getItem();
             const bItem = b.getItem();
-            
-            const aIsGlobal = aItem?.isGlobal();
-            const bIsGlobal = bItem?.isGlobal();
-            
-            // Azioni globali sempre in fondo
+
+            const aIsGlobal = aItem?.isGlobal() ?? false;
+            const bIsGlobal = bItem?.isGlobal() ?? false;
+
+            // Elementi globali sempre in fondo ai non-globali
             if(aIsGlobal && !bIsGlobal) return 1;
             if(!aIsGlobal && bIsGlobal) return -1;
-            
-            // Se entrambe globali, ordina per indice
+
             if(aIsGlobal && bIsGlobal) {
-                // Se entrambe globali: ordina prima per indice
                 const aIndex = aItem?.getIndex() ?? Infinity;
                 const bIndex = bItem?.getIndex() ?? Infinity;
-                
+
+                // Index negativi = anchor di coda: più negativo = più in fondo.
+                // Convenzione: back=-1 (terzultimo), language=-2 (penultimo), exit=-3 (ultimo).
+                const aIsReserved = aIndex < 0;
+                const bIsReserved = bIndex < 0;
+
+                if(aIsReserved && !bIsReserved) return 1;
+                if(!aIsReserved && bIsReserved) return -1;
+                // Tra riservati: più negativo = più in fondo → sort invertito
+                if(aIsReserved && bIsReserved) return bIndex - aIndex;
+
+                // Tra non-riservati: indice, poi tipo (azioni prima), poi nome
                 if(aIndex !== bIndex) return aIndex - bIndex;
-                
-                // Se stesso indice: azioni prima, poi menu
+
                 const aIsAction = aItem instanceof Action;
                 const bIsAction = bItem instanceof Action;
-                
                 if(aIsAction && !bIsAction) return -1;
                 if(!aIsAction && bIsAction) return 1;
-                
-            
-                // Se stesso tipo e indice: ordinamento alfabetico
-                const aName = aItem ? aItem.getName() : a.getValue();
-                const bName = bItem ? bItem.getName() : b.getValue();
-                
-                return aName.localeCompare(bName);
+
+                return aItem!.getName().localeCompare(bItem!.getName());
             }
-            
-            // Per non-globali: ordina prima per indice
+
+            // Non-globali: indice, poi tipo (azioni prima), poi nome
             const aIndex = aItem ? (aItem.getIndex() ?? Infinity) : Infinity;
             const bIndex = bItem ? (bItem.getIndex() ?? Infinity) : Infinity;
-            
+
             if(aIndex !== bIndex) return aIndex - bIndex;
-            
-            // Se stesso indice: azioni prima, poi menu
+
             const aIsAction = aItem instanceof Action;
             const bIsAction = bItem instanceof Action;
-            
             if(aIsAction && !bIsAction) return -1;
             if(!aIsAction && bIsAction) return 1;
-            
-            // Se stesso tipo e indice: ordinamento alfabetico
+
             const aName = aItem ? aItem.getName() : a.getValue();
             const bName = bItem ? bItem.getName() : b.getValue();
-            
             return aName.localeCompare(bName);
         });
     }
@@ -264,5 +291,7 @@ export {
     type MenuChoiceJson, 
     type MenuChoiceOptionJson,
     MenuChoice, 
-    MenuChoiceOption, 
+    MenuChoiceOption,
+    isSeparator,
+    renderChoiceLines,
 };

@@ -80,10 +80,15 @@ class MenuInput extends Menu {
     }
 
     public getPlaceholderLabel(language?: Language): string {
-        const name = this.getPlaceholder().length > 0
-            ? this.getPlaceholder()
-            : this.getPlaceholderName();
-        return Translations.getTranslation(name, language) ?? name;
+        // If a direct placeholder text was provided, try to translate it (it might be a key),
+        // but if translation returns it unchanged and it looks like a key, use it as-is.
+        if(this.placeholder.length > 0) {
+            return Translations.getTranslation(this.placeholder, language) ?? this.placeholder;
+        }
+        // No direct placeholder: try the translation key, fall back to empty string
+        const key = this.getPlaceholderName();
+        const translated = Translations.getTranslation(key, language);
+        return translated !== key ? translated : key;
     }
 
     public toJson(): Omit<MenuInputJson, 'value' | 'placeholder' | 'clear'> & {
@@ -102,7 +107,7 @@ class MenuInput extends Menu {
         };
     }
 
-    public async run(): Promise<string> {
+    public async run(language?: Language): Promise<string> {
         if(this.isClear()) {
             console.clear();
         }
@@ -110,7 +115,7 @@ class MenuInput extends Menu {
         // inline + fastSubmit → single-line keypress, no trailing blank line
         if(this.isFastSubmit() && this.isInline()) {
             const key = await inputInline({
-                message: this.getQuestionLabel(),
+                message: this.getQuestionLabel(language),
                 fastSubmit: true,
                 inline: true,
             });
@@ -122,7 +127,7 @@ class MenuInput extends Menu {
         // (showing back/language/exit while just waiting for any key is confusing)
         if(this.isFastSubmit()) {
             const answer = await input({
-                message: this.getQuestionLabel(),
+                message: this.getQuestionLabel(language),
                 fastSubmit: true,
             });
             this.value = answer;
@@ -134,9 +139,9 @@ class MenuInput extends Menu {
 
         if(this.globalChoices.length > 0) {
             const result = await inputChoice({
-                message: this.getQuestionLabel(),
+                message: this.getQuestionLabel(language),
                 value: this.getValue(),
-                placeholder: this.getPlaceholderLabel(),
+                placeholder: this.getPlaceholderLabel(language),
                 validate: this.validate,
                 fastSubmit: false,
                 choices: this.globalChoices,
@@ -147,9 +152,9 @@ class MenuInput extends Menu {
             answer = result.value;
         } else {
             answer = await input({
-                message: this.getQuestionLabel(),
+                message: this.getQuestionLabel(language),
                 value: this.getValue(),
-                placeholder: this.getPlaceholderLabel(),
+                placeholder: this.getPlaceholderLabel(language),
                 validate: this.validate,
                 fastSubmit: false,
             });
@@ -159,7 +164,7 @@ class MenuInput extends Menu {
 
         try {
             const logPath = `${process.cwd()}/menu.log`;
-            const header  = `${new Date().toISOString()} ${this.getName()} - ${this.getQuestionLabel()}\n`;
+            const header  = `${new Date().toISOString()} ${this.getName()} - ${this.getQuestionLabel(language)}\n`;
             appendFileSync(logPath, header + answer + '\n\n');
         } catch {
             // don't break on logging errors

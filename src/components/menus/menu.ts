@@ -9,6 +9,12 @@ type MenuJson = {
     color?: ColorName;
     parents?: string[];
     global?: boolean;
+    /** Direct text for the question prompt (used when translations are disabled). */
+    question?: string;
+    /** Direct text for the title label (used when translations are disabled). */
+    title?: string;
+    /** Direct text for the success message (used when translations are disabled). */
+    success?: string;
 }
 
 abstract class Menu {
@@ -19,6 +25,9 @@ abstract class Menu {
     protected index: MenuJson['index'];
     protected color: MenuJson['color'];
     protected global: Exclude<MenuJson['global'], undefined>;
+    protected question?: string;
+    protected title?: string;
+    protected success?: string;
 
     constructor(data: MenuJson) {
         this.name = data.name;
@@ -26,6 +35,9 @@ abstract class Menu {
         this.index = data.index;
         this.color = data.color;
         this.global = data.global ?? false;
+        this.question = data.question;
+        this.title = data.title;
+        this.success = data.success;
 
         if(data.parents) {
             data.parents.forEach(parent => this.addParent(parent));
@@ -60,36 +72,54 @@ abstract class Menu {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.question`;
     }
     public getQuestionLabel(language?: Language): string {
-        const name = this.getQuestionName();
-
-        return Translations.getTranslation(name, language) ?? name;
+        const key = this.getQuestionName();
+        const translated = Translations.getTranslation(key, language);
+        return translated !== key 
+            ? translated 
+            : ((this.question && this.question.length > 0) 
+                ? this.question 
+                : key
+            )
+        ;
     }
 
     public getTitleName(): string {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.title`;
     }
     public getTitleLabel(language?: Language): string {
-        const name = this.getTitleName();
-
-        return Translations.getTranslation(name, language) ?? name;
+        const key = this.getTitleName();
+        const translated = Translations.getTranslation(key, language);
+        return translated !== key 
+            ? translated 
+            : ((this.title && this.title.length > 0) 
+                ? this.title 
+                : key
+            )
+        ;
     }
 
     public getAnswerName(name: string): string {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.answer.${name}`;
     }
     public getAnswerLabel(name: string, language?: Language): string {
-        const label = this.getAnswerName(name);
-
-        return Translations.getTranslation(label, language) ?? name;
+        const key = this.getAnswerName(name);
+        const translated = Translations.getTranslation(key, language);
+        return translated !== key ? translated : name;
     }
 
     public getSuccessName(): string {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.success`;
     }
     public getSuccessLabel(language?: Language): string {
-        const name = this.getSuccessName();
-
-        return Translations.getTranslation(name, language) ?? name;
+        const key = this.getSuccessName();
+        const translated = Translations.getTranslation(key, language);
+        return translated !== key 
+            ? translated 
+            : ((this.success && this.success.length > 0) 
+                ? this.success 
+                : key
+            )
+        ;
     }
 
     public toJson(): MenuJson {
@@ -99,7 +129,10 @@ abstract class Menu {
             plugin: this.plugin,
             index: this.index,
             color: this.color,
-            parents: this.getParents()
+            parents: this.getParents(),
+            question: this.question,
+            title: this.title,
+            success: this.success,
         };
     }
 

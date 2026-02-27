@@ -9,6 +9,7 @@ cli
         menus: [
             {
                 name: 'main',
+                //question: 'Please choose an option:',
                 type: 'choice',
                 color: 'green',
                 values: [
@@ -31,9 +32,10 @@ cli
                 global: true,
                 configs: {
                     defaults: {
-                        values: [Translations.getDefaultLanguage()],
+                        values: [Translations.getDefaultLanguage()!],
                         callback: async ({ values, menu, language, parent }) => {
                             if (values.length > 0) {
+                                Translations.setCurrentLanguage(values[0]);
                                 Cli.write(menu.getSuccessLabel(language), 'green');
                                 await cli.run('press-to-continue', parent);
                             }
@@ -260,7 +262,7 @@ cli
                 //value: 'test',
                 validate: (value) => value.trim().length > 0 || 'Nickname cannot be empty',
                 callback: async ({ menu, value, language, parent }) => {
-                    Cli.write(menu.getSuccessLabel(language), 'green');
+                    Cli.write(`${menu.getSuccessLabel(language)}: ${value}`, 'green');
                     await cli.run('press-to-continue', parent);
                 }
             }
@@ -277,6 +279,42 @@ cli
             }
         ],
         translations: {
+            'test1.action1.title': {
+                en: 'Action 1',
+                it: 'Azione 1',
+                fr: 'Action 1',
+                de: 'Aktion 1',
+                es: 'Acción 1',
+                pl: 'Akcja 1',
+                ru: 'Действие 1',
+                cn: '操作 1',
+                jp: 'アクション 1',
+                ar: 'الإجراء 1',
+            },
+            'test1.submenu1.title': {
+                en: 'Submenu 1',
+                it: 'Sottomenu 1',
+                fr: 'Sous-menu 1',
+                de: 'Untermenü 1',
+                es: 'Submenú 1',
+                pl: 'Podmenu 1',
+                ru: 'Подменю 1',
+                cn: '子菜单 1',
+                jp: 'サブメニュー 1',
+                ar: 'القائمة الفرعية 1',
+            },
+            'test1.nickname.question': {
+                en: 'What is your nickname?',
+                it: 'Qual è il tuo nickname?',
+                fr: 'Quel est votre pseudo ?',
+                de: 'Wie lautet dein Spitzname?',
+                es: '¿Cuál es tu apodo?',
+                pl: 'Jaki jest twój pseudonim?',
+                ru: 'Какой у вас никнейм?',
+                cn: '你的昵称是什么？',
+                jp: 'あなたのニックネームは何ですか？',
+                ar: 'ما هو لقبك؟',
+            },
             'test1.nickname.placeholder': {
                 en: 'Enter your nickname...',
                 it: 'Inserisci il tuo nickname...',
@@ -302,16 +340,16 @@ cli
                 ar: 'لا يمكن أن يكون اللقب فارغًا',
             },
             'test1.nickname.success': {
-                en: 'Nickname set to:',
-                it: 'Nickname impostato:',
-                fr: 'Nickname défini sur :',
-                de: 'Nickname gesetzt auf:',
-                es: 'Nickname establecido en:',
-                pl: 'Pseudonim ustawiony na:',
-                ru: 'Никнейм установлен на:',
-                cn: '昵称设置为：',
-                jp: 'ニックネームが設定されました：',
-                ar: 'تم تعيين اللقب إلى:',
+                en: 'Nickname set to',
+                it: 'Nickname impostato',
+                fr: 'Nickname défini sur ',
+                de: 'Nickname gesetzt auf',
+                es: 'Nickname establecido en',
+                pl: 'Pseudonim ustawiony na',
+                ru: 'Никнейм установлен на',
+                cn: '昵称设置为',
+                jp: 'ニックネームが設定されました',
+                ar: 'تم تعيين اللقب إلى',
             }
         },
     })

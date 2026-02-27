@@ -4,7 +4,7 @@ import chalk, { ColorName } from 'chalk';
 import { MenuInput } from './menus/input';
 
 class Utility {
-    protected static defaultLanguage: Language; // = 'en';
+    protected static defaultLanguage?: Language; // = 'en';
     protected static defaultPrefix?: string;
     protected static defaultColor?: ColorName;
     protected static debugLog: boolean;
@@ -17,7 +17,7 @@ class Utility {
         
         Utility.defaultLanguage = (env.DEFAULT_LANGUAGE && env.DEFAULT_LANGUAGE.length > 0)
             ? env.DEFAULT_LANGUAGE as Language
-            : 'en'
+            : undefined
         ;
         Utility.defaultPrefix = (env.DEFAULT_CHOICE_PREFIX && env.DEFAULT_CHOICE_PREFIX.length > 0) 
             ? env.DEFAULT_CHOICE_PREFIX
@@ -30,7 +30,7 @@ class Utility {
         Utility.debugLog = env.DEBUG_LOG === 'true';
     }
 
-    public static getDefaultLanguage(): Language { return Utility.defaultLanguage; }
+    public static getDefaultLanguage(): Language | undefined { return Utility.defaultLanguage; }
     public static getDefaultPrefix(): string | undefined { 
         return Utility.defaultPrefix; 
     }
