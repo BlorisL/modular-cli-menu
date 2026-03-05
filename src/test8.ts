@@ -25,6 +25,55 @@ cli
                     await cli.run(parent ?? 'main');
                 }
             },
+        ],
+        actions: [
+            {
+                name: 'back',
+                type: 'goto',
+                to: 'main',
+                global: true
+            },
+            {
+                name: 'exit',
+                type: 'function',
+                color: 'red',
+                callback: async () => {
+                    Cli.write('Exiting...', 'red');
+                    process.exit(0);
+                },
+                global: true
+            },
+        ],
+        translations: {
+            'default.main.question': {
+                en: 'Please choose an option:',
+                it: "Per favore scegli un'opzione:",
+                fr: 'Veuillez choisir une option :',
+                de: 'Bitte wählen Sie eine Option:',
+                es: 'Por favor, elija una opción:',
+                pl: 'Proszę wybrać opcję:',
+                ru: 'Пожалуйста, выберите опцию:',
+                cn: '请选择一个选项：',
+                jp: 'オプションを選択してください：',
+                ar: 'يرجى اختيار خيار:',
+            },
+            'default.press_to_continue.question': {
+                en: 'Press Enter to continue...',
+                it: 'Premi Invio per continuare...',
+                fr: 'Appuyez sur Entrée pour continuer...',
+                de: 'Drücken Sie die Eingabetaste, um fortzufahren...',
+                es: 'Presione Enter para continuar...',
+                pl: 'Naciśnij Enter, aby kontynuować...',
+                ru: 'Нажмите Enter, чтобы продолжить...',
+                cn: '按Enter键继续...',
+                jp: '続行するにはEnterキーを押してください...',
+                ar: 'اضغط Enter للمتابعة...',
+            },
+        },
+    })
+    .addPlugin({
+        name: 'translation',
+        menus: [
             {
                 name: 'language',
                 type: 'choice',
@@ -56,51 +105,20 @@ cli
                 }))
             }
         ],
-        actions: [
-            {
-                name: 'back',
-                type: 'goto',
-                to: 'main',
-                global: true
-            },
-            {
-                name: 'exit',
-                type: 'function',
-                color: 'red',
-                callback: async () => {
-                    Cli.write('Exiting...', 'red');
-                    process.exit(0);
-                },
-                global: true
-            },
-        ],
         translations: {
-            //'default.language'
-            'default.main.question': {
-                en: 'Please choose an option:',
-                it: "Per favore scegli un'opzione:",
-                fr: 'Veuillez choisir une option :',
-                de: 'Bitte wählen Sie eine Option:',
-                es: 'Por favor, elija una opción:',
-                pl: 'Proszę wybrać opcję:',
-                ru: 'Пожалуйста, выберите опцию:',
-                cn: '请选择一个选项：',
-                jp: 'オプションを選択してください：',
-                ar: 'يرجى اختيار خيار:',
+            'translation.language.title': {
+                en: 'Change language',
+                it: 'Cambia lingua',
+                fr: 'Changer de langue',
+                de: 'Sprache ändern',
+                es: 'Cambiar idioma',
+                pl: 'Zmień język',
+                ru: 'Изменить язык',
+                cn: '更改语言',
+                jp: '言語を変更',
+                ar: 'تغيير اللغة',
             },
-            'default.press_to_continue.question': {
-                en: 'Press Enter to continue...',
-                it: 'Premi Invio per continuare...',
-                fr: 'Appuyez sur Entrée pour continuer...',
-                de: 'Drücken Sie die Eingabetaste, um fortzufahren...',
-                es: 'Presione Enter para continuar...',
-                pl: 'Naciśnij Enter, aby kontynuować...',
-                ru: 'Нажмите Enter, чтобы продолжить...',
-                cn: '按Enter键继续...',
-                jp: '続行するにはEnterキーを押してください...',
-                ar: 'اضغط Enter للمتابعة...',
-            },
-            'default.language.answer.en': {
+            'translation.language.answer.en': {
                 en: 'English',
                 it: 'Inglese',
                 fr: 'Anglais',
@@ -112,7 +130,7 @@ cli
                 jp: '英語',
                 ar: 'الإنجليزية',
             },
-            'default.language.answer.it': {
+            'translation.language.answer.it': {
                 en: 'Italian',
                 it: 'Italiano',
                 fr: 'Italien',
@@ -124,7 +142,7 @@ cli
                 jp: 'イタリア語',
                 ar: 'الإيطالية',
             },
-            'default.language.answer.fr': {
+            'translation.language.answer.fr': {
                 en: 'French',
                 it: 'Francese',
                 fr: 'Français',
@@ -136,7 +154,7 @@ cli
                 jp: 'フランス語',
                 ar: 'الفرنسية',
             },
-            'default.language.answer.de': {
+            'translation.language.answer.de': {
                 en: 'German',
                 it: 'Tedesco',
                 fr: 'Allemand',
@@ -148,7 +166,7 @@ cli
                 jp: 'ドイツ語',
                 ar: 'الألمانية',
             },
-            'default.language.answer.es': {
+            'translation.language.answer.es': {
                 en: 'Spanish',
                 it: 'Spagnolo',
                 fr: 'Espagnol',
@@ -160,7 +178,7 @@ cli
                 jp: 'スペイン語',
                 ar: 'الإسبانية',
             },
-            'default.language.answer.pl': {
+            'translation.language.answer.pl': {
                 en: 'Polish',
                 it: 'Polacco',
                 fr: 'Polonais',
@@ -172,7 +190,7 @@ cli
                 jp: 'ポーランド語',
                 ar: 'البولندية',
             },
-            'default.language.answer.ru': {
+            'translation.language.answer.ru': {
                 en: 'Russian',
                 it: 'Russo',
                 fr: 'Russe',
@@ -184,7 +202,7 @@ cli
                 jp: 'ロシア語',
                 ar: 'الروسية',
             },
-            'default.language.answer.cn': {
+            'translation.language.answer.cn': {
                 en: 'Chinese',
                 it: 'Cinese',
                 fr: 'Chinois',
@@ -196,7 +214,7 @@ cli
                 jp: '中国語',
                 ar: 'الصينية',
             },
-            'default.language.answer.jp': {
+            'translation.language.answer.jp': {
                 en: 'Japanese',
                 it: 'Giapponese',
                 fr: 'Japonais',
@@ -208,7 +226,7 @@ cli
                 jp: '日本語',
                 ar: 'اليابانية',
             },
-            'default.language.answer.ar': {
+            'translation.language.answer.ar': {
                 en: 'Arabic',
                 it: 'Arabo',
                 fr: 'Arabe',
@@ -220,7 +238,7 @@ cli
                 jp: 'アラビア語',
                 ar: 'العربية',
             },
-            'default.language.success': {
+            'translation.language.success': {
                 en: 'Language set successfully.',
                 it: 'Lingua impostata con successo.',
                 fr: 'Langue définie avec succès.',
@@ -232,7 +250,7 @@ cli
                 jp: '言語が正常に設定されました。',
                 ar: 'تم تعيين اللغة بنجاح.',
             }
-        }
+        },
     })
     .addPlugin({
         name: 'test1',

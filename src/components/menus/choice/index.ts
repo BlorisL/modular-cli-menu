@@ -59,13 +59,51 @@ class MenuChoice extends Menu {
         if(Array.isArray(data.values)) {
             data.values.forEach(v => this.addValue(v));
         } else if(typeof data.values === 'function') {
-            (data.values as Function)({ menu: this }).forEach((v: MenuChoiceJsonValue) => this.addValue(v));
+            const sourceFn = data.values as (data: { menu: MenuChoice }) => Array<MenuChoiceJsonValue>;
+            this.values = ({ menu }: { menu: MenuChoice }) => {
+                const result: MenuChoiceValues = {};
+                sourceFn({ menu }).forEach((v: MenuChoiceJsonValue) => {
+                    let name: string | undefined;
+                    let option: MenuChoiceOption | undefined;
+                    if(typeof v === 'string') {
+                        name = v;
+                        option = new MenuChoiceOption(v);
+                    } else if(typeof v === 'object') {
+                        name = v.value;
+                        option = new MenuChoiceOption(
+                            v.value,
+                            v.label,
+                            v.multi,
+                            v.color,
+                            v.selected
+                        );
+                    }
+                    if(name && option) {
+                        if(menu.isConfigSelected()) {
+                            if(!option.getSelected()) {
+                                option.setSelectedPrefix(menu.getConfigs()?.getSelected()?.getPrefix() ?? Utility.getDefaultPrefix());
+                                option.setSelectedColor(menu.getConfigs()?.getSelected()?.getColor() ?? Utility.getDefaultColor());
+                            } else {
+                                if(!option.getSelectedPrefix()) {
+                                    option.setSelectedPrefix(menu.getConfigs()?.getSelected()?.getPrefix() ?? Utility.getDefaultPrefix());
+                                }
+                                if(!option.getSelectedColor()) {
+                                    option.setSelectedColor(menu.getConfigs()?.getSelected()?.getColor() ?? Utility.getDefaultColor());
+                                }
+                            }
+                        }
+                        result[name] = option;
+                    }
+                });
+                return result;
+            };
         }
     }
 
     public getValues(): MenuChoiceValues[string][] { return this.sortValues(); }
     protected sortValues(): MenuChoiceValues[string][] {
-        return Object.values(this.values).sort((a, b) => {
+        const resolved = typeof this.values === 'function' ? this.values({ menu: this }) : this.values;
+        return Object.values(resolved).sort((a, b) => {
             const aItem = a.getItem();
             const bItem = b.getItem();
 
@@ -229,7 +267,10 @@ class MenuChoice extends Menu {
         return {
             ...super.toJson(),
             type: this.type,
-            values: Object.values(this.values).map(v => v.toJson())
+            values: Object.values(typeof this.values === 'function' 
+                ? this.values({ menu: this }) 
+                : this.values
+            ).map(v => v.toJson())
         };
     }
 
