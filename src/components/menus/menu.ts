@@ -3,7 +3,7 @@ import { Language, Translations } from "../translations";
 
 type MenuJson = {
     name: string;
-    type: 'choice' | 'input';
+    type: 'choice' | 'input' | 'field';
     plugin?: string;
     index?: number;
     color?: ColorName;
@@ -15,6 +15,8 @@ type MenuJson = {
     title?: string;
     /** Direct text for the success message (used when translations are disabled). */
     success?: string;
+    /** Direct text for the validation error message (used when translations are disabled). */
+    error?: string;
 }
 
 abstract class Menu {
@@ -28,6 +30,7 @@ abstract class Menu {
     protected question?: string;
     protected title?: string;
     protected success?: string;
+    protected error?: string;
 
     constructor(data: MenuJson) {
         this.name = data.name;
@@ -38,6 +41,7 @@ abstract class Menu {
         this.question = data.question;
         this.title = data.title;
         this.success = data.success;
+        this.error = data.error;
 
         if(data.parents) {
             data.parents.forEach(parent => this.addParent(parent));
@@ -122,6 +126,20 @@ abstract class Menu {
         ;
     }
 
+    public getErrorName(): string {
+        return `${this.getPlugin() ?? 'default'}.${this.getName()}.error`;
+    }
+    public getErrorLabel(language?: Language): string {
+        const key = this.getErrorName();
+        const translated = Translations.getTranslation(key, language);
+        if (translated !== key) return translated;
+        if (this.error && this.error.length > 0) return this.error;
+        // Generic fallback: default.input.error
+        const generic = 'default.input.error';
+        const genericTranslated = Translations.getTranslation(generic, language);
+        return genericTranslated !== generic ? genericTranslated : key;
+    }
+
     public toJson(): MenuJson {
         return {
             name: this.name,
@@ -133,6 +151,7 @@ abstract class Menu {
             question: this.question,
             title: this.title,
             success: this.success,
+            error: this.error,
         };
     }
 
