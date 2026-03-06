@@ -9,22 +9,18 @@ cli
         menus: [
             {
                 name: 'main',
-                type: 'field',
+                type: 'choice',
                 color: 'green',
-                modes: { choices: { values: [] } },
+                values: [],
             },
             {
                 name: 'press-to-continue',
-                type: 'field',
-                modes: {
-                    input: {
-                        value: '',
-                        clear: false,
-                        fastSubmit: true,
-                        callback: async ({ menu, parent }) => {
-                            await cli.run(parent ?? 'main');
-                        },
-                    },
+                type: 'input',
+                value: '',
+                clear: false,
+                fastSubmit: true,
+                callback: async ({ menu, parent }) => {
+                    await cli.run(parent ?? 'main');
                 },
             },
         ],
@@ -78,32 +74,28 @@ cli
         menus: [
             {
                 name: 'language',
-                type: 'field',
+                type: 'choice',
                 global: true,
-                modes: {
-                    choices: {
-                        configs: {
-                            defaults: {
-                                values: [Translations.getDefaultLanguage()!],
-                                callback: async ({ values, menu, parent }) => {
-                                    if (values.length > 0) {
-                                        Translations.setCurrentLanguage(values[0]);
-                                        Cli.write(menu.getSuccessLabel(Translations.getSelectedLanguage()), 'green');
-                                        await cli.run('press-to-continue', parent);
-                                    }
-                                },
-                            },
-                            selected: {
-                                prefix: '#',
-                            },
+                configs: {
+                    defaults: {
+                        values: [Translations.getDefaultLanguage()!],
+                        callback: async ({ values, menu, parent }) => {
+                            if (values.length > 0) {
+                                Translations.setCurrentLanguage(values[0]);
+                                Cli.write(menu.getSuccessLabel(Translations.getSelectedLanguage()), 'green');
+                                await cli.run('press-to-continue', parent);
+                            }
                         },
-                        values: (data) => Translations.getLanguages().map(lang => ({
-                            value: lang,
-                            selected: lang == 'fr' ? { prefix: '✓ ', color: 'red' } : undefined,
-                            label: data.menu.getAnswerLabel(lang),
-                        })),
+                    },
+                    selected: {
+                        prefix: '#',
                     },
                 },
+                values: (data) => Translations.getLanguages().map(lang => ({
+                    value: lang,
+                    selected: lang == 'fr' ? { prefix: '✓ ', color: 'red' } : undefined,
+                    label: data.menu.getAnswerLabel(lang),
+                })),
             },
         ],
         translations: {
@@ -258,28 +250,48 @@ cli
         menus: [
             {
                 name: 'submenu1',
-                type: 'field',
+                type: 'choice',
                 parents: ['main'],
-                modes: { choices: { values: ['subaction1', 'submenu2', 'nickname'] } },
+                values: ['subaction1', 'submenu2', 'nickname', 'features'],
             },
             {
                 name: 'submenu2',
-                type: 'field',
-                modes: { choices: { values: ['subaction2'] } },
+                type: 'choice',
+                values: ['subaction2'],
             },
             {
                 name: 'nickname',
-                type: 'field',
+                type: 'input',
                 parents: ['submenu1'],
-                modes: {
-                    input: {
-                        validate: (value) => value.trim().length > 0,
-                        callback: async ({ menu, value, language, parent }) => {
-                            Cli.write(`${menu.getSuccessLabel(language)}: ${value}`, 'green');
+                validate: (value) => value.trim().length > 0,
+                callback: async ({ menu, value, language, parent }) => {
+                    Cli.write(`${menu.getSuccessLabel(language)}: ${value}`, 'green');
+                    await cli.run('press-to-continue', parent);
+                },
+            },
+            {
+                name: 'features',
+                type: 'choice',
+                parents: ['submenu1'],
+                configs: {
+                    defaults: {
+                        values: ['notifications'],
+                        callback: async ({ values, menu, parent }) => {
+                            Cli.write(`${menu.getSuccessLabel()} ${values.join(', ')}`, 'green');
                             await cli.run('press-to-continue', parent);
                         },
                     },
+                    selected: {
+                        prefix: '✓ ',
+                        color: 'green',
+                    },
                 },
+                values: [
+                    { value: 'notifications', label: 'Notifications',  multi: true },
+                    { value: 'darkmode',       label: 'Dark Mode',      multi: true },
+                    { value: 'autosave',       label: 'Auto Save',      multi: true },
+                    { value: 'analytics',      label: 'Analytics',      multi: true },
+                ],
             },
         ],
         actions: [
@@ -363,6 +375,42 @@ cli
                 cn: '昵称设置为', 
                 jp: 'ニックネームが設定されました', 
                 ar: 'تم تعيين اللقب إلى'
+            },
+            'test1.features.title': {
+                en: 'Features',
+                it: 'Funzionalità',
+                fr: 'Fonctionnalités',
+                de: 'Funktionen',
+                es: 'Funcionalidades',
+                pl: 'Funkcje',
+                ru: 'Функции',
+                cn: '功能',
+                jp: '機能',
+                ar: 'الميزات',
+            },
+            'test1.features.question': {
+                en: 'Select the features to enable:',
+                it: 'Seleziona le funzionalità da abilitare:',
+                fr: 'Sélectionnez les fonctionnalités à activer :',
+                de: 'Wählen Sie die zu aktivierenden Funktionen:',
+                es: 'Seleccione las funcionalidades a habilitar:',
+                pl: 'Wybierz funkcje do włączenia:',
+                ru: 'Выберите функции для включения:',
+                cn: '选择要启用的功能：',
+                jp: '有効にする機能を選択してください：',
+                ar: 'حدد الميزات المراد تفعيلها:',
+            },
+            'test1.features.success': {
+                en: 'Features enabled:',
+                it: 'Funzionalità abilitate:',
+                fr: 'Fonctionnalités activées :',
+                de: 'Aktivierte Funktionen:',
+                es: 'Funcionalidades habilitadas:',
+                pl: 'Włączone funkcje:',
+                ru: 'Включены функции:',
+                cn: '已启用功能：',
+                jp: '有効な機能：',
+                ar: 'الميزات المفعّلة:',
             },
         },
     })

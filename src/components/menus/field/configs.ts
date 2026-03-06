@@ -49,6 +49,27 @@ class MenuFieldConfigs {
         }
         return this;
     }
+
+    public toJson(): MenuFieldConfigsJson {
+        const defaults = this.defaults
+            ? {
+                values: this.defaults.getValues(),
+                callback: this.defaults.getCallback(),
+            }
+            : undefined;
+
+        const selected = this.selected
+            ? {
+                prefix: this.selected.getPrefix(),
+                color: this.selected.getColor(),
+            }
+            : undefined;
+
+        return {
+            ...(defaults ? { defaults } : {}),
+            ...(selected ? { selected } : {}),
+        };
+    }
 }
 
 export { type MenuFieldConfigsJson, MenuFieldConfigs };

@@ -1,4 +1,3 @@
-import { appendFileSync } from 'fs';
 import { Menu, MenuJson } from '../menu';
 import { Action } from '../../actions';
 import { Language, Translations } from '../../translations';
@@ -29,7 +28,6 @@ type MenuFieldInputModeJson = {
 // Main JSON type
 
 type MenuFieldJson = MenuJson & {
-    type: 'field';
     modes?: {
         choices?: MenuFieldChoicesModeJson;
         input?: MenuFieldInputModeJson;
@@ -367,20 +365,17 @@ class MenuField extends Menu {
             return choiceList;
         };
 
-        // Log
-        const logChoices = (choiceList: (Choice | Separator)[]) => {
-            try {
-                const logPath = `${process.cwd()}/menu.log`;
-                const header  = `${new Date().toISOString()} ${this.getName()} - ${this.getQuestionLabel(language)}\n`;
-                const lines   = choiceList.map(c =>
-                    c instanceof Separator ? '──────────────' : (c as Choice).label
-                ).join('\n');
-                appendFileSync(logPath, header + lines + '\n\n');
-            } catch { /* ignore */ }
-        };
-
         const choiceList = buildChoices();
-        if (hasChoicesSection) logChoices(choiceList);
+        if (hasChoicesSection) {
+            Utility.log([
+                new Date().toISOString(), 
+                `${this.getName()} - ${this.getQuestionLabel(language)}`,
+                ...choiceList.map(c => c instanceof Separator 
+                    ? c.separator
+                    : (c as Choice).label
+                )
+            ].join('\n') + '\n');
+        }
 
         // Wrap validate to resolve translated error message
         const translatedValidate = this.validate
@@ -413,11 +408,13 @@ class MenuField extends Menu {
 
         if (result.type === 'input') {
             this.inputValue = result.value;
-            try {
-                const logPath = `${process.cwd()}/menu.log`;
-                const header  = `${new Date().toISOString()} ${this.getName()} - ${this.getQuestionLabel(language)}\n`;
-                appendFileSync(logPath, header + result.value + '\n\n');
-            } catch { /* ignore */ }
+            
+            Utility.log([
+                new Date().toISOString(), 
+                `${this.getName()} - ${this.getQuestionLabel(language)}`,
+                result.value
+            ].join('\n') + '\n');
+
             return result.value;
         }
 

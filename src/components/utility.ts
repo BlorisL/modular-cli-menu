@@ -1,13 +1,14 @@
 import { config } from 'dotenv';
 import { Language } from './translations';
 import chalk, { ColorName } from 'chalk';
-import { MenuField } from './menus/field';
+import { MenuInput } from "./menus";
+import { appendFileSync, mkdirSync } from "fs";
 
 class Utility {
     protected static defaultLanguage?: Language; // = 'en';
     protected static defaultPrefix?: string;
     protected static defaultColor?: ColorName;
-    protected static debugLog: boolean;
+    protected static debugLog: string = '';
     
     static {
         config({ path: '.env' });
@@ -27,7 +28,19 @@ class Utility {
             ? env.DEFAULT_CHOICE_COLOR as ColorName
             : undefined
         ;
-        Utility.debugLog = env.DEBUG_LOG === 'true';
+
+        if(env.DEBUG_LOG === 'true') {
+            try {
+                const logsDir = `${process.cwd()}/logs`;
+
+                mkdirSync(logsDir, { recursive: true });
+
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                Utility.debugLog = `${logsDir}/log-${timestamp}.log`
+            } catch(err) {
+                console.log(1, err)
+            }
+        }
     }
 
     public static getDefaultLanguage(): Language | undefined { return Utility.defaultLanguage; }
@@ -37,23 +50,32 @@ class Utility {
     public static getDefaultColor(): ColorName | undefined { 
         return Utility.defaultColor; 
     }
-    public static isDebugLog(): boolean { return Utility.debugLog === true; }
 
     public static write(text?: string, color?: ColorName): string {
         return text ? ((color && chalk[color]) ? chalk[color](text) : text) : '';
     }
 
+    public static isDebugLog(): boolean { return Utility.debugLog.length > 0; }
+    public static log(value: string, force: boolean = false): void {
+        if (Utility.isDebugLog() || force) {
+            try {
+                const cleanValue = value.replace(/\x1b\[[0-9;]*m/g, '');
+                appendFileSync(Utility.debugLog, cleanValue + '\n');
+            } catch(err) {
+                console.log(2, err)
+            }
+        }
+    }
+
     public static async pressAnyKey(message?: string): Promise<void> {
         // Use the new `input` prompt to pause and let the user press Enter.
         try {
-            const pause = new MenuField({
+            const pause = new MenuInput({
                 name: 'press-to-continue',
-                type: 'field' as const,
-                input: {
-                    value: '',
-                    placeholder: message,
-                    clear: false,
-                },
+                type: 'input',
+                value: '',
+                placeholder: message,
+                clear: false,
             });
 
             await pause.run();
