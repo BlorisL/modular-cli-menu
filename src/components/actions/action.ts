@@ -1,14 +1,20 @@
 import { ColorName } from "chalk";
 import { Language, Translations } from "../translations";
+import { StyleIdle, StyleIdleJson } from "../styles/idle";
+import { StyleHover, StyleHoverJson } from "../styles/hover";
+import { StyleSelected, StyleSelectedJson } from "../styles/selected";
 
 type ActionJson = {
     name: string;
     type: 'function' | 'goto';
     plugin?: string;
     index?: number;
-    color?: ColorName;
+    //color?: ColorName;
     parents?: string[];
     global?: boolean;
+    idle?: StyleIdleJson;
+    hover?: StyleHoverJson;
+    selected?: StyleSelectedJson;
 };
 
 abstract class Action {
@@ -16,16 +22,28 @@ abstract class Action {
     protected abstract type: ActionJson['type'];
     protected plugin?: ActionJson['plugin'];
     protected index?: ActionJson['index'];
-    protected color?: ActionJson['color'];
+    //protected color?: ActionJson['color'];
     protected parents: Record<string, Exclude<ActionJson['parents'], undefined>[number]> = {};
     protected global: Exclude<ActionJson['global'], undefined> = false;
+    protected idle?: StyleIdle;
+    protected hover?: StyleHover;
+    protected selected?: StyleSelected;
 
     constructor(data: ActionJson) {
         this.name = data.name;
         this.plugin = data.plugin;
         this.index = data.index;
-        this.color = data.color;
+        //this.color = data.color;
         this.global = data.global ?? false;
+        this.idle = data.idle
+            ? new StyleIdle(data.idle.prefix, data.idle.color, data.idle.underline, data.idle.italic)
+            : undefined;
+        this.hover = data.hover
+            ? new StyleHover(data.hover.prefix, data.hover.color, data.hover.underline, data.hover.italic)
+            : undefined;
+        this.selected = data.selected
+            ? new StyleSelected(data.selected.prefix, data.selected.color, data.selected.underline, data.selected.italic)
+            : undefined;
 
         if(data.parents) {
             data.parents.forEach(parent => this.addParent(parent));
@@ -42,8 +60,8 @@ abstract class Action {
     public getIndex(): Action['index'] | undefined { return this.index; }
     public setIndex(index: Action['index']): this { this.index = index; return this; }
 
-    public getColor(): Action['color'] | undefined { return this.color; }
-    public setColor(color: Action['color']): this { this.color = color; return this; }
+    //public getColor(): Action['color'] | undefined { return this.color; }
+    //public setColor(color: Action['color']): this { this.color = color; return this; }
 
     public getParents(): Action['parents'][string][] { return Object.values(this.parents); }
     public getParent(name: string): Action['parents'][string] | undefined { 
@@ -55,6 +73,26 @@ abstract class Action {
     }
 
     public isGlobal(): Action['global'] { return this.global === true; }
+
+    public getIdle(): StyleIdle | undefined { return this.idle; }
+    public setIdle(idle: StyleIdle | StyleIdleJson): this {
+        this.idle = idle instanceof StyleIdle ? idle : new StyleIdle(idle.prefix, idle.color, idle.underline, idle.italic);
+        return this;
+    }
+
+    public getHover(): StyleHover | undefined { return this.hover; }
+    public setHover(hover: StyleHover | StyleHoverJson): this {
+        this.hover = hover instanceof StyleHover ? hover : new StyleHover(hover.prefix, hover.color, hover.underline, hover.italic);
+        return this;
+    }
+
+    public getSelected(): StyleSelected | undefined { return this.selected; }
+    public setSelected(selected: StyleSelected | StyleSelectedJson): this {
+        this.selected = selected instanceof StyleSelected ? selected : new StyleSelected(selected.prefix, selected.color, selected.underline, selected.italic);
+        return this;
+    }
+
+    public getColor(): ColorName | undefined { return this.idle?.getColor(); }
 
     public getTitleName(): string {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.title`;
@@ -71,9 +109,12 @@ abstract class Action {
             type: this.type,
             plugin: this.plugin,
             index: this.index,
-            color: this.color,
+            //color: this.color,
             parents: this.getParents(),
-            global: this.global
+            global: this.global,
+            idle: this.idle?.toJson(),
+            hover: this.hover?.toJson(),
+            selected: this.selected?.toJson()
         };
     }
 

@@ -1,14 +1,20 @@
 import { ColorName } from "chalk";
 import { Language, Translations } from "../translations";
+import { StyleIdle, StyleIdleJson } from "../styles/idle";
+import { StyleHover, StyleHoverJson } from "../styles/hover";
+import { StyleSelected, StyleSelectedJson } from "../styles/selected";
 
 type MenuJson = {
     name: string;
     type: 'choice' | 'input' | 'field';
     plugin?: string;
     index?: number;
-    color?: ColorName;
+    //color?: ColorName;
     parents?: string[];
     global?: boolean;
+    idle?: StyleIdleJson;
+    hover?: StyleHoverJson;
+    selected?: StyleSelectedJson;
     /** Direct text for the question prompt (used when translations are disabled). */
     question?: string;
     /** Direct text for the title label (used when translations are disabled). */
@@ -25,8 +31,11 @@ abstract class Menu {
     protected plugin?: MenuJson['plugin'];
     protected parents: Record<string, Exclude<MenuJson['parents'], undefined>[number]> = {};
     protected index: MenuJson['index'];
-    protected color: MenuJson['color'];
+    //protected color: MenuJson['color'];
     protected global: Exclude<MenuJson['global'], undefined>;
+    protected idle?: StyleIdle;
+    protected hover?: StyleHover;
+    protected selected?: StyleSelected;
     protected question?: string;
     protected title?: string;
     protected success?: string;
@@ -36,8 +45,17 @@ abstract class Menu {
         this.name = data.name;
         this.plugin = data.plugin;
         this.index = data.index;
-        this.color = data.color;
+        //this.color = data.color;
         this.global = data.global ?? false;
+        this.idle = data.idle
+            ? new StyleIdle(data.idle.prefix, data.idle.color, data.idle.underline, data.idle.italic)
+            : undefined;
+        this.hover = data.hover
+            ? new StyleHover(data.hover.prefix, data.hover.color, data.hover.underline, data.hover.italic)
+            : undefined;
+        this.selected = data.selected
+            ? new StyleSelected(data.selected.prefix, data.selected.color, data.selected.underline, data.selected.italic)
+            : undefined;
         this.question = data.question;
         this.title = data.title;
         this.success = data.success;
@@ -58,8 +76,8 @@ abstract class Menu {
     public getIndex(): Menu['index'] | undefined { return this.index; }
     public setIndex(index: Menu['index']): this { this.index = index; return this; }
 
-    public getColor(): Menu['color'] | undefined { return this.color; }
-    public setColor(color: Menu['color']): this { this.color = color; return this; }
+    //public getColor(): Menu['color'] | undefined { return this.color; }
+    //public setColor(color: Menu['color']): this { this.color = color; return this; }
 
     public getParents(): Menu['parents'][string][] { return Object.values(this.parents); }
     public getParent(name: string): Menu['parents'][string] | undefined { 
@@ -71,6 +89,26 @@ abstract class Menu {
     }
 
     public isGlobal(): Menu['global'] { return this.global === true; }
+
+    public getIdle(): StyleIdle | undefined { return this.idle; }
+    public setIdle(idle: StyleIdle | StyleIdleJson): this {
+        this.idle = idle instanceof StyleIdle ? idle : new StyleIdle(idle.prefix, idle.color, idle.underline, idle.italic);
+        return this;
+    }
+
+    public getHover(): StyleHover | undefined { return this.hover; }
+    public setHover(hover: StyleHover | StyleHoverJson): this {
+        this.hover = hover instanceof StyleHover ? hover : new StyleHover(hover.prefix, hover.color, hover.underline, hover.italic);
+        return this;
+    }
+
+    public getSelected(): StyleSelected | undefined { return this.selected; }
+    public setSelected(selected: StyleSelected | StyleSelectedJson): this {
+        this.selected = selected instanceof StyleSelected ? selected : new StyleSelected(selected.prefix, selected.color, selected.underline, selected.italic);
+        return this;
+    }
+
+    public getColor(): ColorName | undefined { return this.idle?.getColor(); }
 
     public getQuestionName(): string {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.question`;
@@ -146,8 +184,11 @@ abstract class Menu {
             type: this.type,
             plugin: this.plugin,
             index: this.index,
-            color: this.color,
+            //color: this.color,
             parents: this.getParents(),
+            idle: this.idle?.toJson(),
+            hover: this.hover?.toJson(),
+            selected: this.selected?.toJson(),
             question: this.question,
             title: this.title,
             success: this.success,

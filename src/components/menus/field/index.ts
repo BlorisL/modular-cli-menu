@@ -2,7 +2,7 @@ import { Menu, MenuJson } from '../menu';
 import { Action } from '../../actions';
 import { Language, Translations } from '../../translations';
 import { Utility } from '../../utility';
-import { prompt, Choice, Separator, isSeparator, renderChoiceLines } from '@/prompts/Prompt';
+import { prompt, Choice, Separator } from '@/prompts/Prompt';
 import { MenuFieldConfigs, MenuFieldConfigsJson } from './configs';
 import { MenuFieldOption, MenuFieldOptionJson } from './option';
 
@@ -95,18 +95,18 @@ class MenuField extends Menu {
                             option = new MenuFieldOption(v);
                         } else if (typeof v === 'object') {
                             name   = v.value;
-                            option = new MenuFieldOption(v.value, v.label, v.multi, v.color, v.selected);
+                            option = new MenuFieldOption(
+                                v.value, 
+                                v.label, 
+                                v.multi, 
+                                //v.color, 
+                                v.idle, 
+                                v.hover, 
+                                v.selected
+                            );
                         }
                         if (name && option) {
-                            if (menu.isConfigSelected()) {
-                                if (!option.getSelected()) {
-                                    option.setSelectedPrefix(menu.getConfigs()?.getSelected()?.getPrefix() ?? Utility.getDefaultPrefix());
-                                    option.setSelectedColor(menu.getConfigs()?.getSelected()?.getColor()   ?? Utility.getDefaultColor());
-                                } else {
-                                    if (!option.getSelectedPrefix()) option.setSelectedPrefix(menu.getConfigs()?.getSelected()?.getPrefix() ?? Utility.getDefaultPrefix());
-                                    if (!option.getSelectedColor())  option.setSelectedColor(menu.getConfigs()?.getSelected()?.getColor()   ?? Utility.getDefaultColor());
-                                }
-                            }
+                            menu.applyOptionStyles(option);
                             result[name] = option;
                         }
                     });
@@ -206,7 +206,12 @@ class MenuField extends Menu {
 
         if (value instanceof Menu || value instanceof Action) {
             name   = value.getName();
-            option = new MenuFieldOption(value, value.getName(), false, value.getColor());
+            option = new MenuFieldOption(
+                value, value.getName(), false, 
+                value.getIdle()?.toJson(),
+                value.getHover()?.toJson(),
+                value.getSelected()?.toJson()
+            );
         } else if (value instanceof MenuFieldOption) {
             name   = value.getValue();
             option = value;
@@ -215,19 +220,19 @@ class MenuField extends Menu {
             option = new MenuFieldOption(value);
         } else if (typeof value === 'object') {
             name   = value.value;
-            option = new MenuFieldOption(value.value, value.label, value.multi, value.color, value.selected);
+            option = new MenuFieldOption(
+                value.value, 
+                value.label, 
+                value.multi, 
+                //value.color, 
+                value.idle, 
+                value.hover, 
+                value.selected
+            );
         }
 
         if (name && option) {
-            if (this.isConfigSelected()) {
-                if (!option.getSelected()) {
-                    option.setSelectedPrefix(this.getConfigs()?.getSelected()?.getPrefix() ?? Utility.getDefaultPrefix());
-                    option.setSelectedColor(this.getConfigs()?.getSelected()?.getColor()   ?? Utility.getDefaultColor());
-                } else {
-                    if (!option.getSelectedPrefix()) option.setSelectedPrefix(this.getConfigs()?.getSelected()?.getPrefix() ?? Utility.getDefaultPrefix());
-                    if (!option.getSelectedColor())  option.setSelectedColor(this.getConfigs()?.getSelected()?.getColor()  ?? Utility.getDefaultColor());
-                }
-            }
+            this.applyOptionStyles(option);
             this.setValue(name, option);
         }
 
@@ -237,15 +242,117 @@ class MenuField extends Menu {
     public getConfigs(): MenuFieldConfigs | undefined { return this.configs; }
     public setConfigs(data?: MenuFieldConfigs | MenuFieldConfigsJson): this {
         if (data instanceof MenuFieldConfigs) {
-            this.configs = new MenuFieldConfigs(data.getDefaults(), data.getSelected());
+            this.configs = new MenuFieldConfigs(data.getDefaults(), data.getIdle(), data.getHover(), data.getSelected(), data.isSelectable());
         } else if (typeof data === 'object') {
-            this.configs = new MenuFieldConfigs(data.defaults, data.selected);
+            this.configs = new MenuFieldConfigs(data.defaults, data.idle, data.hover, data.selected, data.selectable);
         }
         return this;
     }
 
     public isConfigDefaults(): boolean { return !!this.configs?.getDefaults(); }
+    public isConfigIdle(): boolean { return !!this.configs?.getIdle(); }
+    public isConfigHover(): boolean { return !!this.configs?.getHover(); }
     public isConfigSelected(): boolean { return !!this.configs?.getSelected(); }
+
+    /**
+     * Applies layered styling to an option:
+     *   1. env defaults (.env / .env.local)
+     *   2. menu-level configs (overrides env)
+     *   3. per-option configs (already on the option, win over everything)
+     *   4. if hover/selected PREFIX is still missing, fallback to idle prefix
+     * Globals receive a blank idle prefix (no selection marker) but still
+     * inherit hover/selected styles so the cursor highlight renders correctly.
+     */
+    protected applyOptionStyles(option: MenuFieldOption): void {
+        const isGlobal = option.getItem()?.isGlobal() ?? false;
+
+        // Idle prefix: globals use a blank spacer (no selection marker),
+        // normals resolve from per-option > menu config > env.
+        const idlePrefix = isGlobal
+            ? ' '
+            : (option.getIdlePrefix()
+                ?? this.getConfigs()?.getIdle()?.getPrefix()
+                ?? Utility.getDefaultIdlePrefix())
+        ;
+        const idleColor = option.getIdleColor()
+            ?? this.getConfigs()?.getIdle()?.getColor()
+            ?? Utility.getDefaultIdleColor()
+        ;
+        const idleUnderline = option.isIdleUnderline()
+            ?? this.getConfigs()?.getIdle()?.isUnderline()
+            ?? Utility.getDefaultIdleUnderline();
+        const idleItalic = option.isIdleItalic()
+            ?? this.getConfigs()?.getIdle()?.isItalic();
+
+        if (idlePrefix) {
+            option.setIdlePrefix(idlePrefix);
+        }
+        if (idleColor) {
+            option.setIdleColor(idleColor);
+        }
+        if (idleUnderline !== undefined) {
+            option.setIdleUnderline(idleUnderline);
+        }
+        if (idleItalic !== undefined) {
+            option.setIdleItalic(idleItalic);
+        }
+
+        // Hover: per-option > menu config > env > fallback to idle prefix
+        const hoverPrefix = option.getHoverPrefix()
+            ?? this.getConfigs()?.getHover()?.getPrefix()
+            ?? Utility.getDefaultHoverPrefix()
+            ?? idlePrefix;
+        const hoverColor = option.getHoverColor()
+            ?? this.getConfigs()?.getHover()?.getColor()
+            ?? Utility.getDefaultHoverColor()
+            ?? idleColor;
+        const hoverUnderline = option.isHoverUnderline()
+            ?? this.getConfigs()?.getHover()?.isUnderline()
+            ?? Utility.getDefaultHoverUnderline();
+        const hoverItalic = option.isHoverItalic()
+            ?? this.getConfigs()?.getHover()?.isItalic();
+
+        if (hoverPrefix) {
+            option.setHoverPrefix(hoverPrefix);
+        }
+        if (hoverColor) {
+            option.setHoverColor(hoverColor);
+        }
+        if (hoverUnderline !== undefined) {
+            option.setHoverUnderline(hoverUnderline);
+        }
+        if (hoverItalic !== undefined) {
+            option.setHoverItalic(hoverItalic);
+        }
+
+        // Selected: per-option > menu config > env > fallback to idle prefix
+        const selectedPrefix = option.getSelectedPrefix()
+            ?? this.getConfigs()?.getSelected()?.getPrefix()
+            ?? Utility.getDefaultSelectedPrefix()
+            ?? idlePrefix;
+        const selectedColor = option.getSelectedColor()
+            ?? this.getConfigs()?.getSelected()?.getColor()
+            ?? Utility.getDefaultSelectedColor()
+            ?? idleColor;
+        const selectedUnderline = option.isSelectedUnderline()
+            ?? this.getConfigs()?.getSelected()?.isUnderline()
+            ?? Utility.getDefaultSelectedUnderline();
+        const selectedItalic = option.isSelectedItalic()
+            ?? this.getConfigs()?.getSelected()?.isItalic();
+
+        if (selectedPrefix) {
+            option.setSelectedPrefix(selectedPrefix);
+        }
+        if (selectedColor) {
+            option.setSelectedColor(selectedColor);
+        }
+        if (selectedUnderline !== undefined) {
+            option.setSelectedUnderline(selectedUnderline);
+        }
+        if (selectedItalic !== undefined) {
+            option.setSelectedItalic(selectedItalic);
+        }
+    }
 
     public isDefaultValues(value: string): boolean {
         return this.configs?.getDefaults()?.getValues().includes(value) ?? false;
@@ -343,6 +450,10 @@ class MenuField extends Menu {
         if (hasInputSection && this.isClear()) console.clear();
         else if (!hasInputSection)             console.clear();
 
+        // Only track selection state when the menu explicitly opts in via selectable:true.
+        // This prevents the selected prefix/color from appearing on regular navigation menus.
+        const isSelectable = this.getConfigs()?.isSelectable() ?? false;
+
         // Build choices list
         const buildChoices = (): (Choice | Separator)[] => {
             if (!hasChoicesSection) return [];
@@ -354,10 +465,39 @@ class MenuField extends Menu {
 
             const choiceList: (Choice | Separator)[] = items.map(item => {
                 if (item instanceof Separator) return item;
+                // Globals are never "selected" — they are navigation items, not choices.
+                const isSelected = isSelectable && !item.getItem()?.isGlobal() && this.isSelectedValue(item.getValue());
+                
                 return {
                     value: item.getValue(),
-                    label: item.getTranslationLabel(this.isSelectedValue(item.getValue()), language),
+                    label: item.getPlainTranslationLabel(language),
                     multi: item.isMulti(),
+                    //color: item.getColor(),
+                    ...(item.getIdle() ? {
+                        idle: {
+                            prefix: item.getIdlePrefix(),
+                            color:  item.getIdleColor(),
+                            underline: item.isIdleUnderline(),
+                            italic: item.isIdleItalic(),
+                        },
+                    } : {}),
+                    ...(item.getHover() ? {
+                        hover: {
+                            prefix: item.getHoverPrefix(),
+                            color:  item.getHoverColor(),
+                            underline: item.isHoverUnderline(),
+                            italic: item.isHoverItalic(),
+                        },
+                    } : {}),
+                    ...(item.getSelected() ? {
+                        selected: {
+                            prefix: item.getSelectedPrefix(),
+                            color:  item.getSelectedColor(),
+                            underline: item.isSelectedUnderline(),
+                            italic: item.isSelectedItalic(),
+                            active: isSelected,
+                        },
+                    } : {}),
                 };
             });
 
@@ -394,14 +534,15 @@ class MenuField extends Menu {
             message: Utility.write(this.getQuestionLabel(language), this.getColor()),
             ...(hasInputSection ? {
                 input: {
-                    value:       this.inputValue,
+                    value: this.inputValue,
                     placeholder: this.getPlaceholderLabel(language),
-                    fastSubmit:  this.fastSubmit,
-                    inline:      this.inline,
-                    validate:    translatedValidate,
+                    fastSubmit: this.fastSubmit,
+                    inline: this.inline,
+                    validate: translatedValidate,
                 },
             } : {}),
             ...(hasChoicesSection ? { choices: choiceList } : {}),
+            ...(isSelectable && this.selectedValues.length > 0 ? { initialSelected: this.selectedValues } : {}),
         });
 
         // ── Handle result
@@ -445,6 +586,4 @@ export {
     type MenuFieldInputCallback,
     MenuField,
     MenuFieldOption,
-    isSeparator,
-    renderChoiceLines,
 };

@@ -1,6 +1,8 @@
 import { ColorName } from "chalk";
 import { Action, ActionFunction, ActionFunctionJson, ActionGoto, ActionGotoJson } from "./actions";
 import { Menu, MenuField, MenuFieldJson, MenuFieldOption } from "./menus";
+import { MenuChoice, MenuChoiceJson } from "./menus/choice";
+import { MenuInput, MenuInputJson } from "./menus/input";
 import { Choice, Separator } from "@/prompts/Prompt";
 import { PluginJson } from "./plugins";
 import { Translations } from "./translations";
@@ -17,6 +19,42 @@ class Cli {
 
     public static write(text: string, color?: ColorName): void {
         console.log(Utility.write(text, color));
+    }
+
+    /**
+     * Builds a Choice for a global item (back, exit, language, etc.)
+     * applying env defaults as fallback for hover/selected, with idle fallback for color/underline/italic.
+     */
+    protected static buildGlobalChoice(value: string, label: string, item: Menu | Action): Choice {
+        const idle  = item.getIdle();
+        const hover = item.getHover();
+        const sel   = item.getSelected();
+
+        const idleColor     = idle?.getColor();
+        const idleUnderline = idle?.isUnderline();
+        const idleItalic    = idle?.isItalic();
+
+        return {
+            value, label, multi: false,
+            idle: {
+                prefix:    ' ',
+                color:     idleColor,
+                underline: idleUnderline,
+                italic:    idleItalic,
+            },
+            hover: {
+                prefix:    hover?.getPrefix()    ?? Utility.getDefaultHoverPrefix(),
+                color:     hover?.getColor()     ?? Utility.getDefaultHoverColor()     ?? idleColor,
+                underline: hover?.isUnderline()  ?? Utility.getDefaultHoverUnderline() ?? idleUnderline,
+                italic:    hover?.isItalic()     ?? idleItalic,
+            },
+            selected: {
+                prefix:    sel?.getPrefix()      ?? Utility.getDefaultSelectedPrefix(),
+                color:     sel?.getColor()       ?? Utility.getDefaultSelectedColor()  ?? idleColor,
+                underline: sel?.isUnderline()     ?? Utility.getDefaultSelectedUnderline() ?? idleUnderline,
+                italic:    sel?.isItalic()        ?? idleItalic,
+            },
+        };
     }
 
     public addPlugin(plugin: PluginJson): this {
@@ -44,6 +82,10 @@ class Cli {
             } else {
                 if (menu.type === 'field') {
                     menuInstance = new MenuField(menu as MenuFieldJson);
+                } else if (menu.type === 'choice') {
+                    menuInstance = new MenuChoice(menu as MenuChoiceJson);
+                } else if (menu.type === 'input') {
+                    menuInstance = new MenuInput(menu as MenuInputJson);
                 }
             }
             if(menuInstance) {
@@ -188,18 +230,24 @@ class Cli {
                 .setName('back_input')
                 .setTo(effectiveParent ?? 'main');
             const label = new MenuFieldOption(
-                backAction, backAction.getName(), false, backAction.getColor(),
-            ).getTranslationLabel(false);
+                backAction, 
+                backAction.getName(), 
+                false, 
+                backAction.getIdle()?.toJson(),
+            ).getTranslationLabel(false, false);
             globalChoices.push(new Separator());
-            globalChoices.push({ value: backAction.getTo(), label, multi: false });
+            globalChoices.push(Cli.buildGlobalChoice(backAction.getTo(), label, backAction));
         }
         this.getGlobalItems()
             .filter(g => g.getName() !== 'back')
             .forEach(globalItem => {
                 const label = new MenuFieldOption(
-                    globalItem, globalItem.getName(), false, globalItem.getColor(),
-                ).getTranslationLabel(false);
-                globalChoices.push({ value: globalItem.getName(), label, multi: false });
+                    globalItem, 
+                    globalItem.getName(), 
+                    false, 
+                    globalItem.getIdle()?.toJson(),
+                ).getTranslationLabel(false, false);
+                globalChoices.push(Cli.buildGlobalChoice(globalItem.getName(), label, globalItem));
             });
 
         item.setGlobalChoices(item.isFastSubmit() ? [] : globalChoices);

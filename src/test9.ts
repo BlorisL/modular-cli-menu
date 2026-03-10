@@ -10,7 +10,7 @@ cli
             {
                 name: 'main',
                 type: 'choice',
-                color: 'green',
+                idle: { color: 'green' },
                 values: [],
             },
             {
@@ -34,7 +34,7 @@ cli
             {
                 name: 'exit',
                 type: 'function',
-                color: 'red',
+                idle: { color: 'red', italic: true },
                 callback: async () => {
                     Cli.write('Exiting...', 'red');
                     process.exit(0);
@@ -77,6 +77,7 @@ cli
                 type: 'choice',
                 global: true,
                 configs: {
+                    selectable: true,
                     defaults: {
                         values: [Translations.getDefaultLanguage()!],
                         callback: async ({ values, menu, parent }) => {
@@ -89,10 +90,14 @@ cli
                     },
                     selected: {
                         prefix: '#',
+                        italic: true,
+                        underline: true,
                     },
                 },
                 values: (data) => Translations.getLanguages().map(lang => ({
                     value: lang,
+                    idle: lang == 'de' ? { prefix: '*', color: 'magenta' } : undefined,
+                    hover: lang == 'es' ? { prefix: '->', color: 'yellow' } : undefined,
                     selected: lang == 'fr' ? { prefix: '✓ ', color: 'red' } : undefined,
                     label: data.menu.getAnswerLabel(lang),
                 })),
@@ -274,6 +279,7 @@ cli
                 type: 'choice',
                 parents: ['submenu1'],
                 configs: {
+                    selectable: true,
                     defaults: {
                         values: ['notifications'],
                         callback: async ({ values, menu, parent }) => {
@@ -281,8 +287,16 @@ cli
                             await cli.run('press-to-continue', parent);
                         },
                     },
+                    idle: {
+                        prefix: 'A ',
+                        color: 'blue',
+                    },
+                    hover: {
+                        prefix: 'B ',
+                        color: 'red',
+                    },
                     selected: {
-                        prefix: '✓ ',
+                        prefix: 'C ',
                         color: 'green',
                     },
                 },
@@ -298,7 +312,7 @@ cli
             {
                 name: 'action1',
                 type: 'function',
-                color: 'blue',
+                idle: { color: 'blue' },
                 callback: async () => { console.log('Action 1 executed'); },
                 parents: ['main'],
             },

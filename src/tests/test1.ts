@@ -1,6 +1,6 @@
 import { Cli } from "../components/cli";
 import { Translations } from "../components/translations";
-import { MenuChoice, MenuInput } from "../components/menus";
+import { MenuChoice, MenuInput, MenuFieldOption } from "../components/menus";
 import { ActionGoto, ActionFunction } from "../components/actions";
 import { PluginJson } from "../components/plugins";
 
@@ -39,7 +39,7 @@ const plugins: PluginJson[] = [
             {
                 name: 'main',
                 type: 'choice',
-                color: 'green',
+                idle: { color: 'green' },
                 values: []
             },
             {
@@ -47,8 +47,10 @@ const plugins: PluginJson[] = [
                 type: 'choice',
                 global: true,
                 configs: {
+                    idle: { color: 'yellow' as const },
+                    hover: { prefix: '☆', color: 'cyan' as const },
                     defaults: {
-                        values: [Translations.getDefaultLanguage()],
+                        values: [Translations.getDefaultLanguage()].filter((v): v is string => v !== undefined),
                         callback: async (data) => {
                             if (data.values.length > 0) {
                                 setTimeout(() => cli.trigger(data.menu, 'back'), 3000);
@@ -59,6 +61,8 @@ const plugins: PluginJson[] = [
                 },
                 values: (data) => Translations.getLanguages().map(lang => ({
                     value: lang,
+                    idle: lang == 'de' ? { prefix: '·', color: 'gray' as const } : undefined,
+                    hover: lang == 'de' ? { prefix: '»', color: 'white' as const } : undefined,
                     selected: lang == 'fr' ? { prefix: '✓ ', color: 'red' as const } : undefined,
                     label: data.menu.getAnswerName(lang)
                 }))
@@ -74,7 +78,7 @@ const plugins: PluginJson[] = [
             {
                 name: 'exit',
                 type: 'function',
-                color: 'red',
+                idle: { color: 'red' },
                 callback: async () => process.exit(0),
                 global: true
             },
@@ -88,6 +92,11 @@ const plugins: PluginJson[] = [
                 name: 'submenu1',
                 type: 'choice',
                 parents: ['main'],
+                configs: {
+                    idle: true,
+                    hover: true,
+                    selected: true,
+                },
                 values: ['subaction1', 'submenu2', 'nickname']
             },
             {
@@ -108,7 +117,7 @@ const plugins: PluginJson[] = [
             {
                 name: 'action1',
                 type: 'function',
-                color: 'blue',
+                idle: { color: 'blue' },
                 callback: async () => console.log('Action 1 executed'),
                 parents: ['main'],
             }
@@ -246,19 +255,19 @@ for (const a of flatActions()) {
 section('SUITE 6 — Colori');
 
 for (const m of flatMenus()) {
-    if ((m as any).color) {
+    if ((m as any).idle?.color) {
         assert(
-            cli.getMenu(m.name)?.getColor() === (m as any).color,
-            `menu "${m.name}".color === "${(m as any).color}"`,
+            cli.getMenu(m.name)?.getColor() === (m as any).idle.color,
+            `menu "${m.name}".idle.color === "${(m as any).idle.color}"`,
             `trovato: ${cli.getMenu(m.name)?.getColor()}`
         );
     }
 }
 for (const a of flatActions()) {
-    if ((a as any).color) {
+    if ((a as any).idle?.color) {
         assert(
-            cli.getAction(a.name)?.getColor() === (a as any).color,
-            `action "${a.name}".color === "${(a as any).color}"`,
+            cli.getAction(a.name)?.getColor() === (a as any).idle.color,
+            `action "${a.name}".idle.color === "${(a as any).idle.color}"`,
             `trovato: ${cli.getAction(a.name)?.getColor()}`
         );
     }
@@ -461,6 +470,84 @@ for (const def of inputMenuDefs) {
             `"${def.name}" è nei values di "${parentName}"`
         );
     }
+}
+
+// ─── SUITE 13: Configurazioni Idle/Hover/Selected ────────────────────────────
+section('SUITE 13 — Configurazioni Idle/Hover/Selected');
+
+// Test: language menu has idle config
+{
+    const langMenu = cli.getMenu('language') as MenuChoice | undefined;
+    assert(!!langMenu, 'menu "language" esiste');
+    assert(langMenu!.isConfigIdle(), 'language ha config idle');
+    assert(langMenu!.isConfigHover(), 'language ha config hover');
+    assert(langMenu!.isConfigSelected(), 'language ha config selected');
+
+    // Check idle config values
+    const idleCfg = langMenu!.getConfigs()?.getIdle();
+    assert(idleCfg?.getColor() === 'yellow', 'language idle.color === "yellow"',
+        `trovato: ${idleCfg?.getColor()}`);
+
+    // Check hover config values
+    const hoverCfg = langMenu!.getConfigs()?.getHover();
+    assert(hoverCfg?.getPrefix() === '☆', 'language hover.prefix === "☆"',
+        `trovato: ${hoverCfg?.getPrefix()}`);
+    assert(hoverCfg?.getColor() === 'cyan', 'language hover.color === "cyan"',
+        `trovato: ${hoverCfg?.getColor()}`);
+
+    // Check selected config values
+    const selectedCfg = langMenu!.getConfigs()?.getSelected();
+    assert(selectedCfg?.getPrefix() === '#', 'language selected.prefix === "#"',
+        `trovato: ${selectedCfg?.getPrefix()}`);
+}
+
+// Test: per-option overrides on language values
+{
+    const langMenu = cli.getMenu('language') as MenuChoice | undefined;
+    const values = langMenu!.getValues();
+
+    // 'fr' option should have per-option selected override
+    const frOption = values.find(v => v.getValue() === 'fr');
+    assert(!!frOption, 'opzione "fr" esiste nei values di language');
+    assert(frOption!.getSelectedPrefix() === '✓ ', 'fr selected.prefix === "✓ "',
+        `trovato: ${frOption?.getSelectedPrefix()}`);
+    assert(frOption!.getSelectedColor() === 'red', 'fr selected.color === "red"',
+        `trovato: ${frOption?.getSelectedColor()}`);
+
+    // 'de' option should have per-option idle & hover overrides
+    const deOption = values.find(v => v.getValue() === 'de');
+    assert(!!deOption, 'opzione "de" esiste nei values di language');
+    assert(deOption!.getIdlePrefix() === '·', 'de idle.prefix === "·"',
+        `trovato: ${deOption?.getIdlePrefix()}`);
+    assert(deOption!.getIdleColor() === 'gray', 'de idle.color === "gray"',
+        `trovato: ${deOption?.getIdleColor()}`);
+    assert(deOption!.getHoverPrefix() === '»', 'de hover.prefix === "»"',
+        `trovato: ${deOption?.getHoverPrefix()}`);
+    assert(deOption!.getHoverColor() === 'white', 'de hover.color === "white"',
+        `trovato: ${deOption?.getHoverColor()}`);
+
+    // Non-overridden options (e.g. 'en') should inherit menu-level config
+    const enOption = values.find(v => v.getValue() === 'en');
+    assert(!!enOption, 'opzione "en" esiste nei values di language');
+    assert(enOption!.getIdleColor() === 'yellow', 'en idle.color ereditato === "yellow"',
+        `trovato: ${enOption?.getIdleColor()}`);
+    assert(enOption!.getHoverPrefix() === '☆', 'en hover.prefix ereditato === "☆"',
+        `trovato: ${enOption?.getHoverPrefix()}`);
+    assert(enOption!.getHoverColor() === 'cyan', 'en hover.color ereditato === "cyan"',
+        `trovato: ${enOption?.getHoverColor()}`);
+    // selected prefix from menu config '#'
+    assert(enOption!.getSelectedPrefix() === '#', 'en selected.prefix ereditato === "#"',
+        `trovato: ${enOption?.getSelectedPrefix()}`);
+}
+
+// Test: submenu1 with configs: { idle: true, hover: true, selected: true }
+// Uses env defaults from Utility
+{
+    const sub1 = cli.getMenu('submenu1') as MenuChoice | undefined;
+    assert(!!sub1, 'menu "submenu1" esiste');
+    assert(sub1!.isConfigIdle(), 'submenu1 ha config idle (true → env defaults)');
+    assert(sub1!.isConfigHover(), 'submenu1 ha config hover (true → env defaults)');
+    assert(sub1!.isConfigSelected(), 'submenu1 ha config selected (true → env defaults)');
 }
 
 // ─── Risultato finale ─────────────────────────────────────────────────────────
