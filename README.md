@@ -1,302 +1,179 @@
-# CLI Menu Library, Complete Reference
+# CLI Menu Library
 
-A TypeScript library for building interactive terminal interfaces using a **plugin-based architecture**. Define menus, actions, and translations declaratively and wire them together through the `Cli` class.
-
----
-
-## Table of Contents
-
-1. [Quick Start](#quick-start)
-2. [Core Concepts](#core-concepts)
-3. [Cli](#cli)
-4. [Plugins](#plugins)
-5. [MenuField, all modes and options](#menufield)
-   - [Choices mode](#choices-mode)
-   - [Input mode](#input-mode)
-   - [Mixed mode](#mixed-mode)
-   - [Shared options](#shared-options)
-6. [Actions](#actions)
-7. [Translations](#translations)
-8. [Utility & environment variables](#utility--environment-variables)
-9. [Complete examples](#complete-examples)
+Una libreria TypeScript per costruire interfacce CLI interattive con menu, input, selezioni multi-value, traduzioni e stili completamente personalizzabili.
 
 ---
 
-## Quick Start
+## Indice
+
+- [Installazione e avvio](#installazione-e-avvio)
+- [Concetti fondamentali](#concetti-fondamentali)
+- [Configurazione ambiente (.env)](#configurazione-ambiente-env)
+- [Plugin](#plugin)
+- [Menu](#menu)
+  - [Menu Choice](#menu-choice)
+  - [Menu Input](#menu-input)
+- [Actions](#actions)
+  - [ActionGoto](#actiongoto)
+  - [ActionFunction](#actionfunction)
+- [Stili](#stili)
+  - [Livelli di priorità](#livelli-di-priorità)
+  - [Stile idle](#stile-idle)
+  - [Stile hover](#stile-hover)
+  - [Stile selected](#stile-selected)
+- [Configs (configurazioni a livello di menu)](#configs)
+  - [defaults](#defaults)
+  - [selectable](#selectable)
+- [Values](#values)
+  - [Values statici](#values-statici)
+  - [Values dinamici (funzione)](#values-dinamici-funzione)
+  - [Multi-select](#multi-select)
+- [Globals](#globals)
+- [Parents](#parents)
+- [Traduzioni](#traduzioni)
+- [Comportamento del cursore e priorità degli stili](#comportamento-del-cursore-e-priorità-degli-stili)
+- [Esempi completi](#esempi-completi)
+
+---
+
+## Installazione e avvio
 
 ```ts
 import { Cli } from './components/cli';
 
 const cli = new Cli();
-
-cli.addPlugin({
-    name: 'default',
-    menus: [
-        {
-            name: 'main',
-            type: 'field',
-            color: 'green',
-            question: 'What would you like to do?',
-            modes: { choices: { values: [] } },   // other plugins inject items here
-        },
-    ],
-    actions: [
-        {
-            name: 'exit',
-            type: 'function',
-            color: 'red',
-            global: true,
-            callback: async () => process.exit(0),
-        },
-    ],
-});
-
-cli.run();           // starts at the 'main' menu
-// cli.run('other'); // starts at a specific menu
+cli.addPlugin({ ... });
+cli.run();
 ```
 
 ---
 
-## Core Concepts
+## Concetti fondamentali
 
-| Concept | Description |
-|---|---|
-| **Cli** | Central registry. Holds all menus and actions. Entry point for `run()`. |
-| **Plugin** | A self-contained unit with its own menus, actions, and translations. |
-| **MenuField** | The only menu type. It can show choices, accept text input, or both. |
-| **Action** | A navigation helper (`goto`) or executable callback (`function`). |
-| **Translation** | Multi-language strings keyed as `plugin.name.label`. |
-| **parent** | A menu or action is shown inside another menu by listing it in `parents`. |
-| **global** | A menu or action that appears in every choices list (e.g. Back, Exit). |
+La libreria è organizzata attorno a tre entità principali:
 
-The `Cli` wires everything together at startup: each menu is populated with the menus and actions whose `parents` array contains its name.
+- **Plugin** — contenitore di menu, actions e traduzioni
+- **Menu** — schermata interattiva (scelta o input di testo)
+- **Action** — azione eseguibile (navigazione o funzione custom)
+
+Un `Cli` può avere più plugin. Ogni plugin dichiara i propri menu e actions. La navigazione avviene tramite `parents` (chi mostra questo item) e `goto` (dove portare l'utente).
 
 ---
 
-## Cli
+## Configurazione ambiente (.env)
 
-```ts
-const cli = new Cli();
+Il file `.env` (o `.env.local` per override locali) configura i valori predefiniti globali per tutti i menu.
+
+```env
+# Lingua di default
+DEFAULT_LANGUAGE=it
+
+# Log di debug
+DEBUG_LOG=false
+
+# Stile idle (voce a riposo)
+DEFAULT_CHOICE_IDLE_PREFIX=" "
+DEFAULT_CHOICE_IDLE_COLOR=
+DEFAULT_CHOICE_IDLE_UNDERLINE=
+
+# Stile hover (cursore sopra la voce)
+DEFAULT_CHOICE_HOVER_PREFIX=❯
+DEFAULT_CHOICE_HOVER_COLOR=
+DEFAULT_CHOICE_HOVER_UNDERLINE=
+
+# Stile selected (voce selezionata / spuntata)
+DEFAULT_CHOICE_SELECTED_PREFIX=★
+DEFAULT_CHOICE_SELECTED_COLOR=green
+DEFAULT_CHOICE_SELECTED_UNDERLINE=
 ```
 
-### Methods
+Tutti i valori sono opzionali. Se non impostati, gli stili corrispondenti non vengono applicati.
 
-| Method | Description |
-|---|---|
-| `addPlugin(plugin)` | Register a plugin. Returns `this` for chaining. |
-| `addMenu(menu, plugin?)` | Add a single menu instance or JSON descriptor. |
-| `addAction(action, plugin?)` | Add a single action instance or JSON descriptor. |
-| `getMenu(name)` | Retrieve a registered menu by name. |
-| `getAction(name)` | Retrieve a registered action by name. |
-| `run(name?, parent?)` | Start the interactive loop at `name` (default `'main'`). |
-| `Cli.write(text, color?)` | Static helper to print colored text. |
+> **Nota:** `.env.local` ha la precedenza su `.env` e può sovrascrivere qualsiasi valore.
 
 ---
 
-## Plugins
+## Plugin
 
-A plugin groups menus, actions, and translations that belong to a single feature.
+Il plugin è il contenitore principale. Ogni plugin ha un nome univoco e può dichiarare menu, actions e traduzioni.
 
 ```ts
 cli.addPlugin({
-    name: 'my-plugin',        // prefix used for translation keys
-    menus:        [...],
-    actions:      [...],
+    name: 'my-plugin',
+    menus: [ ... ],
+    actions: [ ... ],
     translations: { ... },
 });
 ```
 
-Multiple plugins can coexist; each is loaded in order. Translation keys, menu names, and action names are global, use the plugin name as a prefix to avoid collisions.
+I nomi di menu e actions all'interno di un plugin diventano automaticamente namespaced: `my-plugin.my-menu`.
 
 ---
 
-## MenuField
+## Menu
 
-`MenuField` is the only menu type. Set `type: 'field'` in your JSON.  
-It supports three operating modes: **choices**, **input**, and **both at once**.
+### Menu Choice
 
-### Shared options (all modes)
+Un menu a scelta multipla. L'utente naviga con le frecce e conferma con Enter (o Space per i multi-select).
 
 ```ts
 {
-    name:     string;          // unique identifier, used in translation keys
-    type:     'field';
-    plugin?:  string;          // set automatically by addPlugin
-    color?:   ColorName;       // chalk color for the question line
-    index?:   number;          // sort order inside a parent menu
-    parents?: string[];        // which menus this item appears in
-    global?:  boolean;         // appear in every choices list
-    question?: string;         // fallback question text (no translation needed)
-    title?:    string;         // fallback title shown in parent menus
-    success?:  string;         // fallback success message
-    error?:    string;         // fallback validation error message
+    name: 'main',
+    type: 'choice',
+    parents: ['...'],       // in quale menu apparire
+    global: false,          // se true: visibile in tutti i menu
+    index: 0,               // ordine di comparsa
+    idle: { ... },          // stile a riposo
+    hover: { ... },         // stile quando il cursore è sopra
+    selected: { ... },      // stile quando selezionato
+    question: 'Scegli:',    // testo diretto (alternativa alle traduzioni)
+    title: 'Main Menu',     // titolo (come voce nei menu parent)
+    success: 'OK',          // messaggio di successo
+    error: 'Errore',        // messaggio di errore
+    values: [ ... ],        // voci del menu (vedi sezione Values)
+    configs: { ... },       // configurazioni aggiuntive (vedi sezione Configs)
 }
 ```
 
----
+### Menu Input
 
-### Choices mode
-
-Display a list of selectable items.
+Un campo di testo libero. Supporta validazione, placeholder e submit automatico.
 
 ```ts
-modes: {
-    choices: {
-        values:  Array<string | MenuFieldOptionJson> | (data) => Array<...>;
-        configs?: MenuFieldConfigsJson;
-    }
-}
-```
-
-#### `values`, static array of strings
-
-The simplest form. Each string becomes both the value and the label (resolved through translations if a key exists).
-
-```ts
-modes: {
-    choices: { values: ['apple', 'banana', 'cherry'] }
-}
-```
-
-#### `values`, array of option objects
-
-```ts
-modes: {
-    choices: {
-        values: [
-            {
-                value:    'opt-a',          // internal identifier
-                label?:   'Option A',       // display text (falls back to value)
-                multi?:   true,             // allow multi-selection (space = toggle)
-                color?:   'yellow',         // chalk color for this item only
-                selected?: {               // custom look when this item is selected
-                    prefix?: '★',
-                    color?:  'yellow',
-                },
-            },
-        ],
+{
+    name: 'nickname',
+    type: 'input',
+    parents: ['main'],
+    placeholder: 'Inserisci il tuo nome...',
+    value: '',              // valore iniziale
+    clear: true,            // pulisce il terminale all'apertura (default: true)
+    fastSubmit: false,      // submit al primo tasto (utile per press-to-continue)
+    inline: false,          // mostra su una sola riga senza cursore visibile
+    validate: (value) => value.trim().length > 0 || 'Il campo non può essere vuoto',
+    callback: async ({ menu, value, language, parent }) => {
+        // eseguito dopo la conferma
+        console.log('Valore inserito:', value);
+        await cli.run('press-to-continue', parent);
     },
 }
 ```
 
-#### `values`, dynamic function
+**`validate`** può restituire:
+- `true` — valore valido
+- `false` — valore non valido (mostra il messaggio di errore generico del menu)
+- `string` — valore non valido con messaggio custom (supporta chiavi di traduzione)
 
-Evaluated every time the menu renders. Useful when the list depends on runtime state.
-
-```ts
-modes: {
-    choices: {
-        values: ({ menu }) => {
-            return myStore.getItems().map(i => ({ value: i.id, label: i.name }));
-        },
-    },
-}
-```
-
-#### `configs.defaults`, pre-selected values + confirm callback
+**`fastSubmit` + `inline`**: utile per un menu "premi Invio per continuare" che non occupa spazio visivo.
 
 ```ts
-modes: {
-    choices: {
-        configs: {
-            defaults: {
-                values?:   ['opt-b', 'opt-d'],   // pre-selected on first render
-                callback?: async ({ values, menu, parent }) => {
-                    // called when the user confirms the selection
-                    console.log('Selected:', values);
-                    await cli.run('press-to-continue', parent);
-                },
-            },
-        },
-        values: [
-            { value: 'opt-a', label: 'A', multi: true },
-            { value: 'opt-b', label: 'B', multi: true },
-        ],
-    },
-}
-```
-
-#### `configs.selected`, global selected-item style
-
-Applies the same visual treatment to every selected item.
-
-```ts
-configs: {
-    selected: true // uses DEFAULT_CHOICE_PREFIX / DEFAULT_CHOICE_COLOR from .env
-    // or
-    selected: {
-        prefix?: '✔', // text prepended to the label when selected
-        color?:  'green', // chalk color override when selected
-    }
-}
-```
-
-Per-option `selected` overrides the global config for that specific item.
-
----
-
-### Input mode
-
-Display a text prompt and collect free input from the user.
-
-```ts
-modes: {
-    input: {
-        value?: string; // pre-filled value
-        placeholder?: string; // hint shown when empty
-        clear?: boolean; // clear screen before showing (default true)
-        fastSubmit?: boolean; // confirm on first keypress, no Enter needed
-        inline?: boolean; // render input on same line as question
-        validate?: (value: string) => boolean | string;
-        callback?: async ({ menu, value, language, parent }) => void;
-    }
-}
-```
-
-| Option | Default | Description |
-|---|---|---|
-| `value` | `''` | Initial value shown in the input box. |
-| `placeholder` | `''` | Ghost text when input is empty. Resolved through translations. |
-| `clear` | `true` | Whether to `console.clear()` before rendering. |
-| `fastSubmit` | `false` | Submit on the very first keypress (ideal for single-key confirmations). |
-| `inline` | `false` | Print the input cursor after the question on the same line. |
-| `validate` |, | Return `true` to accept, `false` to reject with the default error, or a `string` for a custom error message (also resolved through translations). |
-| `callback` |, | Async function called after successful submission. Navigate with `cli.run()` inside it. |
-
-**`validate` examples**
-
-```ts
-// Simple boolean
-validate: (v) => v.trim().length > 0
-
-// Custom error string
-validate: (v) => v.length >= 8 || 'Password must be at least 8 characters'
-
-// Translation key as error
-validate: (v) => /^\d+$/.test(v) || 'my-plugin.age.error'
-```
-
----
-
-### Mixed mode
-
-Combine choices and input on the same menu. The user can either pick from the list or type a custom value.
-
-```ts
-modes: {
-    choices: {
-        values: [
-            { value: 'small',  label: 'Small' },
-            { value: 'medium', label: 'Medium' },
-        ],
-    },
-    input: {
-        placeholder: 'or type a custom size…',
-        inline: true,
-        callback: async ({ value, parent }) => {
-            console.log('Custom:', value);
-            await cli.run('press-to-continue', parent);
-        },
+{
+    name: 'press-to-continue',
+    type: 'input',
+    fastSubmit: true,
+    inline: true,
+    clear: false,
+    callback: async ({ parent }) => {
+        await cli.run(parent ?? 'main');
     },
 }
 ```
@@ -305,125 +182,381 @@ modes: {
 
 ## Actions
 
-Actions appear as selectable items inside menus (via `parents`) or across all menus (`global: true`).
+### ActionGoto
 
-### `function` action, run arbitrary code
-
-```ts
-{
-    name: 'save',
-    type: 'function',
-    color?: 'green',
-    index?: 0,
-    global?: false,
-    parents?: ['my-menu'],
-    callback: async () => {
-        await saveData();
-        Cli.write('Saved!', 'green');
-    },
-}
-```
-
-### `goto` action, navigate to another menu
+Naviga verso un altro menu o action.
 
 ```ts
 {
     name: 'back',
     type: 'goto',
-    to: 'main', // target menu name
-    global: true, // show in every menu
+    to: 'main',         // nome del menu/action di destinazione
+    global: true,       // se true: appare in tutti i menu
+    idle: { color: 'gray' },
+}
+```
+
+> **`back` speciale:** se il nome è `back` e `global: true`, la libreria lo gestisce automaticamente come tasto "indietro" dinamico — ogni menu riceve un `back_<nomeMenu>` che punta al menu da cui si viene.
+
+### ActionFunction
+
+Esegue una funzione custom.
+
+```ts
+{
+    name: 'exit',
+    type: 'function',
+    global: true,
+    idle: { color: 'red', italic: true },
+    callback: async () => {
+        console.log('Arrivederci!');
+        process.exit(0);
+    },
 }
 ```
 
 ---
 
-## Translations
+## Stili
 
-All labels in the library are looked up by key before being displayed.  
-The key pattern is: **`plugin.menuOrActionName.label`**
+Ogni menu, action e singola voce può avere tre stati stilizzati: **idle**, **hover**, **selected**.
+
+Ogni stile accetta:
+
+| Proprietà | Tipo | Descrizione |
+|---|---|---|
+| `prefix` | `string` | Carattere/stringa anteposta alla voce |
+| `color` | `ColorName` (chalk) | Colore del testo |
+| `underline` | `boolean` | Testo sottolineato |
+| `italic` | `boolean` | Testo in corsivo |
+
+### Livelli di priorità
+
+Gli stili si applicano in cascata, dal più specifico al più generico:
+
+```
+per-option (voce singola)
+    → configs del menu
+        → .env / .env.local
+```
+
+Il livello più specifico vince sempre.
+
+### Stile idle
+
+Applicato quando la voce è a riposo (cursore altrove, non selezionata).
+
+```ts
+idle: {
+    prefix: '  ',
+    color: 'blue',
+    underline: false,
+    italic: false,
+}
+```
+
+### Stile hover
+
+Applicato quando il cursore è posizionato sulla voce.
+
+```ts
+hover: {
+    prefix: '❯ ',
+    color: 'cyan',
+}
+```
+
+Se non specificato, fa fallback al prefix dell'idle.
+
+### Stile selected
+
+Applicato quando la voce è "selezionata" (spuntata). Richiede `selectable: true` nei `configs` del menu per essere visibile.
+
+```ts
+selected: {
+    prefix: '★ ',
+    color: 'green',
+}
+```
+
+---
+
+## Configs
+
+Le `configs` sono impostazioni a livello di menu che si applicano a tutte le voci del menu (possono essere sovrascritte per-voce).
+
+```ts
+configs: {
+    idle:      boolean | { prefix?, color?, underline?, italic? },
+    hover:     boolean | { prefix?, color?, underline?, italic? },
+    selected:  boolean | { prefix?, color?, underline?, italic? },
+    selectable: boolean,
+    defaults: {
+        values: string[],
+        callback: async ({ values, menu, parent }) => void,
+    },
+}
+```
+
+`true` come valore per `idle`/`hover`/`selected` significa "usa i valori dell'env".
+
+### defaults
+
+Definisce i valori pre-selezionati all'apertura del menu e il callback da eseguire alla conferma.
+
+```ts
+configs: {
+    defaults: {
+        values: ['en'],   // voci pre-selezionate all'apertura
+        callback: async ({ values, menu, parent }) => {
+            // values = array delle voci selezionate dall'utente
+            // menu   = istanza del MenuField corrente
+            // parent = nome del menu parent (da cui si viene)
+            Translations.setCurrentLanguage(values[0]);
+            await cli.run('press-to-continue', parent);
+        },
+    },
+}
+```
+
+> `values` nel callback contiene **solo** le voci che l'utente ha confermato — non necessariamente quelle pre-selezionate, a meno che non le abbia lasciate invariate.
+
+### selectable
+
+Abilita la visualizzazione dello stato "selezionato" (prefix e colore del `selected`) sulle voci del menu. **Default: `false`.**
+
+```ts
+configs: {
+    selectable: true,   // mostra il prefix/colore selected sulle voci selezionate
+}
+```
+
+Usare `selectable: true` solo su menu dove ha senso mostrare una selezione persistente:
+- Menu di selezione lingua
+- Menu multi-select (features, opzioni)
+
+I menu di navigazione normali non ne hanno bisogno: il prefix `selected` apparirebbe su voci già visitate, creando confusione.
+
+---
+
+## Values
+
+Le voci di un menu `choice` possono essere dichiarate in tre modi.
+
+### Values statici
+
+Array di stringhe (nomi di altri menu/actions registrati) o oggetti con stile custom:
+
+```ts
+values: ['action1', 'submenu1', 'submenu2']
+```
+
+Oppure con stile per-voce:
+
+```ts
+values: [
+    {
+        value: 'darkmode',
+        label: 'Dark Mode',
+        multi: false,
+        idle:     { prefix: '  ', color: 'blue' },
+        hover:    { prefix: '❯ ', color: 'cyan' },
+        selected: { prefix: '✓ ', color: 'green' },
+    },
+]
+```
+
+Puoi anche passare direttamente riferimenti a istanze Menu/Action tramite `addValue()` via codice.
+
+### Values dinamici (funzione)
+
+Utile quando le voci dipendono da dati runtime (es. lista lingue disponibili):
+
+```ts
+values: (data) => Translations.getLanguages().map(lang => ({
+    value: lang,
+    label: data.menu.getAnswerLabel(lang),   // traduzione della voce
+    idle:     lang === 'de' ? { prefix: '*', color: 'magenta' } : undefined,
+    hover:    lang === 'es' ? { prefix: '->', color: 'yellow' } : undefined,
+    selected: lang === 'fr' ? { prefix: '✓', color: 'red' }    : undefined,
+}))
+```
+
+`data.menu` è l'istanza del menu corrente, utile per accedere a traduzioni e stato.
+
+### Multi-select
+
+Impostando `multi: true` su una voce, l'utente può selezionare più voci con **Space** e confermare tutte con **Enter**.
+
+```ts
+values: [
+    { value: 'notifications', label: 'Notifiche',    multi: true },
+    { value: 'darkmode',      label: 'Dark Mode',    multi: true },
+    { value: 'autosave',      label: 'Auto Save',    multi: true },
+    { value: 'analytics',     label: 'Analytics',    multi: true },
+]
+```
+
+Per ricevere i valori selezionati, usare `defaults.callback`:
+
+```ts
+configs: {
+    selectable: true,
+    defaults: {
+        values: [],   // nessuna pre-selezione
+        callback: async ({ values, menu, parent }) => {
+            console.log('Selezionati:', values);
+            await cli.run('press-to-continue', parent);
+        },
+    },
+}
+```
+
+---
+
+## Globals
+
+Un menu o action con `global: true` appare automaticamente in **tutti** i menu dell'applicazione, separato dal resto da un divisore.
+
+```ts
+// Action globale: appare in fondo a ogni menu
+{
+    name: 'exit',
+    type: 'function',
+    global: true,
+    idle: { color: 'red' },
+    callback: async () => process.exit(0),
+}
+
+// Menu globale: es. cambio lingua
+{
+    name: 'language',
+    type: 'choice',
+    global: true,
+    ...
+}
+```
+
+**Comportamento dei globals:**
+- Vengono mostrati in fondo, dopo un separatore `──────────────`
+- Non mostrano mai il prefix `selected`, indipendentemente da `selectable`
+- Il prefix hover funziona normalmente (il cursore si vede)
+- L'ordinamento segue `index`: indici negativi vanno in fondo ai globals, indici positivi vanno in cima
+
+**`back` globale:**
+
+L'action `back` con `global: true` e `name: 'back'` è speciale: la libreria la trasforma automaticamente in un `back_<nomeMenu>` che ricorda da dove si viene. Non serve gestirla manualmente.
+
+```ts
+{
+    name: 'back',
+    type: 'goto',
+    to: 'main',   // fallback se non c'è un parent noto
+    global: true,
+}
+```
+
+---
+
+## Parents
+
+I `parents` dichiarano in quale menu una voce deve apparire automaticamente.
+
+```ts
+{
+    name: 'submenu1',
+    type: 'choice',
+    parents: ['main'],   // appare automaticamente nel menu 'main'
+}
+```
+
+È equivalente a chiamare `mainMenu.addValue(submenu1)` manualmente, ma viene gestito dalla libreria al momento del `load()`.
+
+Un menu/action può avere più parents:
+
+```ts
+parents: ['main', 'submenu1', 'submenu2']
+```
+
+---
+
+## Traduzioni
+
+Le traduzioni usano chiavi nel formato `<plugin>.<menu>.<campo>`.
 
 ```ts
 translations: {
-    'my-plugin.my-menu.question': { // shown as the prompt question
-        en: 'What would you like to do?',
-        it: 'Cosa vorresti fare?',
-        fr: 'Que voulez-vous faire?',
+    'my-plugin.my-menu.title': {
+        en: 'My Menu',
+        it: 'Il mio menu',
+        fr: 'Mon menu',
     },
-    'my-plugin.my-menu.title': { // shown in parent menus
-        en: 'My Feature',
-        it: 'La mia funzione',
+    'my-plugin.my-menu.question': {
+        en: 'Choose an option:',
+        it: "Scegli un'opzione:",
     },
-    'my-plugin.my-menu.success': { // used by getSuccessLabel()
+    'my-plugin.my-menu.success': {
         en: 'Done!',
+        it: 'Fatto!',
     },
-    'my-plugin.my-menu.error': { // used by getErrorLabel() / validate
-        en: 'Invalid input.',
+    'my-plugin.my-menu.error': {
+        en: 'Invalid value',
+        it: 'Valore non valido',
     },
-    'my-plugin.my-menu.answer.opt-a': { // label for choice value 'opt-a'
-        en: 'Option A',
-    },
-    'my-plugin.my-field.placeholder': { // placeholder for input fields
-        en: 'Type here…',
+    // Traduzione di una singola voce (usato con getAnswerLabel)
+    'my-plugin.my-menu.answer.my-value': {
+        en: 'My Value',
+        it: 'Il mio valore',
     },
 }
 ```
 
-### Fallback chain
+**Campi supportati per menu:**
 
-1. Translation key resolved to current language → use it.
-2. No translation found → use inline `question` / `title` / `success` / `error` from the JSON.
-3. No inline text → display the raw key as-is (useful for catching missing keys in dev).
+| Chiave | Quando viene usata |
+|---|---|
+| `<plugin>.<menu>.title` | Come etichetta della voce nei menu parent |
+| `<plugin>.<menu>.question` | Come testo della domanda nel prompt |
+| `<plugin>.<menu>.success` | Messaggio di successo (dopo callback) |
+| `<plugin>.<menu>.error` | Messaggio di errore (validazione input) |
+| `<plugin>.<menu>.answer.<value>` | Etichetta di una singola voce (usata con `getAnswerLabel`) |
+| `<plugin>.<menu>.placeholder` | Placeholder del campo input |
 
-### Language API
+**Disabilitare le traduzioni:**
 
-```ts
-import { Translations } from './components/translations';
-
-Translations.setCurrentLanguage('fr');    // switch language at runtime
-Translations.getSelectedLanguage();       // → 'fr'
-Translations.getDefaultLanguage();        // from DEFAULT_LANGUAGE env var
-Translations.getLanguages();             // all registered languages
-```
+Rimuovere `DEFAULT_LANGUAGE` dal `.env`. In assenza di lingua, vengono usati i campi `question`, `title`, `success`, `error` dichiarati direttamente nel menu (testo diretto).
 
 ---
 
-## Utility & environment variables
+## Comportamento del cursore e priorità degli stili
 
-Configuration is loaded from `.env` (base) and `.env.local` (override).
+Quando il cursore si muove su una voce, prefix e colore seguono regole diverse per offrire la massima leggibilità:
 
-| Variable | Type | Description |
+### Voce normale (non selezionabile)
+
+| Stato | Prefix | Colore |
 |---|---|---|
-| `DEFAULT_LANGUAGE` | `string` | Default UI language (e.g. `en`, `it`). |
-| `DEFAULT_CHOICE_PREFIX` | `string` | Prefix prepended to selected choices (e.g. `›`). |
-| `DEFAULT_CHOICE_COLOR` | `ColorName` | Chalk color for selected choices (e.g. `cyan`). |
-| `DEBUG_LOG` | `'true'` | Enable session debug logging to `logs/`. |
+| Cursore sopra | `hover › idle` | `hover › idle` |
+| A riposo | `idle` | `idle` |
 
-### Debug logging
+### Voce selezionabile (`selectable: true`)
 
-When `DEBUG_LOG=true`, every menu interaction is logged to a timestamped file inside the `logs/` folder (created automatically). Each CLI session gets its own file so logs from different runs never mix.
+| Stato | Prefix | Colore label |
+|---|---|---|
+| Cursore sopra + appena selezionata (Space) | `selected › hover › idle` | `selected › hover › idle` |
+| Cursore sopra + già selezionata in precedenza | `selected › hover › idle` | `hover › selected › idle` |
+| Selezionata, cursore altrove | `selected › idle` | `selected › idle` |
+| A riposo | `idle` | `idle` |
 
-```
-logs/
-  log-2025-03-05T10-00-00-000Z.log
-  log-2025-03-05T10-05-12-342Z.log
-```
+**Logica "appena selezionata":** nel frame immediatamente successivo alla pressione di Space, il colore della label usa lo stile `selected` (feedback visivo immediato). Al primo movimento del cursore, torna alla priorità normale (hover vince sul colore).
 
-The `Utility` class exposes:
-
-```ts
-Utility.isDebugLog() // → boolean
-Utility.getDefaultLanguage() // → Language | undefined
-Utility.getDefaultPrefix() // → string | undefined
-Utility.getDefaultColor() // → ColorName | undefined
-Utility.write(text, color) // → styled string (chalk)
-Utility.pressAnyKey(msg?) // → Promise<void>, pause until Enter
-```
+**Globals:** non mostrano mai lo stile `selected`, indipendentemente da `selectable`.
 
 ---
 
-## Complete examples
+## Esempi completi
 
-### Minimal interactive menu
+### Applicazione minima
 
 ```ts
 import { Cli } from './components/cli';
@@ -435,32 +568,33 @@ cli.addPlugin({
     menus: [
         {
             name: 'main',
-            type: 'field',
-            color: 'cyan',
-            question: 'Main menu',
-            modes: { choices: { values: [] } },
+            type: 'choice',
+            question: 'Cosa vuoi fare?',
+            values: [],
         },
     ],
     actions: [
         {
-            name: 'greet',
-            type: 'function',
-            parents: ['main'],
-            callback: async () => Cli.write('Hello!', 'green'),
+            name: 'back',
+            type: 'goto',
+            to: 'main',
+            global: true,
         },
         {
             name: 'exit',
             type: 'function',
-            color: 'red',
             global: true,
+            idle: { color: 'red' },
             callback: async () => process.exit(0),
         },
+        {
+            name: 'say-hello',
+            type: 'function',
+            parents: ['main'],
+            title: 'Saluta',
+            callback: async () => console.log('Ciao!'),
+        },
     ],
-    translations: {
-        'app.main.question':  { en: 'What would you like to do?' },
-        'app.greet.title':    { en: 'Say hello' },
-        'app.exit.title':     { en: 'Exit' },
-    },
 });
 
 cli.run();
@@ -468,156 +602,112 @@ cli.run();
 
 ---
 
-### Multi-step form
+### Menu con stili personalizzati per-voce
 
 ```ts
-cli.addPlugin({
-    name: 'form',
-    menus: [
-        {
-            name: 'step-name',
-            type: 'field',
-            parents: ['main'],
-            modes: {
-                input: {
-                    placeholder: 'Your full name',
-                    validate: (v) => v.trim().length >= 2 || 'Name too short',
-                    callback: async ({ value, parent }) => {
-                        state.name = value;
-                        await cli.run('step-age', parent);
-                    },
-                },
+{
+    name: 'features',
+    type: 'choice',
+    parents: ['main'],
+    configs: {
+        selectable: true,
+        idle:     { prefix: '  ', color: 'blue' },
+        hover:    { prefix: '❯ ', color: 'red' },
+        selected: { prefix: '✓ ', color: 'green' },
+        defaults: {
+            values: [],
+            callback: async ({ values, parent }) => {
+                console.log('Features abilitate:', values);
+                await cli.run('press-to-continue', parent);
             },
         },
+    },
+    values: [
+        { value: 'notifications', label: 'Notifiche',  multi: true },
+        { value: 'darkmode',      label: 'Dark Mode',  multi: true },
+        { value: 'autosave',      label: 'Auto Save',  multi: true },
         {
-            name: 'step-age',
-            type: 'field',
-            modes: {
-                input: {
-                    placeholder: 'Your age',
-                    validate: (v) => /^\d+$/.test(v) || 'Must be a number',
-                    callback: async ({ value, parent }) => {
-                        state.age = Number(value);
-                        Cli.write(`Hello ${state.name}, age ${state.age}!`, 'green');
-                        await cli.run('main');
-                    },
-                },
-            },
+            // Override per questa voce specifica
+            value: 'analytics',
+            label: 'Analytics',
+            multi: true,
+            idle:     { prefix: '~ ', color: 'gray' },
+            hover:    { prefix: '» ', color: 'yellow' },
+            selected: { prefix: '★ ', color: 'magenta' },
         },
     ],
-    translations: {
-        'form.step-name.title':    { en: 'Enter your name' },
-        'form.step-name.question': { en: 'What is your name?' },
-        'form.step-age.question':  { en: 'How old are you?' },
-    },
-});
+}
 ```
 
 ---
 
-### Multi-select with defaults and custom selected style
+### Selezione lingua con traduzioni
 
 ```ts
-cli.addPlugin({
-    name: 'prefs',
-    menus: [
-        {
-            name: 'features',
-            type: 'field',
-            parents: ['main'],
-            modes: {
-                choices: {
-                    configs: {
-                        defaults: {
-                            values: ['dark-mode'],
-                            callback: async ({ values, parent }) => {
-                                savePrefs(values);
-                                await cli.run('press-to-continue', parent);
-                            },
-                        },
-                        selected: { prefix: '✔', color: 'green' },
-                    },
-                    values: [
-                        { value: 'dark-mode',      label: 'Dark mode',        multi: true },
-                        { value: 'notifications',  label: 'Notifications',    multi: true },
-                        { value: 'auto-update',    label: 'Auto-update',      multi: true },
-                    ],
-                },
+{
+    name: 'language',
+    type: 'choice',
+    global: true,
+    configs: {
+        selectable: true,
+        hover:    { prefix: '❯ ', color: 'cyan' },
+        selected: { prefix: '#',  italic: true, underline: true },
+        defaults: {
+            values: [Translations.getDefaultLanguage()!],
+            callback: async ({ values, menu, parent }) => {
+                if (values.length > 0) {
+                    Translations.setCurrentLanguage(values[0]);
+                    console.log(menu.getSuccessLabel(Translations.getSelectedLanguage()));
+                    await cli.run('press-to-continue', parent);
+                }
             },
         },
-    ],
-    translations: {
-        'prefs.features.title':    { en: 'Preferences' },
-        'prefs.features.question': { en: 'Enable / disable features:' },
     },
-});
+    values: (data) => Translations.getLanguages().map(lang => ({
+        value: lang,
+        label: data.menu.getAnswerLabel(lang),
+    })),
+}
 ```
 
 ---
 
-### Language selector (built-in pattern)
+### Input con validazione
 
 ```ts
-cli.addPlugin({
-    name: 'i18n',
-    menus: [
-        {
-            name: 'language',
-            type: 'field',
-            global: true,
-            modes: {
-                choices: {
-                    configs: {
-                        defaults: {
-                            values: [Translations.getDefaultLanguage()!],
-                            callback: async ({ values, parent }) => {
-                                Translations.setCurrentLanguage(values[0]);
-                                await cli.run('press-to-continue', parent);
-                            },
-                        },
-                        selected: { prefix: '#' },
-                    },
-                    values: ({ menu }) =>
-                        Translations.getLanguages().map(lang => ({
-                            value: lang,
-                            label: menu.getAnswerLabel(lang),
-                        })),
-                },
-            },
-        },
-    ],
-    translations: {
-        'i18n.language.title':       { en: 'Change language' },
-        'i18n.language.answer.en':   { en: 'English', it: 'Inglese' },
-        'i18n.language.answer.it':   { en: 'Italian', it: 'Italiano' },
+{
+    name: 'nickname',
+    type: 'input',
+    parents: ['main'],
+    placeholder: 'Inserisci il tuo nickname...',
+    validate: (value) => value.trim().length > 0 || 'Il nickname non può essere vuoto',
+    callback: async ({ menu, value, language, parent }) => {
+        console.log(`Nickname impostato: ${value}`);
+        await cli.run('press-to-continue', parent);
     },
-});
+}
 ```
 
 ---
 
-### Press-any-key pause (standard pattern)
-
-Register once in your `default` plugin and reuse everywhere:
+### Press-to-continue (pattern comune)
 
 ```ts
-// Registration
+// Nel plugin default
 {
     name: 'press-to-continue',
-    type: 'field',
-    modes: {
-        input: {
-            value: '',
-            clear: false,
-            fastSubmit: true,
-            callback: async ({ parent }) => {
-                await cli.run(parent ?? 'main');
-            },
-        },
+    type: 'input',
+    clear: false,
+    fastSubmit: true,
+    inline: true,
+    callback: async ({ parent }) => {
+        await cli.run(parent ?? 'main');
     },
 }
 
-// Usage inside any callback
-Cli.write('Operation complete.', 'green');
-await cli.run('press-to-continue', parent);
+// Utilizzo in un callback
+callback: async ({ parent }) => {
+    console.log('Operazione completata!');
+    await cli.run('press-to-continue', parent);
+}
 ```
