@@ -73,6 +73,7 @@
         "dev": "tsx src/dev.ts",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
+        "fix": "npm run lint:fix && npm run format",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "build": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false",
@@ -83,8 +84,13 @@
         "prepare": "husky"
     },
     "lint-staged": {
-        "**/*.{ts}": ["eslint --fix", "prettier --write"],
-        "**/*.{json,md}": ["prettier --write"]
+        "**/*.ts": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "**/*.json": [
+            "prettier --write"
+        ]
     },
     "plugins": [
         "@semantic-release/commit-analyzer",
