@@ -22,7 +22,6 @@ abstract class Action {
     protected abstract type: ActionJson['type'];
     protected plugin?: ActionJson['plugin'];
     protected index?: ActionJson['index'];
-    //protected color?: ActionJson['color'];
     protected parents: Record<string, Exclude<ActionJson['parents'], undefined>[number]> = {};
     protected global: Exclude<ActionJson['global'], undefined> = false;
     protected idle?: StyleIdle;
@@ -33,7 +32,6 @@ abstract class Action {
         this.name = data.name;
         this.plugin = data.plugin;
         this.index = data.index;
-        //this.color = data.color;
         this.global = data.global ?? false;
         this.idle = data.idle
             ? new StyleIdle(data.idle.prefix, data.idle.color, data.idle.underline, data.idle.italic)
@@ -59,9 +57,6 @@ abstract class Action {
 
     public getIndex(): Action['index'] | undefined { return this.index; }
     public setIndex(index: Action['index']): this { this.index = index; return this; }
-
-    //public getColor(): Action['color'] | undefined { return this.color; }
-    //public setColor(color: Action['color']): this { this.color = color; return this; }
 
     public getParents(): Action['parents'][string][] { return Object.values(this.parents); }
     public getParent(name: string): Action['parents'][string] | undefined { 
@@ -92,8 +87,6 @@ abstract class Action {
         return this;
     }
 
-    public getColor(): ColorName | undefined { return this.idle?.getColor(); }
-
     public getTitleName(): string {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.title`;
     }
@@ -109,7 +102,6 @@ abstract class Action {
             type: this.type,
             plugin: this.plugin,
             index: this.index,
-            //color: this.color,
             parents: this.getParents(),
             global: this.global,
             idle: this.idle?.toJson(),

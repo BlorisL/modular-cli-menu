@@ -108,8 +108,6 @@ abstract class Menu {
         return this;
     }
 
-    public getColor(): ColorName | undefined { return this.idle?.getColor(); }
-
     public getQuestionName(): string {
         return `${this.getPlugin() ?? 'default'}.${this.getName()}.question`;
     }

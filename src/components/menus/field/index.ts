@@ -531,7 +531,7 @@ class MenuField extends Menu {
             : undefined;
 
         const result = await prompt({
-            message: Utility.write(this.getQuestionLabel(language), this.getColor()),
+            message: Utility.write(this.getQuestionLabel(language), this.idle?.getColor()),
             ...(hasInputSection ? {
                 input: {
                     value: this.inputValue,

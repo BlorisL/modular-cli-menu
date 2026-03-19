@@ -2,15 +2,11 @@ import { MenuJson } from '../menu';
 import { MenuField, MenuFieldChoicesModeJson, MenuFieldOptionJson, MenuFieldJsonValue } from '../field';
 import { MenuFieldConfigs, MenuFieldConfigsJson } from '../field/configs';
 
-// ── JSON
-
 type MenuChoiceJson = Omit<MenuJson, 'type'> & {
     type: 'choice';
     values?: MenuFieldChoicesModeJson['values'];
     configs?: MenuFieldConfigsJson;
 };
-
-// ── Class
 
 class MenuChoice extends MenuField {
 
@@ -44,8 +40,14 @@ class MenuChoice extends MenuField {
             title:    base.title,
             success:  base.success,
             error:    base.error,
-            ...(choicesValues.length > 0 ? { values: choicesValues as MenuFieldOptionJson[] } : {}),
-            ...(this.configs            ? { configs: this.configs.toJson()                  } : {}),
+            ...(choicesValues.length > 0 
+                ? { values: choicesValues as MenuFieldOptionJson[] } 
+                : {}
+            ),
+            ...(this.configs 
+                ? { configs: this.configs.toJson() } 
+                : {}
+            ),
         };
     }
 }
