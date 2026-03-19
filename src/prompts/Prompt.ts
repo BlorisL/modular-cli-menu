@@ -6,8 +6,8 @@ import {
     isEnterKey,
     isSpaceKey,
     Separator,
-} from '@inquirer/core';
-import chalk, { ColorName } from 'chalk';
+} from "@inquirer/core";
+import chalk, { ColorName } from "chalk";
 
 // Types
 
@@ -30,8 +30,6 @@ interface Choice {
     selected?: ChoiceStyle;
 }
 
-type PromptValue = string[] | { action: string };
-
 interface PromptConfig {
     message: string;
     // input section
@@ -49,9 +47,9 @@ interface PromptConfig {
 }
 
 type PromptResult =
-    | { type: 'input';   value: string   }
-    | { type: 'choice';  value: string   }
-    | { type: 'choices'; values: string[] };
+    | { type: "input"; value: string }
+    | { type: "choice"; value: string }
+    | { type: "choices"; values: string[] };
 
 interface InputState {
     inputValue: string;
@@ -61,29 +59,31 @@ interface InputState {
 
 // Helpers
 
-function isSeparator(item: any): boolean {
-    return item != null &&
-        typeof item === 'object' &&
-        ('separator' in item || ('type' in item && item.type === 'separator'));
+function isSeparator(item: Choice | Separator): boolean {
+    return (
+        item != null &&
+        typeof item === "object" &&
+        ("separator" in item || ("type" in item && item.type === "separator"))
+    );
 }
 
 function renderInputLine(
     state: InputState,
     config: { placeholder?: string; fastSubmit?: boolean },
-    focused: boolean,
+    focused: boolean
 ): string {
     const { inputValue, cursor } = state;
     const before = inputValue.slice(0, cursor);
-    const at     = inputValue[cursor] ?? ' ';
-    const after  = inputValue.slice(cursor + 1);
+    const at = inputValue[cursor] ?? " ";
+    const after = inputValue.slice(cursor + 1);
 
-    const cursorDisplay = focused
-        ? before + chalk.inverse(at) + after
-        : before + at + after;
+    const cursorDisplay = focused ? before + chalk.inverse(at) + after : before + at + after;
 
     return inputValue.length > 0
         ? cursorDisplay
-        : (!config.fastSubmit && config.placeholder ? chalk.dim(config.placeholder) : '');
+        : !config.fastSubmit && config.placeholder
+          ? chalk.dim(config.placeholder)
+          : "";
 }
 
 function handleInputKey(
@@ -91,60 +91,64 @@ function handleInputKey(
     state: InputState,
     setState: {
         setInputValue: (v: string) => void;
-        setCursor:     (v: number) => void;
-        setError:      (v: string) => void;
+        setCursor: (v: number) => void;
+        setError: (v: string) => void;
     },
     config: { validate?: (value: string) => boolean | string },
-    submitFn: (value: string) => void,
+    submitFn: (value: string) => void
 ): boolean {
     const { inputValue, cursor } = state;
     const { setInputValue, setCursor, setError } = setState;
 
-    if (isEnterKey(key as any)) {
+    if (key.name === "enter" || key.name === "return") {
         const validation = config.validate?.(inputValue);
         if (validation !== undefined && validation !== true) {
-            setError(typeof validation === 'string' ? validation : 'Invalid value');
+            setError(typeof validation === "string" ? validation : "Invalid value");
             return true;
         }
-        setError('');
+        setError("");
         submitFn(inputValue);
         return true;
-    } else if (key.name === 'backspace') {
+    } else if (key.name === "backspace") {
         if (cursor > 0) {
             setInputValue(inputValue.slice(0, cursor - 1) + inputValue.slice(cursor));
             setCursor(cursor - 1);
         }
-        setError('');
+        setError("");
         return true;
-    } else if (key.name === 'delete') {
+    } else if (key.name === "delete") {
         if (cursor < inputValue.length) {
             setInputValue(inputValue.slice(0, cursor) + inputValue.slice(cursor + 1));
         }
-        setError('');
+        setError("");
         return true;
-    } else if (key.name === 'left') {
-        if (cursor > 0) setCursor(cursor - 1);
+    } else if (key.name === "left") {
+        if (cursor > 0) {
+            setCursor(cursor - 1);
+        }
         return true;
-    } else if (key.name === 'right') {
-        if (cursor < inputValue.length) setCursor(cursor + 1);
+    } else if (key.name === "right") {
+        if (cursor < inputValue.length) {
+            setCursor(cursor + 1);
+        }
         return true;
-    } else if (key.name === 'home' || (key.ctrl && key.name === 'a')) {
+    } else if (key.name === "home" || (key.ctrl && key.name === "a")) {
         setCursor(0);
         return true;
-    } else if (key.name === 'end' || (key.ctrl && key.name === 'e')) {
+    } else if (key.name === "end" || (key.ctrl && key.name === "e")) {
         setCursor(inputValue.length);
         return true;
-    } else if (isSpaceKey(key as any)) {
-        const next = inputValue.slice(0, cursor) + ' ' + inputValue.slice(cursor);
+    } else if (key.name === "space") {
+        const next = inputValue.slice(0, cursor) + " " + inputValue.slice(cursor);
         setInputValue(next);
         setCursor(cursor + 1);
-        setError('');
+        setError("");
         return true;
     } else if (key.name && key.name.length === 1 && !key.ctrl) {
         const next = inputValue.slice(0, cursor) + key.name + inputValue.slice(cursor);
         setInputValue(next);
         setCursor(cursor + 1);
-        setError('');
+        setError("");
         return true;
     }
 
@@ -156,18 +160,19 @@ function renderChoiceLines(
     activeIndex: number,
     focusedOnList: boolean,
     selected?: Set<string>,
-    justSelected?: Set<string>,
+    justSelected?: Set<string>
 ): string[] {
     return items.map((item, index) => {
-        if (isSeparator(item)) return new Separator().separator;
+        if (isSeparator(item)) {
+            return new Separator().separator;
+        }
         const choice = item as Choice;
-        const isActive   = focusedOnList && index === activeIndex;
+        const isActive = focusedOnList && index === activeIndex;
         const isSelected = choice.multi
             ? (selected?.has(choice.value) ?? false)
             : (choice.selected?.active ?? false);
         // True only the render immediately after toggling ON — label color uses selected.
         const isJustSelected = choice.multi && (justSelected?.has(choice.value) ?? false);
-
 
         // Style rules — prefix and label are styled independently:
         //
@@ -179,67 +184,80 @@ function renderChoiceLines(
         //                  idle: idle
         //  Label decorate → same priority as label color
 
-        let stylePrefix    = '';
-        let prefixColor: ColorName | undefined = undefined;
-        let prefixUnderline: boolean | undefined = undefined;
-        let prefixItalic: boolean | undefined = undefined;
-        let labelColor: ColorName | undefined = undefined;
-        let labelUnderline: boolean | undefined = undefined;
-        let labelItalic: boolean | undefined = undefined;
+        let stylePrefix: string;
+        let prefixColor: ColorName | undefined;
+        let prefixUnderline: boolean | undefined;
+        let prefixItalic: boolean | undefined;
+        let labelColor: ColorName | undefined;
+        let labelUnderline: boolean | undefined;
+        let labelItalic: boolean | undefined;
 
         if (isActive && isSelected) {
             // Prefix: selected always wins
-            stylePrefix     = choice.selected?.prefix    ?? choice.hover?.prefix    ?? choice.idle?.prefix ?? '';
-            prefixColor     = choice.selected?.color     ?? choice.hover?.color     ?? choice.idle?.color;
-            prefixUnderline = choice.selected?.underline ?? choice.hover?.underline ?? choice.idle?.underline;
-            prefixItalic    = choice.selected?.italic    ?? choice.hover?.italic    ?? choice.idle?.italic;
+            stylePrefix =
+                choice.selected?.prefix ?? choice.hover?.prefix ?? choice.idle?.prefix ?? "";
+            prefixColor = choice.selected?.color ?? choice.hover?.color ?? choice.idle?.color;
+            prefixUnderline =
+                choice.selected?.underline ?? choice.hover?.underline ?? choice.idle?.underline;
+            prefixItalic = choice.selected?.italic ?? choice.hover?.italic ?? choice.idle?.italic;
             // Label: justSelected → selected wins (immediate feedback); otherwise hover wins (cursor readability)
-            labelColor     = isJustSelected
-                ? (choice.selected?.color     ?? choice.hover?.color     ?? choice.idle?.color)
-                : (choice.hover?.color        ?? choice.selected?.color  ?? choice.idle?.color);
+            labelColor = isJustSelected
+                ? (choice.selected?.color ?? choice.hover?.color ?? choice.idle?.color)
+                : (choice.hover?.color ?? choice.selected?.color ?? choice.idle?.color);
             labelUnderline = isJustSelected
                 ? (choice.selected?.underline ?? choice.hover?.underline ?? choice.idle?.underline)
-                : (choice.hover?.underline    ?? choice.selected?.underline ?? choice.idle?.underline);
-            labelItalic    = isJustSelected
-                ? (choice.selected?.italic    ?? choice.hover?.italic    ?? choice.idle?.italic)
-                : (choice.hover?.italic       ?? choice.selected?.italic ?? choice.idle?.italic);
+                : (choice.hover?.underline ?? choice.selected?.underline ?? choice.idle?.underline);
+            labelItalic = isJustSelected
+                ? (choice.selected?.italic ?? choice.hover?.italic ?? choice.idle?.italic)
+                : (choice.hover?.italic ?? choice.selected?.italic ?? choice.idle?.italic);
         } else if (isActive) {
-            stylePrefix    = choice.hover?.prefix    ?? choice.idle?.prefix ?? '';
-            prefixColor    = choice.hover?.color     ?? choice.idle?.color;
+            stylePrefix = choice.hover?.prefix ?? choice.idle?.prefix ?? "";
+            prefixColor = choice.hover?.color ?? choice.idle?.color;
             prefixUnderline = choice.hover?.underline ?? choice.idle?.underline;
-            prefixItalic   = choice.hover?.italic    ?? choice.idle?.italic;
-            labelColor     = choice.hover?.color     ?? choice.idle?.color;
+            prefixItalic = choice.hover?.italic ?? choice.idle?.italic;
+            labelColor = choice.hover?.color ?? choice.idle?.color;
             labelUnderline = choice.hover?.underline ?? choice.idle?.underline;
-            labelItalic    = choice.hover?.italic    ?? choice.idle?.italic;
+            labelItalic = choice.hover?.italic ?? choice.idle?.italic;
         } else if (isSelected) {
-            stylePrefix    = choice.selected?.prefix    ?? choice.idle?.prefix ?? '';
-            prefixColor    = choice.selected?.color     ?? choice.idle?.color;
+            stylePrefix = choice.selected?.prefix ?? choice.idle?.prefix ?? "";
+            prefixColor = choice.selected?.color ?? choice.idle?.color;
             prefixUnderline = choice.selected?.underline ?? choice.idle?.underline;
-            prefixItalic   = choice.selected?.italic    ?? choice.idle?.italic;
-            labelColor     = choice.selected?.color     ?? choice.idle?.color;
+            prefixItalic = choice.selected?.italic ?? choice.idle?.italic;
+            labelColor = choice.selected?.color ?? choice.idle?.color;
             labelUnderline = choice.selected?.underline ?? choice.idle?.underline;
-            labelItalic    = choice.selected?.italic    ?? choice.idle?.italic;
+            labelItalic = choice.selected?.italic ?? choice.idle?.italic;
         } else {
-            stylePrefix    = choice.idle?.prefix ?? '';
-            prefixColor    = choice.idle?.color;
+            stylePrefix = choice.idle?.prefix ?? "";
+            prefixColor = choice.idle?.color;
             prefixUnderline = choice.idle?.underline;
-            prefixItalic   = choice.idle?.italic;
-            labelColor     = choice.idle?.color;
+            prefixItalic = choice.idle?.italic;
+            labelColor = choice.idle?.color;
             labelUnderline = choice.idle?.underline;
-            labelItalic    = choice.idle?.italic;
+            labelItalic = choice.idle?.italic;
         }
 
-        const applyStyle = (text: string, color: ColorName | undefined, underline?: boolean, italic?: boolean): string => {
+        const applyStyle = (
+            text: string,
+            color: ColorName | undefined,
+            underline?: boolean,
+            italic?: boolean
+        ): string => {
             let out = text;
-            if (color && (chalk as any)[color]) out = (chalk as any)[color](out);
-            if (underline) out = chalk.underline(out);
-            if (italic)    out = chalk.italic(out);
+            if (color) {
+                out = chalk[color](out);
+            }
+            if (underline) {
+                out = chalk.underline(out);
+            }
+            if (italic) {
+                out = chalk.italic(out);
+            }
             return out;
         };
 
         const prefixLabel = stylePrefix
             ? `${applyStyle(stylePrefix, prefixColor, prefixUnderline, prefixItalic)} `
-            : '';
+            : "";
 
         // Build label with its own color
         const styledLabel = applyStyle(choice.label, labelColor, labelUnderline, labelItalic);
@@ -251,44 +269,44 @@ function renderChoiceLines(
 const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
     const { message, input: inputCfg, choices: choicesCfg, initialSelected } = config;
 
-    const hasInput   = !!inputCfg;
+    const hasInput = !!inputCfg;
     const hasChoices = !!choicesCfg && choicesCfg.length > 0;
 
     // Input state
-    const initial = inputCfg?.value ?? '';
+    const initial = inputCfg?.value ?? "";
     const [inputValue, setInputValue] = useState<string>(initial);
-    const [cursor, setCursor]         = useState<number>(initial.length);
-    const [error, setError]           = useState<string>('');
+    const [cursor, setCursor] = useState<number>(initial.length);
+    const [error, setError] = useState<string>("");
 
     // Choices state
     const allItems = choicesCfg ?? [];
-    const firstSelectable = allItems.findIndex(i => !isSeparator(i));
-    const [selected, setSelected]         = useState<Set<string>>(new Set(initialSelected ?? []));
+    const firstSelectable = allItems.findIndex((i) => !isSeparator(i));
+    const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected ?? []));
     const [justSelected, setJustSelected] = useState<Set<string>>(new Set());
-    const [activeIndex, setActiveIndex]   = useState<number>(
+    const [activeIndex, setActiveIndex] = useState<number>(
         firstSelectable >= 0 ? firstSelectable : 0
     );
 
     // Focus: 'input' | 'list', only meaningful when both sections are active
-    const [focus, setFocus] = useState<'input' | 'list'>(hasInput ? 'input' : 'list');
+    const [focus, setFocus] = useState<"input" | "list">(hasInput ? "input" : "list");
 
-    const [status, setStatus] = useState<'pending' | 'done'>('pending');
+    const [status, setStatus] = useState<"pending" | "done">("pending");
     const prefix = usePrefix({ status });
 
     useKeypress((key) => {
         // inline fastSubmit (input only, no choices)
         if (hasInput && inputCfg!.fastSubmit && inputCfg!.inline && !hasChoices) {
-            if (status !== 'done') {
-                setStatus('done');
-                done({ type: 'input', value: inputValue });
+            if (status !== "done") {
+                setStatus("done");
+                done({ type: "input", value: inputValue });
             }
             return;
         }
 
         // fastSubmit without inline
         if (hasInput && inputCfg!.fastSubmit && !hasChoices) {
-            setStatus('done');
-            done({ type: 'input', value: inputValue });
+            setStatus("done");
+            done({ type: "input", value: inputValue });
             return;
         }
 
@@ -299,11 +317,11 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
                 if (!isSeparator(item)) {
                     const choice = item as Choice;
                     if (choice.multi) {
-                        setStatus('done');
-                        done({ type: 'choices', values: Array.from(selected) });
+                        setStatus("done");
+                        done({ type: "choices", values: Array.from(selected) });
                     } else {
-                        setStatus('done');
-                        done({ type: 'choice', value: choice.value });
+                        setStatus("done");
+                        done({ type: "choice", value: choice.value });
                     }
                 }
             } else if (isSpaceKey(key)) {
@@ -315,45 +333,55 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
                         const val = choice.value;
                         const next = new Set(selected);
                         const wasSelected = next.has(val);
-                        wasSelected ? next.delete(val) : next.add(val);
+                        if (wasSelected) {
+                            next.delete(val);
+                        } else {
+                            next.add(val);
+                        }
                         setSelected(next);
                         setJustSelected(wasSelected ? new Set() : new Set([val]));
                     } else {
                         // Non-multi: space acts like enter
-                        setStatus('done');
-                        done({ type: 'choice', value: choice.value });
+                        setStatus("done");
+                        done({ type: "choice", value: choice.value });
                     }
                 }
-            } else if (key.name === 'up') {
+            } else if (key.name === "up") {
                 setJustSelected(new Set());
                 let i = activeIndex === 0 ? allItems.length - 1 : activeIndex - 1;
-                while (isSeparator(allItems[i]) && i !== activeIndex)
+                while (isSeparator(allItems[i]) && i !== activeIndex) {
                     i = i === 0 ? allItems.length - 1 : i - 1;
+                }
                 setActiveIndex(i);
-            } else if (key.name === 'down') {
+            } else if (key.name === "down") {
                 setJustSelected(new Set());
                 let i = activeIndex === allItems.length - 1 ? 0 : activeIndex + 1;
-                while (isSeparator(allItems[i]) && i !== activeIndex)
+                while (isSeparator(allItems[i]) && i !== activeIndex) {
                     i = i === allItems.length - 1 ? 0 : i + 1;
+                }
                 setActiveIndex(i);
             }
             return;
         }
 
         // combo: input + choices
-        if (focus === 'input') {
-            if (key.name === 'down' || key.name === 'tab') {
+        if (focus === "input") {
+            if (key.name === "down" || key.name === "tab") {
                 if (hasChoices) {
-                    setFocus('list');
+                    setFocus("list");
                     setActiveIndex(firstSelectable >= 0 ? firstSelectable : 0);
                 }
                 return;
             }
-            if (key.name === 'up' && hasChoices) {
-                setFocus('list');
+            if (key.name === "up" && hasChoices) {
+                setFocus("list");
                 let idx = allItems.length - 1;
-                while (idx >= 0 && isSeparator(allItems[idx])) idx--;
-                if (idx >= 0) setActiveIndex(idx);
+                while (idx >= 0 && isSeparator(allItems[idx])) {
+                    idx--;
+                }
+                if (idx >= 0) {
+                    setActiveIndex(idx);
+                }
                 return;
             }
             handleInputKey(
@@ -361,33 +389,48 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
                 { inputValue, cursor, error },
                 { setInputValue, setCursor, setError },
                 { validate: inputCfg?.validate },
-                (value) => { setStatus('done'); done({ type: 'input', value }); },
+                (value) => {
+                    setStatus("done");
+                    done({ type: "input", value });
+                }
             );
         } else {
             // focus === 'list'
-            if (key.name === 'escape' || key.name === 'tab') {
-                setFocus('input');
+            if (key.name === "escape" || key.name === "tab") {
+                setFocus("input");
                 return;
             }
-            if (key.name === 'up') {
-                if (activeIndex === firstSelectable) { setFocus('input'); return; }
+            if (key.name === "up") {
+                if (activeIndex === firstSelectable) {
+                    setFocus("input");
+                    return;
+                }
                 let idx = activeIndex - 1;
-                while (idx >= 0 && isSeparator(allItems[idx])) idx--;
-                if (idx >= 0) setActiveIndex(idx);
+                while (idx >= 0 && isSeparator(allItems[idx])) {
+                    idx--;
+                }
+                if (idx >= 0) {
+                    setActiveIndex(idx);
+                }
                 return;
             }
-            if (key.name === 'down') {
+            if (key.name === "down") {
                 let idx = activeIndex + 1;
-                while (idx < allItems.length && isSeparator(allItems[idx])) idx++;
-                if (idx >= allItems.length) { setFocus('input'); }
-                else { setActiveIndex(idx); }
+                while (idx < allItems.length && isSeparator(allItems[idx])) {
+                    idx++;
+                }
+                if (idx >= allItems.length) {
+                    setFocus("input");
+                } else {
+                    setActiveIndex(idx);
+                }
                 return;
             }
             if (isEnterKey(key)) {
                 const item = allItems[activeIndex];
                 if (!isSeparator(item)) {
-                    setStatus('done');
-                    done({ type: 'choice', value: (item as Choice).value });
+                    setStatus("done");
+                    done({ type: "choice", value: (item as Choice).value });
                 }
             }
         }
@@ -396,21 +439,27 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
     // Render
 
     const lines: string[] = [];
-    
+
     // Cursor visibility: show only when focused on input, hide when on list or choices-only
-    const cursorVisible = hasInput && focus === 'input';
-    const cursorCode = cursorVisible ? '\x1B[?25h' : '\x1B[?25l';
+    const cursorVisible = hasInput && focus === "input";
+    const cursorCode = cursorVisible ? "\x1B[?25h" : "\x1B[?25l";
 
     if (hasInput) {
         // inline fastSubmit: single line, no prefix
         if (inputCfg!.fastSubmit && inputCfg!.inline && !hasChoices) {
-            if (status === 'done') return '\x1b[1A\r\x1b[2K';
-            return `${cursorCode}${chalk.bold(message)} ${chalk.inverse(' ')}`;
+            if (status === "done") {
+                return "\x1b[1A\r\x1b[2K";
+            }
+            return `${cursorCode}${chalk.bold(message)} ${chalk.inverse(" ")}`;
         }
 
         const inputState: InputState = { inputValue, cursor, error };
-        const displayValue = renderInputLine(inputState, inputCfg!, focus === 'input' || !hasChoices);
-        const focusMarker  = (hasChoices && focus !== 'input') ? ' ' : chalk.cyan('❯');
+        const displayValue = renderInputLine(
+            inputState,
+            inputCfg!,
+            focus === "input" || !hasChoices
+        );
+        const focusMarker = hasChoices && focus !== "input" ? " " : chalk.cyan("❯");
 
         if (hasChoices) {
             // combo: header line + input line separate
@@ -433,20 +482,22 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
             lines.push(new Separator().separator);
         }
         // If focus is on input, hide cursor before rendering choices so it doesn't appear below
-        const choiceLines = renderChoiceLines(allItems, activeIndex, focus === 'list', selected, justSelected);
-        if (hasInput && focus === 'input') {
+        const choiceLines = renderChoiceLines(
+            allItems,
+            activeIndex,
+            focus === "list",
+            selected,
+            justSelected
+        );
+        if (hasInput && focus === "input") {
             if (choiceLines.length > 0) {
-                choiceLines[0] = '\x1B[?25l' + choiceLines[0];
+                choiceLines[0] = "\x1B[?25l" + choiceLines[0];
             }
         }
         lines.push(...choiceLines);
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
 });
 
-export { 
-    type Choice, 
-    prompt, 
-    Separator 
-};
+export { type Choice, prompt, Separator };

@@ -3,9 +3,7 @@ import { promises as fs } from "fs";
 import * as path from "path";
 
 const EXTENSIONS = [".vue", ".ts", ".js"];
-const IGNORED_DIRS = [
-    "node_modules", "dist", "OLD", "src.old", "src.ori", "src2", "classes"
-]; // opzionale
+const IGNORED_DIRS = ["node_modules", "dist", "OLD", "src.old", "src.ori", "src2", "classes"]; // opzionale
 
 // Directory di partenza passata da CLI, altrimenti default = current dir
 const ROOT_DIR = path.resolve(process.argv[2] || ".");
@@ -22,7 +20,9 @@ async function getFilesRecursively(dir: string): Promise<string[]> {
             const fullPath = path.join(dir, entry.name);
 
             if (entry.isDirectory()) {
-                if (IGNORED_DIRS.includes(entry.name)) return [];
+                if (IGNORED_DIRS.includes(entry.name)) {
+                    return [];
+                }
                 return getFilesRecursively(fullPath);
             } else if (EXTENSIONS.includes(path.extname(entry.name))) {
                 return [fullPath];
@@ -38,7 +38,7 @@ async function getFilesRecursively(dir: string): Promise<string[]> {
 /**
  * Crea un unico file unendo tutti i file selezionati.
  */
-async function mergeFiles() {
+async function mergeFiles(): Promise<void> {
     const files = await getFilesRecursively(ROOT_DIR);
 
     let output = "";

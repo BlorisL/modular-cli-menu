@@ -1,4 +1,4 @@
-import { ColorName } from 'chalk';
+import { ColorName } from "chalk";
 
 type StyleSelectedJson = {
     prefix?: string;
@@ -8,40 +8,53 @@ type StyleSelectedJson = {
 };
 
 class StyleSelected {
-    protected prefix?: StyleSelectedJson['prefix'];
-    protected color?: StyleSelectedJson['color'];
-    protected underline?: StyleSelectedJson['underline'];
-    protected italic?: StyleSelectedJson['italic'];
+    protected prefix?: StyleSelectedJson["prefix"];
+    protected color?: StyleSelectedJson["color"];
+    protected underline?: StyleSelectedJson["underline"];
+    protected italic?: StyleSelectedJson["italic"];
 
     constructor(
-        prefix?: StyleSelectedJson['prefix'],
-        color?: StyleSelectedJson['color'],
-        underline?: StyleSelectedJson['underline'],
-        italic?: StyleSelectedJson['italic']
+        prefix?: StyleSelectedJson["prefix"],
+        color?: StyleSelectedJson["color"],
+        underline?: StyleSelectedJson["underline"],
+        italic?: StyleSelectedJson["italic"]
     ) {
         this.prefix = prefix;
-        this.color  = color;
+        this.color = color;
         this.underline = underline;
         this.italic = italic;
     }
 
-    public getPrefix(): StyleSelected['prefix'] { return this.prefix; }
-    public setPrefix(prefix: StyleSelected['prefix']): this {
-        if (prefix && prefix.length > 0) this.prefix = prefix;
+    public getPrefix(): StyleSelected["prefix"] {
+        return this.prefix;
+    }
+    public setPrefix(prefix: StyleSelected["prefix"]): this {
+        if (prefix && prefix.length > 0) {
+            this.prefix = prefix;
+        }
         return this;
     }
 
-    public getColor(): StyleSelected['color'] | undefined { return this.color; }
-    public setColor(color: StyleSelected['color']): this { this.color = color; return this; }
+    public getColor(): StyleSelected["color"] | undefined {
+        return this.color;
+    }
+    public setColor(color: StyleSelected["color"]): this {
+        this.color = color;
+        return this;
+    }
 
-    public isUnderline(): StyleSelected['underline'] | undefined { return this.underline; }
-    public setUnderline(underline: StyleSelected['underline']): this {
+    public isUnderline(): StyleSelected["underline"] | undefined {
+        return this.underline;
+    }
+    public setUnderline(underline: StyleSelected["underline"]): this {
         this.underline = underline;
         return this;
     }
 
-    public isItalic(): StyleSelected['italic'] | undefined { return this.italic; }
-    public setItalic(italic: StyleSelected['italic']): this {
+    public isItalic(): StyleSelected["italic"] | undefined {
+        return this.italic;
+    }
+    public setItalic(italic: StyleSelected["italic"]): this {
         this.italic = italic;
         return this;
     }

@@ -12,35 +12,46 @@ class Translations {
      * Returns the active language, or undefined if translations are disabled
      * (i.e. DEFAULT_LANGUAGE is not set in the environment).
      */
-    public static getCurrentLanguage(): Language | undefined { return Translations.currentLanguage; }
-    public static setCurrentLanguage(language: Language): void { Translations.currentLanguage = language; }
+    public static getCurrentLanguage(): Language | undefined {
+        return Translations.currentLanguage;
+    }
+    public static setCurrentLanguage(language: Language): void {
+        Translations.currentLanguage = language;
+    }
 
     /** Returns true when translations are active (DEFAULT_LANGUAGE is set). */
-    public static isEnabled(): boolean { return Translations.currentLanguage !== undefined; }
+    public static isEnabled(): boolean {
+        return Translations.currentLanguage !== undefined;
+    }
 
     /**
      * Returns the currently selected language.
      * Returns undefined when translations are disabled (DEFAULT_LANGUAGE not set).
      */
-    public static getSelectedLanguage(): Language | undefined { return Translations.currentLanguage; }
+    public static getSelectedLanguage(): Language | undefined {
+        return Translations.currentLanguage;
+    }
 
     public static getLanguages(): Language[] {
         const langs = new Set<Language>();
-        Object.values(Translations.items).forEach(langObj => {
-            Object.keys(langObj).forEach(lang => langs.add(lang));
+        Object.values(Translations.items).forEach((langObj) => {
+            Object.keys(langObj).forEach((lang) => langs.add(lang));
         });
         return Array.from(langs);
     }
 
-    public static getDefaultLanguage(): Language | undefined { return Utility.getDefaultLanguage(); }
+    public static getDefaultLanguage(): Language | undefined {
+        return Utility.getDefaultLanguage();
+    }
 
-    public static getTranslations(): TranslationJson { return Translations.items; }
-    public static getTranslation(
-        name: string,
-        language?: keyof TranslationJson[string]
-    ): string {
+    public static getTranslations(): TranslationJson {
+        return Translations.items;
+    }
+    public static getTranslation(name: string, language?: keyof TranslationJson[string]): string {
         const lang = language ?? Translations.currentLanguage;
-        if(!lang) return name;
+        if (!lang) {
+            return name;
+        }
 
         return Translations.items[name]?.[lang] ?? name;
     }
@@ -58,7 +69,7 @@ class Translations {
         language: keyof TranslationJson[string],
         text: string
     ): Translations {
-        if(!Translations.items[name]) {
+        if (!Translations.items[name]) {
             Translations.items[name] = {};
         }
         Translations.items[name]![language] = text;

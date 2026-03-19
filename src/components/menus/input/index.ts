@@ -1,28 +1,26 @@
-import { MenuJson } from '../menu';
-import { MenuField, MenuFieldInputModeJson, MenuFieldInputCallback } from '../field';
-import { Language } from '../../translations';
+import { MenuJson } from "../menu";
+import { MenuField, MenuFieldInputModeJson, MenuFieldInputCallback } from "../field";
 
 // ── JSON
 
-type MenuInputJson = Omit<MenuJson, 'type'> & {
-    type: 'input';
-    value?: MenuFieldInputModeJson['value'];
-    placeholder?: MenuFieldInputModeJson['placeholder'];
-    clear?: MenuFieldInputModeJson['clear'];
-    fastSubmit?: MenuFieldInputModeJson['fastSubmit'];
-    inline?: MenuFieldInputModeJson['inline'];
-    validate?: MenuFieldInputModeJson['validate'];
+type MenuInputJson = Omit<MenuJson, "type"> & {
+    type: "input";
+    value?: MenuFieldInputModeJson["value"];
+    placeholder?: MenuFieldInputModeJson["placeholder"];
+    clear?: MenuFieldInputModeJson["clear"];
+    fastSubmit?: MenuFieldInputModeJson["fastSubmit"];
+    inline?: MenuFieldInputModeJson["inline"];
+    validate?: MenuFieldInputModeJson["validate"];
     callback?: MenuFieldInputCallback;
 };
 
 // ── Class
 
 class MenuInput extends MenuField {
-
     constructor(data: MenuInputJson) {
         super({
             ...data,
-            type: 'field',
+            type: "field",
             modes: {
                 input: {
                     value: data.value,
@@ -42,7 +40,7 @@ class MenuInput extends MenuField {
 
         return {
             name: base.name,
-            type: 'input',
+            type: "input",
             plugin: base.plugin,
             index: base.index,
             idle: base.idle,
@@ -64,8 +62,4 @@ class MenuInput extends MenuField {
     }
 }
 
-export {
-    type MenuInputJson,
-    type MenuFieldInputCallback,
-    MenuInput,
-};
+export { type MenuInputJson, type MenuFieldInputCallback, MenuInput };

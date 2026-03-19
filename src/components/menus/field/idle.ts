@@ -1,4 +1,4 @@
-import { StyleIdle, StyleIdleJson } from '../../styles/idle';
+import { StyleIdle, StyleIdleJson } from "../../styles/idle";
 
 // Backward-compatible aliases
 type MenuFieldConfigIdleJson = StyleIdleJson;

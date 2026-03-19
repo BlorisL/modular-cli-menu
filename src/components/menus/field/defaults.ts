@@ -1,4 +1,4 @@
-import { MenuField } from '.';
+import { MenuField } from ".";
 
 type MenuFieldConfigDefaultsJson = {
     values?: string[];
@@ -11,21 +11,28 @@ type MenuFieldConfigDefaultsJson = {
 };
 
 class MenuFieldConfigDefaults {
-    protected values: Exclude<MenuFieldConfigDefaultsJson['values'], undefined>;
-    protected callback?: MenuFieldConfigDefaultsJson['callback'];
+    protected values: Exclude<MenuFieldConfigDefaultsJson["values"], undefined>;
+    protected callback?: MenuFieldConfigDefaultsJson["callback"];
 
     constructor(
-        values?: MenuFieldConfigDefaultsJson['values'],
-        callback?: MenuFieldConfigDefaultsJson['callback']
+        values?: MenuFieldConfigDefaultsJson["values"],
+        callback?: MenuFieldConfigDefaultsJson["callback"]
     ) {
-        this.values   = values ?? [];
+        this.values = values ?? [];
         this.callback = callback;
     }
 
-    public getValues(): MenuFieldConfigDefaults['values'] { return this.values; }
-    public setValues(values: MenuFieldConfigDefaults['values']): this { this.values = values; return this; }
+    public getValues(): MenuFieldConfigDefaults["values"] {
+        return this.values;
+    }
+    public setValues(values: MenuFieldConfigDefaults["values"]): this {
+        this.values = values;
+        return this;
+    }
 
-    public getCallback(): MenuFieldConfigDefaults['callback'] | undefined { return this.callback; }
+    public getCallback(): MenuFieldConfigDefaults["callback"] | undefined {
+        return this.callback;
+    }
 }
 
 export { type MenuFieldConfigDefaultsJson, MenuFieldConfigDefaults };

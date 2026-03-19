@@ -1,6 +1,5 @@
 import { Plugins } from "./classes/plugin";
 
-
 const plugins = new Plugins([
     {
         name: "default",
@@ -8,8 +7,8 @@ const plugins = new Plugins([
             {
                 mode: "choices",
                 name: "main",
-                values: []
-            }
+                values: [],
+            },
         ],
         actions: [
             {
@@ -21,12 +20,12 @@ const plugins = new Plugins([
                 mode: "function",
                 name: "exit",
                 global: true,
-                callback: async () => {
-                    console.log('Exiting...');
+                callback: async (): Promise<void> => {
+                    console.log("Exiting...");
                     process.exit(0);
-                }
-            }
-        ]
+                },
+            },
+        ],
     },
     {
         name: "test",
@@ -35,27 +34,30 @@ const plugins = new Plugins([
                 mode: "choices",
                 name: "test1",
                 parents: ["main"],
-                values: ['a','b','c'],
+                values: ["a", "b", "c"],
             },
             {
                 mode: "choices",
                 name: "test2",
                 parents: ["test1"],
-                values: ['d','e','f'],
-            }
+                values: ["d", "e", "f"],
+            },
         ],
         actions: [
             //{
-//
+            //
             //}
-        ]
-    }
+        ],
+    },
 ]);
 
 //console.log(JSON.stringify(plugins.toObject()));
 
-plugins.print().then(() => {
-    //console.log('Done');
-}).catch(err => {
-    console.error('Error:', err);
-});
+plugins
+    .print()
+    .then(() => {
+        //console.log('Done');
+    })
+    .catch((err) => {
+        console.error("Error:", err);
+    });

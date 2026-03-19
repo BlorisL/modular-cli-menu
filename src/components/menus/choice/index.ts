@@ -1,22 +1,26 @@
-import { MenuJson } from '../menu';
-import { MenuField, MenuFieldChoicesModeJson, MenuFieldOptionJson, MenuFieldJsonValue } from '../field';
-import { MenuFieldConfigs, MenuFieldConfigsJson } from '../field/configs';
+import { MenuJson } from "../menu";
+import {
+    MenuField,
+    MenuFieldChoicesModeJson,
+    MenuFieldOptionJson,
+    MenuFieldJsonValue,
+} from "../field";
+import { MenuFieldConfigsJson } from "../field/configs";
 
-type MenuChoiceJson = Omit<MenuJson, 'type'> & {
-    type: 'choice';
-    values?: MenuFieldChoicesModeJson['values'];
+type MenuChoiceJson = Omit<MenuJson, "type"> & {
+    type: "choice";
+    values?: MenuFieldChoicesModeJson["values"];
     configs?: MenuFieldConfigsJson;
 };
 
 class MenuChoice extends MenuField {
-
     constructor(data: MenuChoiceJson) {
         super({
             ...data,
-            type: 'field',
+            type: "field",
             modes: {
                 choices: {
-                    values:  data.values,
+                    values: data.values,
                     configs: data.configs,
                 },
             },
@@ -25,35 +29,25 @@ class MenuChoice extends MenuField {
 
     public toJson(): MenuChoiceJson {
         const base = super.toJson();
-        const choicesValues = Object.values(this.resolveValues()).map(v => v.toJson());
+        const choicesValues = Object.values(this.resolveValues()).map((v) => v.toJson());
 
         return {
-            name:    base.name,
-            type:    'choice',
-            plugin:  base.plugin,
-            index:   base.index,
-            idle:    base.idle,
-            hover:   base.hover,
+            name: base.name,
+            type: "choice",
+            plugin: base.plugin,
+            index: base.index,
+            idle: base.idle,
+            hover: base.hover,
             selected: base.selected,
             parents: base.parents,
             question: base.question,
-            title:    base.title,
-            success:  base.success,
-            error:    base.error,
-            ...(choicesValues.length > 0 
-                ? { values: choicesValues as MenuFieldOptionJson[] } 
-                : {}
-            ),
-            ...(this.configs 
-                ? { configs: this.configs.toJson() } 
-                : {}
-            ),
+            title: base.title,
+            success: base.success,
+            error: base.error,
+            ...(choicesValues.length > 0 ? { values: choicesValues as MenuFieldOptionJson[] } : {}),
+            ...(this.configs ? { configs: this.configs.toJson() } : {}),
         };
     }
 }
 
-export {
-    type MenuChoiceJson,
-    type MenuFieldJsonValue,
-    MenuChoice,
-};
+export { type MenuChoiceJson, type MenuFieldJsonValue, MenuChoice };

@@ -7,14 +7,9 @@
             "request": "launch",
             "program": "${file}", // Debug the file actually opened
             "runtimeExecutable": "npx",
-            "runtimeArgs": [
-                "tsx"
-            ],
+            "runtimeArgs": ["tsx"],
             "console": "integratedTerminal",
-            "skipFiles": [
-                "<node_internals>/**",
-                "${workspaceFolder}/node_modules/**"
-            ]
+            "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
         }
     ]
 }

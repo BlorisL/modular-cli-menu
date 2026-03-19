@@ -32,34 +32,34 @@ export default tseslint.config(
             // ✅ ordine metodi nelle classi
             // constructor → metodi pubblici → metodi privati → static
             "@typescript-eslint/member-ordering": [
-                "warn",
+                "error",
                 {
                     default: [
-                        "static-field",
-                        "static-method",
                         "instance-field",
                         "constructor",
-                        "public-method",
-                        "protected-method",
+                        "static-field",
+                        "static-method",
                         "private-method",
+                        "protected-method",
+                        "public-method",
                     ],
                 },
             ],
 
             // ✅ TypeScript specifico
-            "@typescript-eslint/no-explicit-any": "warn",
-            "@typescript-eslint/explicit-function-return-type": "warn",
-            "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-            "@typescript-eslint/no-unused-expressions": "warn",
+            "@typescript-eslint/no-explicit-any": "error",
+            "@typescript-eslint/explicit-function-return-type": "error",
+            "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+            "@typescript-eslint/no-unused-expressions": "error",
 
             // ✅ Node.js buone pratiche
             "no-console": "warn",
-            //eqeqeq: "warn", // evita blocchi su casi non auto-fixabili
+            //eqeqeq: "error", // evita blocchi su casi non auto-fixabili
             "no-undef": "off",
             "no-control-regex": "warn",
-            "no-empty": "warn",
-            "no-case-declarations": "warn",
-            "no-useless-assignment": "warn",
+            "no-empty": "error",
+            "no-case-declarations": "error",
+            "no-useless-assignment": "error",
         },
     }
 );
