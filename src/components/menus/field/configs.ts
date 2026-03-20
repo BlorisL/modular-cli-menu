@@ -19,7 +19,7 @@ class MenuFieldConfigs {
     public setChoiceConfigs(data: MenuChoiceConfigs | MenuChoiceConfigsJson): this {
         this.choiceConfigs = data instanceof MenuChoiceConfigs
             ? data
-            : new MenuChoiceConfigs(data.defaults, data.idle, data.hover, data.selected, data.selectable);
+            : new MenuChoiceConfigs(data);
         return this;
     }
 

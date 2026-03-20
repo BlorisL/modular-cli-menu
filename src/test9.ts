@@ -10,17 +10,18 @@ cli.addPlugin({
         {
             name: "main",
             type: "choice",
-            idle: { color: "green" },
             values: [],
         },
         {
             name: "press-to-continue",
             type: "input",
             value: "",
-            clear: false,
-            fastSubmit: true,
-            callback: async ({ parent }): Promise<void> => {
-                await cli.run(parent ?? "main");
+            configs: {
+                clear: false,
+                fastSubmit: true,
+                callback: async ({ parent }): Promise<void> => {
+                    await cli.run(parent ?? "main");
+                },
             },
         },
     ],
@@ -34,7 +35,9 @@ cli.addPlugin({
         {
             name: "exit",
             type: "function",
-            idle: { color: "red", italic: true },
+            styles: { 
+                idle: { color: "red", italic: true } 
+            },
             callback: async (): Promise<void> => {
                 Cli.write("Exiting...", "red");
                 process.exit(0);
@@ -76,25 +79,25 @@ cli.addPlugin({
                 name: "language",
                 type: "choice",
                 global: true,
-                configs: {
-                    selectable: true,
-                    defaults: {
-                        values: [Translations.getDefaultLanguage()!],
-                        callback: async ({ values, menu, parent }): Promise<void> => {
-                            if (values.length > 0) {
-                                Translations.setCurrentLanguage(values[0]);
-                                Cli.write(
-                                    menu.getSuccessLabel(Translations.getSelectedLanguage()),
-                                    "green"
-                                );
-                                await cli.run("press-to-continue", parent);
-                            }
-                        },
-                    },
+                styles: {
                     selected: {
                         prefix: "#",
                         italic: true,
                         underline: true,
+                    },
+                },
+                configs: {
+                    selectable: true,
+                    defaultValues: [Translations.getDefaultLanguage()!],
+                    callback: async ({ values, menu, parent }): Promise<void> => {
+                        if (values.length > 0) {
+                            Translations.setCurrentLanguage(values[0]);
+                            Cli.write(
+                                menu.getSuccessLabel(Translations.getSelectedLanguage()),
+                                "green"
+                            );
+                            await cli.run("press-to-continue", parent);
+                        }
                     },
                 },
                 values: (data): MenuFieldJsonValue[] =>
@@ -272,25 +275,20 @@ cli.addPlugin({
                 name: "nickname",
                 type: "input",
                 parents: ["submenu1"],
-                validate: (value): boolean => value.trim().length > 0,
-                callback: async ({ menu, value, language, parent }): Promise<void> => {
-                    Cli.write(`${menu.getSuccessLabel(language)}: ${value}`, "green");
-                    await cli.run("press-to-continue", parent);
+                value: "test",
+                configs: {
+                    validate: (value): boolean => value.trim().length > 0,
+                    callback: async ({ menu, value, language, parent }): Promise<void> => {
+                        Cli.write(`${menu.getSuccessLabel(language)}: ${value}`, "green");
+                        await cli.run("press-to-continue", parent);
+                    },
                 },
             },
             {
                 name: "features",
                 type: "choice",
                 parents: ["submenu1"],
-                configs: {
-                    selectable: true,
-                    defaults: {
-                        values: ["notifications"],
-                        callback: async ({ values, menu, parent }): Promise<void> => {
-                            Cli.write(`${menu.getSuccessLabel()} ${values.join(", ")}`, "green");
-                            await cli.run("press-to-continue", parent);
-                        },
-                    },
+                styles: {
                     idle: {
                         prefix: "A ",
                         color: "blue",
@@ -302,6 +300,14 @@ cli.addPlugin({
                     selected: {
                         prefix: "C ",
                         color: "green",
+                    },
+                },
+                configs: {
+                    selectable: true,
+                    defaultValues: ["notifications"],
+                    callback: async ({ values, menu, parent }): Promise<void> => {
+                        Cli.write(`${menu.getSuccessLabel()} ${values.join(", ")}`, "green");
+                        await cli.run("press-to-continue", parent);
                     },
                 },
                 values: [
@@ -316,7 +322,7 @@ cli.addPlugin({
             {
                 name: "action1",
                 type: "function",
-                idle: { color: "blue" },
+                styles: { idle: { color: "blue" } },
                 callback: async (): Promise<void> => {
                     console.log("Action 1 executed");
                 },

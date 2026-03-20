@@ -6,7 +6,7 @@ import { appendFileSync, mkdirSync } from "fs";
 
 class Utility {
     protected static debugLog: string = "";
-    protected static defaultLanguage?: Language; // = 'en';
+    protected static defaultLanguage?: Language;
 
     // Choice defaults
     protected static defaultIdlePrefix?: string;
@@ -75,7 +75,7 @@ class Utility {
                 ? env.DEFAULT_CHOICE_HOVER_UNDERLINE === "true"
                 : undefined;
         Utility.defaultSelectedUnderline =
-            env.DEFAULT_CHOICE_SELECTED_UNDERLINE &&
+            env.DEFAULT_CHOICE_SELECTED_UNDERLINE && 
             env.DEFAULT_CHOICE_SELECTED_UNDERLINE.length > 0
                 ? env.DEFAULT_CHOICE_SELECTED_UNDERLINE === "true"
                 : undefined;
@@ -135,19 +135,19 @@ class Utility {
     }
 
     public static async pressAnyKey(message?: string): Promise<void> {
-        // Use the new `input` prompt to pause and let the user press Enter.
         try {
             const pause = new MenuInput({
                 name: "press-to-continue",
                 type: "input",
                 value: "",
-                placeholder: message,
-                clear: false,
+                configs: {
+                    placeholder: message,
+                    clear: false,
+                },
             });
 
             await pause.run();
         } catch {
-            // If prompt fails for any reason, fallback to a short delay so execution continues.
             await new Promise((resolve) => setTimeout(resolve, 300));
         }
     }

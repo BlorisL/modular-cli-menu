@@ -15,6 +15,7 @@ type MenuInputConfigsJson = {
 };
 
 class MenuInputConfigs {
+    protected value: string = "";
     protected placeholder: NonNullable<MenuInputConfigsJson["placeholder"]> = "";
     protected clear: NonNullable<MenuInputConfigsJson["clear"]> = true;
     protected fastSubmit: NonNullable<MenuInputConfigsJson["fastSubmit"]> = false;
@@ -32,6 +33,9 @@ class MenuInputConfigs {
             this.callback = data.callback;
         }
     }
+
+    public getValue(): string { return this.value; }
+    public setValue(v: string): this { this.value = v; return this; }
 
     public getPlaceholder(): MenuInputConfigsJson["placeholder"] { return this.placeholder; }
     public setPlaceholder(v: NonNullable<MenuInputConfigsJson["placeholder"]>): this { this.placeholder = v; return this; }
@@ -63,7 +67,7 @@ class MenuInputConfigs {
     }
 }
 
-export { 
-    type MenuInputConfigsJson, 
-    MenuInputConfigs 
+export {
+    type MenuInputConfigsJson,
+    MenuInputConfigs
 };
