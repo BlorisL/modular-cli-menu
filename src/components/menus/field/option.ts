@@ -273,17 +273,6 @@ class MenuFieldOption {
         return Utility.write(`${prefix}${translation}`, color);
     }
 
-    /**
-     * Returns the plain translated label without any chalk styling.
-     * Used by the prompt layer which handles styling via ChoiceStyle.
-     */
-    public getPlainTranslationLabel(language?: Language): string {
-        return (
-            this.getItem()?.getTitleLabel(language) ??
-            Translations.getTranslation(this.getLabel() ?? this.getValue(), language)
-        );
-    }
-
     public toJson(): MenuFieldOptionJson {
         return {
             value: this.getValue(),

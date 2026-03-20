@@ -1,16 +1,11 @@
 import { MenuJson } from "../menu";
-import {
-    MenuField,
-    MenuFieldChoicesModeJson,
-    MenuFieldOptionJson,
-    MenuFieldJsonValue,
-} from "../field";
-import { MenuFieldConfigsJson } from "../field/configs";
+import { MenuField, MenuFieldJson, MenuFieldJsonValue, MenuFieldOptionJson } from "../field";
+import { MenuChoiceConfigs, MenuChoiceConfigsJson } from "./config";
 
 type MenuChoiceJson = Omit<MenuJson, "type"> & {
     type: "choice";
-    values?: MenuFieldChoicesModeJson["values"];
-    configs?: MenuFieldConfigsJson;
+    values?: Array<MenuFieldJsonValue> | ((data: { menu: MenuField }) => Array<MenuFieldJsonValue>);
+    configs?: MenuChoiceConfigsJson;
 };
 
 class MenuChoice extends MenuField {
@@ -18,20 +13,15 @@ class MenuChoice extends MenuField {
         super({
             ...data,
             type: "field",
-            modes: {
-                choices: {
-                    values: data.values,
-                    configs: data.configs,
-                },
-            },
+            configs: data.configs ? { choice: data.configs } : undefined,
         });
     }
 
-    public toJson(): MenuChoiceJson {
+    public toJson(): MenuFieldJson {
         const base = super.toJson();
-        const choicesValues = Object.values(this.resolveValues()).map((v) => v.toJson());
+        const choiceCfg = this.configs.getChoiceConfigs();
 
-        return {
+        const result: MenuChoiceJson = {
             name: base.name,
             type: "choice",
             plugin: base.plugin,
@@ -44,10 +34,17 @@ class MenuChoice extends MenuField {
             title: base.title,
             success: base.success,
             error: base.error,
-            ...(choicesValues.length > 0 ? { values: choicesValues as MenuFieldOptionJson[] } : {}),
-            ...(this.configs ? { configs: this.configs.toJson() } : {}),
+            ...(base.values && base.values.length > 0 ? { values: base.values as MenuFieldOptionJson[] } : {}),
+            ...(choiceCfg ? { configs: choiceCfg.toJson() } : {}),
         };
+
+        return result as unknown as MenuFieldJson;
     }
 }
 
-export { type MenuChoiceJson, type MenuFieldJsonValue, MenuChoice };
+export {
+    type MenuChoiceJson,
+    type MenuChoiceConfigsJson,
+    MenuChoice,
+    MenuChoiceConfigs,
+};

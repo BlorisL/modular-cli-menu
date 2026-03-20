@@ -455,12 +455,12 @@ for (const def of inputMenuDefs) {
 
     if (def.value !== undefined) {
         assert(
-            (instance as MenuInput).getInputValue() === def.value,
+            ((instance as MenuInput).getValue()?.getLabel() ?? "") === def.value,
             `"${def.name}".value === "${def.value}"`,
-            `trovato: ${(instance as MenuInput).getInputValue()}`
+            `trovato: ${(instance as MenuInput).getValue()?.getLabel() ?? ""}`
         );
     } else {
-        assert((instance as MenuInput).getInputValue() === "", `"${def.name}".value inizia vuoto`);
+        assert(((instance as MenuInput).getValue()?.getLabel() ?? "") === "", `"${def.name}".value inizia vuoto`);
     }
 
     if (def.placeholder !== undefined) {
@@ -501,7 +501,7 @@ section("SUITE 13 — Configurazioni Idle/Hover/Selected");
     assert(langMenu!.isConfigSelected(), "language ha config selected");
 
     // Check idle config values
-    const idleCfg = langMenu!.getConfigs()?.getIdle();
+    const idleCfg = langMenu!.getChoiceConfigs()?.getIdle();
     assert(
         idleCfg?.getColor() === "yellow",
         'language idle.color === "yellow"',
@@ -509,7 +509,7 @@ section("SUITE 13 — Configurazioni Idle/Hover/Selected");
     );
 
     // Check hover config values
-    const hoverCfg = langMenu!.getConfigs()?.getHover();
+    const hoverCfg = langMenu!.getChoiceConfigs()?.getHover();
     assert(
         hoverCfg?.getPrefix() === "☆",
         'language hover.prefix === "☆"',
@@ -522,7 +522,7 @@ section("SUITE 13 — Configurazioni Idle/Hover/Selected");
     );
 
     // Check selected config values
-    const selectedCfg = langMenu!.getConfigs()?.getSelected();
+    const selectedCfg = langMenu!.getChoiceConfigs()?.getSelected();
     assert(
         selectedCfg?.getPrefix() === "#",
         'language selected.prefix === "#"',

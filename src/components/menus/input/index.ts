@@ -1,29 +1,22 @@
 import { MenuJson } from "../menu";
-import { MenuField, MenuFieldInputModeJson, MenuFieldInputCallback } from "../field";
-
-// ── JSON
+import { MenuField, MenuFieldOption } from "../field";
+import { MenuInputConfigs, MenuInputConfigsJson } from "./config";
 
 type MenuInputJson = Omit<MenuJson, "type"> & {
     type: "input";
-    value?: MenuFieldInputModeJson["value"];
-    placeholder?: MenuFieldInputModeJson["placeholder"];
-    clear?: MenuFieldInputModeJson["clear"];
-    fastSubmit?: MenuFieldInputModeJson["fastSubmit"];
-    inline?: MenuFieldInputModeJson["inline"];
-    validate?: MenuFieldInputModeJson["validate"];
-    callback?: MenuFieldInputCallback;
-};
-
-// ── Class
+    value?: string;
+} & MenuInputConfigsJson;
 
 class MenuInput extends MenuField {
     constructor(data: MenuInputJson) {
         super({
             ...data,
             type: "field",
-            modes: {
+            values: data.value !== undefined && data.value !== ""
+                ? [{ value: "", label: data.value }]
+                : undefined,
+            configs: {
                 input: {
-                    value: data.value,
                     placeholder: data.placeholder,
                     clear: data.clear,
                     fastSubmit: data.fastSubmit,
@@ -35,8 +28,22 @@ class MenuInput extends MenuField {
         });
     }
 
+    /**
+     * Returns the current input value.
+     * MenuInput always stores its value as values[""] — this override
+     * ignores any key and always returns that single element.
+     */
+    public getValue(): MenuFieldOption | undefined {
+        return this.resolveValues()[""];
+    }
+
+    public getPlaceholder(): string { return this.configs.getInputConfigs()?.getPlaceholder() ?? ""; }
+    public getValidate(): MenuInputConfigsJson["validate"] { return this.configs.getInputConfigs()?.getValidate(); }
+    public getCallback(): MenuInputConfigsJson["callback"] { return this.configs.getInputConfigs()?.getCallback(); }
+
     public toJson(): MenuInputJson {
         const base = super.toJson();
+        const cfgJson = this.configs.getInputConfigs()?.toJson() ?? {};
 
         return {
             name: base.name,
@@ -51,15 +58,15 @@ class MenuInput extends MenuField {
             title: base.title,
             success: base.success,
             error: base.error,
-            value: this.inputValue || undefined,
-            placeholder: this.placeholder || undefined,
-            clear: this.clear,
-            fastSubmit: this.fastSubmit || undefined,
-            inline: this.inline || undefined,
-            validate: this.validate || undefined,
-            callback: this.inputCallback || undefined,
+            value: this.getValue()?.getLabel() || undefined,
+            ...cfgJson,
         };
     }
 }
 
-export { type MenuInputJson, type MenuFieldInputCallback, MenuInput };
+export {
+    type MenuInputJson,
+    type MenuInputConfigsJson,
+    MenuInput,
+    MenuInputConfigs,
+};

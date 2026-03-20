@@ -3,68 +3,38 @@ import { Action } from "../../actions";
 import { Language, Translations } from "../../translations";
 import { Utility } from "../../utility";
 import { prompt, Choice, Separator } from "@/prompts/Prompt";
-import { MenuFieldConfigs, MenuFieldConfigsJson } from "./configs";
 import { MenuFieldOption, MenuFieldOptionJson } from "./option";
+import { MenuFieldConfigs, MenuFieldConfigsJson } from "./configs";
+import { MenuChoiceConfigs } from "../choice/config";
+import { MenuInputConfigs } from "../input/config";
 
-// Mode JSON types
+// ── JSON types
 
 type MenuFieldJsonValue = string | MenuFieldOptionJson;
 
-type MenuFieldChoicesModeJson = {
+type MenuFieldJson = Omit<MenuJson, "type"> & {
+    type: "field";
     values?: Array<MenuFieldJsonValue> | ((data: { menu: MenuField }) => Array<MenuFieldJsonValue>);
     configs?: MenuFieldConfigsJson;
 };
 
-type MenuFieldInputModeJson = {
-    value?: string;
-    placeholder?: string;
-    clear?: boolean;
-    fastSubmit?: boolean;
-    inline?: boolean;
-    validate?: (value: string) => boolean | string;
-    callback?: MenuFieldInputCallback;
-};
+// ── Internal types
 
-// Main JSON type
+type MenuFieldValuesMap = Record<string, MenuFieldOption>;
+type MenuFieldValuesFn = (data: { menu: MenuField }) => Array<MenuFieldJsonValue>;
+type MenuFieldValuesResolvedFn = (data: { menu: MenuField }) => MenuFieldValuesMap;
 
-type MenuFieldJson = MenuJson & {
-    modes?: {
-        choices?: MenuFieldChoicesModeJson;
-        input?: MenuFieldInputModeJson;
-    };
-};
-
-// Callback type
-
-type MenuFieldInputCallback = (data: {
-    menu: MenuField;
-    value: string;
-    language?: Language;
-    parent?: string;
-}) => Promise<void>;
-
-// Values map
-
-type MenuFieldValues = Record<string, MenuFieldOption>;
-
-// MenuField
+// ── MenuField
 
 class MenuField extends Menu {
     protected type: MenuFieldJson["type"] = "field";
 
-    // choices mode
-    protected values: MenuFieldValues | ((data: { menu: MenuField }) => MenuFieldValues) = {};
+    // shared state
+    protected values: MenuFieldValuesMap | MenuFieldValuesResolvedFn = {};
     protected selectedValues: string[] = [];
-    protected configs?: MenuFieldConfigs;
 
-    // input mode
-    protected inputValue: string = "";
-    protected placeholder: string = "";
-    protected clear: boolean = true;
-    protected fastSubmit: boolean = false;
-    protected inline: boolean = false;
-    protected validate?: (value: string) => boolean | string;
-    protected inputCallback?: MenuFieldInputCallback;
+    // single config container
+    protected configs: MenuFieldConfigs = new MenuFieldConfigs();
 
     // runtime
     protected globalChoices: (Choice | Separator)[] = [];
@@ -73,22 +43,20 @@ class MenuField extends Menu {
     constructor(data: MenuFieldJson) {
         super(data);
 
-        const choicesMode = data.modes?.choices;
-        const inputMode = data.modes?.input;
+        // ── configs
+        if (data.configs) {
+            this.configs = new MenuFieldConfigs(data.configs);
+        }
+        this.setSelectedValues(this.configs.getChoiceConfigs()?.getDefaults()?.getValues() ?? []);
 
-        // ── choices mode setup
-        this.setConfigs(choicesMode?.configs);
-        this.setSelectedValues(this.getConfigs()?.getDefaults()?.getValues() ?? []);
-
-        if (choicesMode?.values) {
-            if (Array.isArray(choicesMode.values)) {
-                choicesMode.values.forEach((v) => this.addValue(v));
+        // ── choice values
+        if (data.values) {
+            if (Array.isArray(data.values)) {
+                data.values.forEach((v) => this.addValue(v));
             } else {
-                const sourceFn = choicesMode.values as (data: {
-                    menu: MenuField;
-                }) => Array<MenuFieldJsonValue>;
-                this.values = ({ menu }: { menu: MenuField }): MenuFieldValues => {
-                    const result: MenuFieldValues = {};
+                const sourceFn = data.values as MenuFieldValuesFn;
+                this.values = ({ menu }: { menu: MenuField }): MenuFieldValuesMap => {
+                    const result: MenuFieldValuesMap = {};
                     sourceFn({ menu }).forEach((v: MenuFieldJsonValue) => {
                         let name: string | undefined;
                         let option: MenuFieldOption | undefined;
@@ -97,15 +65,7 @@ class MenuField extends Menu {
                             option = new MenuFieldOption(v);
                         } else if (typeof v === "object") {
                             name = v.value;
-                            option = new MenuFieldOption(
-                                v.value,
-                                v.label,
-                                v.multi,
-                                //v.color,
-                                v.idle,
-                                v.hover,
-                                v.selected
-                            );
+                            option = new MenuFieldOption(v.value, v.label, v.multi, v.idle, v.hover, v.selected);
                         }
                         if (name && option) {
                             menu.applyOptionStyles(option);
@@ -117,20 +77,14 @@ class MenuField extends Menu {
             }
         }
 
-        // ── input mode setup
-        if (inputMode) {
-            this.inputValue = inputMode.value ?? "";
-            this.placeholder = inputMode.placeholder ?? "";
-            this.clear = inputMode.clear ?? true;
-            this.fastSubmit = inputMode.fastSubmit ?? false;
-            this.inline = inputMode.inline ?? false;
-            this.validate = inputMode.validate;
-            this.inputCallback = inputMode.callback;
-        }
     }
 
-    protected resolveValues(): MenuFieldValues {
-        return typeof this.values === "function" ? this.values({ menu: this }) : this.values;
+    // ── internals
+
+    protected resolveValues(): MenuFieldValuesMap {
+        return typeof this.values === "function"
+            ? (this.values as MenuFieldValuesResolvedFn)({ menu: this })
+            : this.values;
     }
 
     protected sortValues(): MenuFieldOption[] {
@@ -140,54 +94,32 @@ class MenuField extends Menu {
             const aGlobal = aItem?.isGlobal() ?? false;
             const bGlobal = bItem?.isGlobal() ?? false;
 
-            if (aGlobal && !bGlobal) {
-                return 1;
-            }
-            if (!aGlobal && bGlobal) {
-                return -1;
-            }
+            if (aGlobal && !bGlobal) return 1;
+            if (!aGlobal && bGlobal) return -1;
 
             if (aGlobal && bGlobal) {
                 const aIdx = aItem?.getIndex() ?? Infinity;
                 const bIdx = bItem?.getIndex() ?? Infinity;
                 const aRes = aIdx < 0;
                 const bRes = bIdx < 0;
-                if (aRes && !bRes) {
-                    return 1;
-                }
-                if (!aRes && bRes) {
-                    return -1;
-                }
-                if (aRes && bRes) {
-                    return bIdx - aIdx;
-                }
-                if (aIdx !== bIdx) {
-                    return aIdx - bIdx;
-                }
+                if (aRes && !bRes) return 1;
+                if (!aRes && bRes) return -1;
+                if (aRes && bRes) return bIdx - aIdx;
+                if (aIdx !== bIdx) return aIdx - bIdx;
                 const aAct = aItem instanceof Action;
                 const bAct = bItem instanceof Action;
-                if (aAct && !bAct) {
-                    return -1;
-                }
-                if (!aAct && bAct) {
-                    return 1;
-                }
+                if (aAct && !bAct) return -1;
+                if (!aAct && bAct) return 1;
                 return aItem!.getName().localeCompare(bItem!.getName());
             }
 
             const aIdx = aItem ? (aItem.getIndex() ?? Infinity) : Infinity;
             const bIdx = bItem ? (bItem.getIndex() ?? Infinity) : Infinity;
-            if (aIdx !== bIdx) {
-                return aIdx - bIdx;
-            }
+            if (aIdx !== bIdx) return aIdx - bIdx;
             const aAct = aItem instanceof Action;
             const bAct = bItem instanceof Action;
-            if (aAct && !bAct) {
-                return -1;
-            }
-            if (!aAct && bAct) {
-                return 1;
-            }
+            if (aAct && !bAct) return -1;
+            if (!aAct && bAct) return 1;
             const aName = aItem ? aItem.getName() : a.getValue();
             const bName = bItem ? bItem.getName() : b.getValue();
             return aName.localeCompare(bName);
@@ -195,126 +127,89 @@ class MenuField extends Menu {
     }
 
     /**
-     * Applies layered styling to an option:
-     *   1. env defaults (.env / .env.local)
-     *   2. menu-level configs (overrides env)
-     *   3. per-option configs (already on the option, win over everything)
-     *   4. if hover/selected PREFIX is still missing, fallback to idle prefix
-     * Globals receive a blank idle prefix (no selection marker) but still
-     * inherit hover/selected styles so the cursor highlight renders correctly.
+     * Applies layered styling to an option.
+     * Normal items  → per-option > menu config > env default
+     * Global items  → per-option > env default only (menu config always skipped)
      */
     protected applyOptionStyles(option: MenuFieldOption): void {
         const isGlobal = option.getItem()?.isGlobal() ?? false;
+        const cfg = this.configs.getChoiceConfigs();
 
-        // Idle prefix: globals use a blank spacer (no selection marker),
-        // normals resolve from per-option > menu config > env.
+        // ── Idle
         const idlePrefix = isGlobal
-            ? " "
-            : (option.getIdlePrefix() ??
-              this.getConfigs()?.getIdle()?.getPrefix() ??
-              Utility.getDefaultIdlePrefix());
-        const idleColor =
-            option.getIdleColor() ??
-            this.getConfigs()?.getIdle()?.getColor() ??
-            Utility.getDefaultIdleColor();
-        const idleUnderline =
-            option.isIdleUnderline() ??
-            this.getConfigs()?.getIdle()?.isUnderline() ??
-            Utility.getDefaultIdleUnderline();
-        const idleItalic = option.isIdleItalic() ?? this.getConfigs()?.getIdle()?.isItalic();
+            ? (option.getIdlePrefix() ?? Utility.getDefaultIdlePrefix())
+            : (option.getIdlePrefix() ?? cfg?.getIdle()?.getPrefix() ?? Utility.getDefaultIdlePrefix());
+        const idleColor = isGlobal
+            ? (option.getIdleColor() ?? Utility.getDefaultIdleColor())
+            : (option.getIdleColor() ?? cfg?.getIdle()?.getColor() ?? Utility.getDefaultIdleColor());
+        const idleUnderline = isGlobal
+            ? (option.isIdleUnderline() ?? Utility.getDefaultIdleUnderline())
+            : (option.isIdleUnderline() ?? cfg?.getIdle()?.isUnderline() ?? Utility.getDefaultIdleUnderline());
+        const idleItalic = isGlobal
+            ? option.isIdleItalic()
+            : (option.isIdleItalic() ?? cfg?.getIdle()?.isItalic());
 
-        if (idlePrefix) {
-            option.setIdlePrefix(idlePrefix);
-        }
-        if (idleColor) {
-            option.setIdleColor(idleColor);
-        }
-        if (idleUnderline !== undefined) {
-            option.setIdleUnderline(idleUnderline);
-        }
-        if (idleItalic !== undefined) {
-            option.setIdleItalic(idleItalic);
-        }
+        option.setIdlePrefix(idlePrefix);
+        option.setIdleColor(idleColor);
+        if (idleUnderline !== undefined) option.setIdleUnderline(idleUnderline);
+        if (idleItalic !== undefined) option.setIdleItalic(idleItalic);
 
-        // Hover: per-option > menu config > env > fallback to idle prefix
-        const hoverPrefix =
-            option.getHoverPrefix() ??
-            this.getConfigs()?.getHover()?.getPrefix() ??
-            Utility.getDefaultHoverPrefix() ??
-            idlePrefix;
-        const hoverColor =
-            option.getHoverColor() ??
-            this.getConfigs()?.getHover()?.getColor() ??
-            Utility.getDefaultHoverColor() ??
-            idleColor;
-        const hoverUnderline =
-            option.isHoverUnderline() ??
-            this.getConfigs()?.getHover()?.isUnderline() ??
-            Utility.getDefaultHoverUnderline();
-        const hoverItalic = option.isHoverItalic() ?? this.getConfigs()?.getHover()?.isItalic();
+        // ── Hover
+        const hoverPrefix = isGlobal
+            ? (option.getHoverPrefix() ?? Utility.getDefaultHoverPrefix() ?? idlePrefix)
+            : (option.getHoverPrefix() ?? cfg?.getHover()?.getPrefix() ?? Utility.getDefaultHoverPrefix() ?? idlePrefix);
+        const hoverColor = isGlobal
+            ? (option.getHoverColor() ?? Utility.getDefaultHoverColor() ?? idleColor)
+            : (option.getHoverColor() ?? cfg?.getHover()?.getColor() ?? Utility.getDefaultHoverColor() ?? idleColor);
+        const hoverUnderline = isGlobal
+            ? (option.isHoverUnderline() ?? Utility.getDefaultHoverUnderline())
+            : (option.isHoverUnderline() ?? cfg?.getHover()?.isUnderline() ?? Utility.getDefaultHoverUnderline());
+        const hoverItalic = isGlobal
+            ? option.isHoverItalic()
+            : (option.isHoverItalic() ?? cfg?.getHover()?.isItalic());
 
-        if (hoverPrefix) {
-            option.setHoverPrefix(hoverPrefix);
-        }
-        if (hoverColor) {
-            option.setHoverColor(hoverColor);
-        }
-        if (hoverUnderline !== undefined) {
-            option.setHoverUnderline(hoverUnderline);
-        }
-        if (hoverItalic !== undefined) {
-            option.setHoverItalic(hoverItalic);
-        }
+        option.setHoverPrefix(hoverPrefix);
+        option.setHoverColor(hoverColor);
+        if (hoverUnderline !== undefined) option.setHoverUnderline(hoverUnderline);
+        if (hoverItalic !== undefined) option.setHoverItalic(hoverItalic);
 
-        // Selected: per-option > menu config > env > fallback to idle prefix
-        const selectedPrefix =
-            option.getSelectedPrefix() ??
-            this.getConfigs()?.getSelected()?.getPrefix() ??
-            Utility.getDefaultSelectedPrefix() ??
-            idlePrefix;
-        const selectedColor =
-            option.getSelectedColor() ??
-            this.getConfigs()?.getSelected()?.getColor() ??
-            Utility.getDefaultSelectedColor() ??
-            idleColor;
-        const selectedUnderline =
-            option.isSelectedUnderline() ??
-            this.getConfigs()?.getSelected()?.isUnderline() ??
-            Utility.getDefaultSelectedUnderline();
-        const selectedItalic =
-            option.isSelectedItalic() ?? this.getConfigs()?.getSelected()?.isItalic();
+        // ── Selected
+        const selectedPrefix = isGlobal
+            ? (option.getSelectedPrefix() ?? Utility.getDefaultSelectedPrefix() ?? idlePrefix)
+            : (option.getSelectedPrefix() ?? cfg?.getSelected()?.getPrefix() ?? Utility.getDefaultSelectedPrefix() ?? idlePrefix);
+        const selectedColor = isGlobal
+            ? (option.getSelectedColor() ?? Utility.getDefaultSelectedColor() ?? idleColor)
+            : (option.getSelectedColor() ?? cfg?.getSelected()?.getColor() ?? Utility.getDefaultSelectedColor() ?? idleColor);
+        const selectedUnderline = isGlobal
+            ? (option.isSelectedUnderline() ?? Utility.getDefaultSelectedUnderline())
+            : (option.isSelectedUnderline() ?? cfg?.getSelected()?.isUnderline() ?? Utility.getDefaultSelectedUnderline());
+        const selectedItalic = isGlobal
+            ? option.isSelectedItalic()
+            : (option.isSelectedItalic() ?? cfg?.getSelected()?.isItalic());
 
-        if (selectedPrefix) {
-            option.setSelectedPrefix(selectedPrefix);
-        }
-        if (selectedColor) {
-            option.setSelectedColor(selectedColor);
-        }
-        if (selectedUnderline !== undefined) {
-            option.setSelectedUnderline(selectedUnderline);
-        }
-        if (selectedItalic !== undefined) {
-            option.setSelectedItalic(selectedItalic);
-        }
+        option.setSelectedPrefix(selectedPrefix);
+        option.setSelectedColor(selectedColor);
+        if (selectedUnderline !== undefined) option.setSelectedUnderline(selectedUnderline);
+        if (selectedItalic !== undefined) option.setSelectedItalic(selectedItalic);
     }
 
     // ── mode helpers
 
     public hasChoices(): boolean {
-        const resolved =
-            typeof this.values === "function" ? this.values({ menu: this }) : this.values;
+        const resolved = typeof this.values === "function"
+            ? (this.values as MenuFieldValuesResolvedFn)({ menu: this })
+            : this.values;
         return Object.keys(resolved).length > 0;
     }
 
     public hasInput(): boolean {
-        return this.inputCallback !== undefined || this.validate !== undefined || this.fastSubmit;
+        const ic = this.configs.getInputConfigs();
+        return !!(ic?.getCallback() || ic?.getValidate() || ic?.isFastSubmit());
     }
 
-    // ── choices API
+    // ── values API
 
-    public getValues(): MenuFieldOption[] {
-        return this.sortValues();
-    }
+    public getValues(): MenuFieldOption[] { return this.sortValues(); }
 
     public getValue(name: string): MenuFieldOption | undefined {
         return this.resolveValues()[name];
@@ -322,7 +217,7 @@ class MenuField extends Menu {
 
     public setValue(name: string, value: MenuFieldOption): this {
         if (typeof this.values === "function") {
-            const vals = this.values({ menu: this });
+            const vals = (this.values as MenuFieldValuesResolvedFn)({ menu: this });
             vals[name] = value;
             this.values = vals;
         } else {
@@ -337,14 +232,7 @@ class MenuField extends Menu {
 
         if (value instanceof Menu || value instanceof Action) {
             name = value.getName();
-            option = new MenuFieldOption(
-                value,
-                value.getName(),
-                false,
-                value.getIdle()?.toJson(),
-                value.getHover()?.toJson(),
-                value.getSelected()?.toJson()
-            );
+            option = new MenuFieldOption(value, value.getName(), false, value.getIdle()?.toJson(), value.getHover()?.toJson(), value.getSelected()?.toJson());
         } else if (value instanceof MenuFieldOption) {
             name = value.getValue();
             option = value;
@@ -353,15 +241,7 @@ class MenuField extends Menu {
             option = new MenuFieldOption(value);
         } else if (typeof value === "object") {
             name = value.value;
-            option = new MenuFieldOption(
-                value.value,
-                value.label,
-                value.multi,
-                //value.color,
-                value.idle,
-                value.hover,
-                value.selected
-            );
+            option = new MenuFieldOption(value.value, value.label, value.multi, value.idle, value.hover, value.selected);
         }
 
         if (name && option) {
@@ -372,185 +252,81 @@ class MenuField extends Menu {
         return this;
     }
 
-    public getConfigs(): MenuFieldConfigs | undefined {
-        return this.configs;
-    }
-    public setConfigs(data?: MenuFieldConfigs | MenuFieldConfigsJson): this {
-        if (data instanceof MenuFieldConfigs) {
-            this.configs = new MenuFieldConfigs(
-                data.getDefaults(),
-                data.getIdle(),
-                data.getHover(),
-                data.getSelected(),
-                data.isSelectable()
-            );
-        } else if (typeof data === "object") {
-            this.configs = new MenuFieldConfigs(
-                data.defaults,
-                data.idle,
-                data.hover,
-                data.selected,
-                data.selectable
-            );
-        }
-        return this;
-    }
+    // ── selected values API
 
-    public isConfigDefaults(): boolean {
-        return !!this.configs?.getDefaults();
-    }
-    public isConfigIdle(): boolean {
-        return !!this.configs?.getIdle();
-    }
-    public isConfigHover(): boolean {
-        return !!this.configs?.getHover();
-    }
-    public isConfigSelected(): boolean {
-        return !!this.configs?.getSelected();
-    }
-
-    public isDefaultValues(value: string): boolean {
-        return this.configs?.getDefaults()?.getValues().includes(value) ?? false;
-    }
-
-    public setSelectedValues(values: string[]): this {
-        this.selectedValues = values;
-        return this;
-    }
-    public getSelectedValues(): string[] {
-        return this.selectedValues;
-    }
+    public setSelectedValues(values: string[]): this { this.selectedValues = values; return this; }
+    public getSelectedValues(): string[] { return this.selectedValues; }
     public addSelectedValue(value: string): this {
-        if (!this.selectedValues.includes(value)) {
-            this.selectedValues.push(value);
-        }
+        if (!this.selectedValues.includes(value)) this.selectedValues.push(value);
         return this;
     }
     public delSelectedValue(value: string): this {
         this.selectedValues = this.selectedValues.filter((v) => v !== value);
         return this;
     }
-    public isSelectedValue(value: string): boolean {
-        return this.selectedValues.includes(value);
-    }
+    public isSelectedValue(value: string): boolean { return this.selectedValues.includes(value); }
 
-    // ── input API
+    // ── configs API
 
-    public getInputValue(): string {
-        return this.inputValue;
-    }
-    public setInputValue(v: string): this {
-        this.inputValue = v;
+    public getConfigs(): MenuFieldConfigs { return this.configs; }
+    public setConfigs(data: MenuFieldConfigs | MenuFieldConfigsJson): this {
+        this.configs = data instanceof MenuFieldConfigs ? data : new MenuFieldConfigs(data);
         return this;
     }
 
-    public getPlaceholder(): string {
-        return this.placeholder;
-    }
-    public setPlaceholder(v: string): this {
-        this.placeholder = v;
-        return this;
-    }
-
-    public isClear(): boolean {
-        return this.clear;
-    }
-    public setClear(v: boolean): this {
-        this.clear = v;
-        return this;
+    public isConfigDefaults(): boolean { return !!this.configs.getChoiceConfigs()?.getDefaults(); }
+    public isConfigIdle(): boolean { return !!this.configs.getChoiceConfigs()?.getIdle(); }
+    public isConfigHover(): boolean { return !!this.configs.getChoiceConfigs()?.getHover(); }
+    public isConfigSelected(): boolean { return !!this.configs.getChoiceConfigs()?.getSelected(); }
+    public isDefaultValues(value: string): boolean {
+        return this.configs.getChoiceConfigs()?.getDefaults()?.getValues().includes(value) ?? false;
     }
 
-    public isFastSubmit(): boolean {
-        return this.fastSubmit;
-    }
-    public setFastSubmit(v: boolean): this {
-        this.fastSubmit = v;
-        return this;
-    }
+    /** Shortcut for getConfigs().getChoiceConfigs() */
+    public getChoiceConfigs(): MenuChoiceConfigs | undefined { return this.configs.getChoiceConfigs(); }
+    /** Shortcut for getConfigs().getInputConfigs() */
+    public getInputConfigs(): MenuInputConfigs | undefined { return this.configs.getInputConfigs(); }
 
-    public isInline(): boolean {
-        return this.inline;
-    }
-    public setInline(v: boolean): this {
-        this.inline = v;
-        return this;
-    }
-
-    public getValidate(): MenuField["validate"] {
-        return this.validate;
-    }
-    public setValidate(v: MenuField["validate"]): this {
-        this.validate = v;
-        return this;
-    }
-
-    public getCallback(): MenuFieldInputCallback | undefined {
-        return this.inputCallback;
-    }
-    public setCallback(v: MenuFieldInputCallback | undefined): this {
-        this.inputCallback = v;
-        return this;
-    }
-
-    public getGlobalChoices(): (Choice | Separator)[] {
-        return this.globalChoices;
-    }
-    public setGlobalChoices(choices: (Choice | Separator)[]): this {
-        this.globalChoices = choices;
-        return this;
-    }
-
-    public getLastParent(): string | undefined {
-        return this.lastParent;
-    }
-    public setLastParent(parent: string): this {
-        this.lastParent = parent;
-        return this;
-    }
+    // ── placeholder label
 
     public getPlaceholderName(): string {
         return `${this.getPlugin() ?? "default"}.${this.getName()}.placeholder`;
     }
 
     public getPlaceholderLabel(language?: Language): string {
-        if (this.placeholder.length > 0) {
-            return Translations.getTranslation(this.placeholder, language) ?? this.placeholder;
+        const placeholder = this.configs.getInputConfigs()?.getPlaceholder() ?? "";
+        if (placeholder.length > 0) {
+            return Translations.getTranslation(placeholder, language) ?? placeholder;
         }
         const key = this.getPlaceholderName();
         const translated = Translations.getTranslation(key, language);
         return translated !== key ? translated : key;
     }
 
+    // ── global choices
+
+    public getGlobalChoices(): (Choice | Separator)[] { return this.globalChoices; }
+    public setGlobalChoices(choices: (Choice | Separator)[]): this { this.globalChoices = choices; return this; }
+
+    public getLastParent(): string | undefined { return this.lastParent; }
+    public setLastParent(parent: string): this { this.lastParent = parent; return this; }
+
     // ── toJson
 
     public toJson(): MenuFieldJson {
-        const choicesValues = Object.values(this.resolveValues()).map((v) => v.toJson());
-        const hasChoiceMode = choicesValues.length > 0 || !!this.configs;
-        const hasInputMode = !!(this.inputCallback || this.validate || this.fastSubmit);
+        const choicesValues = Object.values(this.resolveValues())
+            .filter((v) => v.getValue() !== "")
+            .map((v) => v.toJson());
+        const choiceCfg = this.configs.getChoiceConfigs();
+        const inputCfg = this.configs.getInputConfigs();
 
         return {
             ...super.toJson(),
             type: this.type,
-            modes: {
-                ...(hasChoiceMode
-                    ? {
-                          choices: {
-                              values: choicesValues,
-                          },
-                      }
-                    : {}),
-                ...(hasInputMode
-                    ? {
-                          input: {
-                              value: this.inputValue,
-                              placeholder: this.placeholder,
-                              clear: this.clear,
-                              fastSubmit: this.fastSubmit,
-                              inline: this.inline,
-                          },
-                      }
-                    : {}),
-            },
+            ...(choicesValues.length > 0 ? { values: choicesValues } : {}),
+            ...(choiceCfg || inputCfg
+                ? { configs: this.configs.toJson() }
+                : {}),
         };
     }
 
@@ -558,88 +334,45 @@ class MenuField extends Menu {
 
     public async run(language?: Language): Promise<string | string[]> {
         const hasChoicesSection = this.hasChoices() || this.globalChoices.length > 0;
-        const hasInputSection = !!(
-            this.inputCallback ||
-            this.validate ||
-            this.fastSubmit ||
-            this.placeholder
-        );
+        const inputCfg = this.configs.getInputConfigs();
+        const placeholder = inputCfg?.getPlaceholder() ?? "";
+        const hasInputSection = !!(inputCfg?.getCallback() || inputCfg?.getValidate() || inputCfg?.isFastSubmit() || placeholder);
 
-        if (hasInputSection && this.isClear()) {
+        if (hasInputSection && (inputCfg?.isClear() ?? true)) {
             console.clear();
         } else if (!hasInputSection) {
             console.clear();
         }
 
-        // Only track selection state when the menu explicitly opts in via selectable:true.
-        // This prevents the selected prefix/color from appearing on regular navigation menus.
-        const isSelectable = this.getConfigs()?.isSelectable() ?? false;
+        const isSelectable = this.configs.getChoiceConfigs()?.isSelectable() ?? false;
 
         // Build choices list
         const buildChoices = (): (Choice | Separator)[] => {
-            if (!hasChoicesSection) {
-                return [];
-            }
+            if (!hasChoicesSection) return [];
 
             const values = this.getValues();
             const globalIndex = values.findIndex((v) => v.getItem()?.isGlobal());
             const items: (MenuFieldOption | Separator)[] = [...values];
-            if (globalIndex >= 0) {
-                items.splice(globalIndex, 0, new Separator());
-            }
+            if (globalIndex >= 0) items.splice(globalIndex, 0, new Separator());
 
             const choiceList: (Choice | Separator)[] = items.map((item) => {
-                if (item instanceof Separator) {
-                    return item;
-                }
-                // Globals are never "selected" — they are navigation items, not choices.
-                const isSelected =
-                    isSelectable &&
-                    !item.getItem()?.isGlobal() &&
-                    this.isSelectedValue(item.getValue());
+                if (item instanceof Separator) return item;
+
+                const isSelected = isSelectable && !item.getItem()?.isGlobal() && this.isSelectedValue(item.getValue());
 
                 return {
                     value: item.getValue(),
-                    label: item.getPlainTranslationLabel(language),
+                    label:
+                        item.getItem()?.getTitleLabel(language) ??
+                        Translations.getTranslation(item.getLabel() ?? item.getValue(), language),
                     multi: item.isMulti(),
-                    //color: item.getColor(),
-                    ...(item.getIdle()
-                        ? {
-                              idle: {
-                                  prefix: item.getIdlePrefix(),
-                                  color: item.getIdleColor(),
-                                  underline: item.isIdleUnderline(),
-                                  italic: item.isIdleItalic(),
-                              },
-                          }
-                        : {}),
-                    ...(item.getHover()
-                        ? {
-                              hover: {
-                                  prefix: item.getHoverPrefix(),
-                                  color: item.getHoverColor(),
-                                  underline: item.isHoverUnderline(),
-                                  italic: item.isHoverItalic(),
-                              },
-                          }
-                        : {}),
-                    ...(item.getSelected()
-                        ? {
-                              selected: {
-                                  prefix: item.getSelectedPrefix(),
-                                  color: item.getSelectedColor(),
-                                  underline: item.isSelectedUnderline(),
-                                  italic: item.isSelectedItalic(),
-                                  active: isSelected,
-                              },
-                          }
-                        : {}),
+                    ...(item.getIdle() ? { idle: { prefix: item.getIdlePrefix(), color: item.getIdleColor(), underline: item.isIdleUnderline(), italic: item.isIdleItalic() } } : {}),
+                    ...(item.getHover() ? { hover: { prefix: item.getHoverPrefix(), color: item.getHoverColor(), underline: item.isHoverUnderline(), italic: item.isHoverItalic() } } : {}),
+                    ...(item.getSelected() ? { selected: { prefix: item.getSelectedPrefix(), color: item.getSelectedColor(), underline: item.isSelectedUnderline(), italic: item.isSelectedItalic(), active: isSelected } } : {}),
                 };
             });
 
-            if (this.globalChoices.length > 0) {
-                choiceList.push(...this.globalChoices);
-            }
+            if (this.globalChoices.length > 0) choiceList.push(...this.globalChoices);
             return choiceList;
         };
 
@@ -649,25 +382,19 @@ class MenuField extends Menu {
                 [
                     new Date().toISOString(),
                     `${this.getName()} - ${this.getQuestionLabel(language)}`,
-                    ...choiceList.map((c) =>
-                        c instanceof Separator ? c.separator : (c as Choice).label
-                    ),
+                    ...choiceList.map((c) => c instanceof Separator ? c.separator : (c as Choice).label),
                 ].join("\n") + "\n"
             );
         }
 
-        // Wrap validate to resolve translated error message
-        const translatedValidate = this.validate
+        const validate = inputCfg?.getValidate();
+        const translatedValidate = validate
             ? (value: string): boolean | string => {
-                  const res = this.validate!(value);
-                  if (res === true || res === undefined) {
-                      return true;
-                  }
+                  const res = validate(value);
+                  if (res === true || res === undefined) return true;
                   if (typeof res === "string" && res.length > 0) {
                       const asKey = Translations.getTranslation(res, language);
-                      if (asKey !== res) {
-                          return asKey;
-                      }
+                      if (asKey !== res) return asKey;
                   }
                   return this.getErrorLabel(language);
               }
@@ -678,33 +405,25 @@ class MenuField extends Menu {
             ...(hasInputSection
                 ? {
                       input: {
-                          value: this.inputValue,
+                          value: this.getValue("")?.getLabel() ?? "",
                           placeholder: this.getPlaceholderLabel(language),
-                          fastSubmit: this.fastSubmit,
-                          inline: this.inline,
+                          fastSubmit: inputCfg?.isFastSubmit() ?? false,
+                          inline: inputCfg?.isInline() ?? false,
                           validate: translatedValidate,
                       },
                   }
                 : {}),
             ...(hasChoicesSection ? { choices: choiceList } : {}),
-            ...(isSelectable && this.selectedValues.length > 0
-                ? { initialSelected: this.selectedValues }
-                : {}),
+            ...(isSelectable && this.selectedValues.length > 0 ? { initialSelected: this.selectedValues } : {}),
         });
 
-        // ── Handle result
-
         if (result.type === "input") {
-            this.inputValue = result.value;
-
-            Utility.log(
-                [
-                    new Date().toISOString(),
-                    `${this.getName()} - ${this.getQuestionLabel(language)}`,
-                    result.value,
-                ].join("\n") + "\n"
-            );
-
+            if (result.value !== "") {
+                (this.values as MenuFieldValuesMap)[""] = new MenuFieldOption("", result.value);
+            } else {
+                delete (this.values as MenuFieldValuesMap)[""];
+            }
+            Utility.log([new Date().toISOString(), `${this.getName()} - ${this.getQuestionLabel(language)}`, result.value].join("\n") + "\n");
             return result.value;
         }
 
@@ -717,13 +436,11 @@ class MenuField extends Menu {
         }
 
         // result.type === 'choices' (multi)
-        const nonActionSelected = result.values.filter((val) => {
+        const nonActionSelected = result.values.filter((val: string) => {
             const option = this.getValue(val);
             return option ? !(option.getItem() instanceof Action) : true;
         });
-        if (nonActionSelected.length > 0) {
-            this.setSelectedValues(nonActionSelected);
-        }
+        if (nonActionSelected.length > 0) this.setSelectedValues(nonActionSelected);
         return result.values;
     }
 }
@@ -732,9 +449,8 @@ export {
     type MenuFieldJson,
     type MenuFieldOptionJson,
     type MenuFieldJsonValue,
-    type MenuFieldChoicesModeJson,
-    type MenuFieldInputModeJson,
-    type MenuFieldInputCallback,
     MenuField,
     MenuFieldOption,
+    MenuFieldConfigs,
+    type MenuFieldConfigsJson,
 };
