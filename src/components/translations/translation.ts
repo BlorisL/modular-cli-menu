@@ -64,11 +64,7 @@ class Translations {
         });
         return this;
     }
-    public static addTranslation(
-        name: string,
-        language: keyof TranslationJson[string],
-        text: string
-    ): Translations {
+    public static addTranslation(name: string, language: keyof TranslationJson[string], text: string): Translations {
         if (!Translations.items[name]) {
             Translations.items[name] = {};
         }

@@ -35,8 +35,8 @@ cli.addPlugin({
         {
             name: "exit",
             type: "function",
-            styles: { 
-                idle: { color: "red", italic: true } 
+            styles: {
+                idle: { color: "red", italic: true },
             },
             callback: async (): Promise<void> => {
                 Cli.write("Exiting...", "red");
@@ -92,10 +92,7 @@ cli.addPlugin({
                     callback: async ({ values, menu, parent }): Promise<void> => {
                         if (values.length > 0) {
                             Translations.setCurrentLanguage(values[0]);
-                            Cli.write(
-                                menu.getSuccessLabel(Translations.getSelectedLanguage()),
-                                "green"
-                            );
+                            Cli.write(menu.getSuccessLabel(Translations.getSelectedLanguage()), "green");
                             await cli.run("press-to-continue", parent);
                         }
                     },

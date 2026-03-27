@@ -22,16 +22,19 @@ class MenuInput extends MenuField {
     }
 
     /** Returns the current input value. */
-    public getValue(): string { return this.getInputValue(); }
+    public getValue(): string {
+        return this.getInputValue();
+    }
 
-    public getPlaceholder(): string { return this.configs.getInputConfigs()?.getPlaceholder() ?? ""; }
-    public getValidate(): MenuInputConfigsJson["validate"] { return this.configs.getInputConfigs()?.getValidate(); }
-    public getCallback(): MenuInputConfigsJson["callback"] { return this.configs.getInputConfigs()?.getCallback(); }
+    public getPlaceholder(): string {
+        return this.configs.getInputConfigs()?.getPlaceholder() ?? "";
+    }
+    public getValidate(): MenuInputConfigsJson["validate"] {
+        return this.configs.getInputConfigs()?.getValidate();
+    }
+    public getCallback(): MenuInputConfigsJson["callback"] {
+        return this.configs.getInputConfigs()?.getCallback();
+    }
 }
 
-export {
-    type MenuInputJson,
-    type MenuInputConfigsJson,
-    MenuInput,
-    MenuInputConfigs,
-};
+export { type MenuInputJson, type MenuInputConfigsJson, MenuInput, MenuInputConfigs };

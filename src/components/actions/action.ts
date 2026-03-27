@@ -44,7 +44,12 @@ abstract class Action {
             ? new StyleHover(styles.hover.prefix, styles.hover.color, styles.hover.underline, styles.hover.italic)
             : undefined;
         this.selected = styles?.selected
-            ? new StyleSelected(styles.selected.prefix, styles.selected.color, styles.selected.underline, styles.selected.italic)
+            ? new StyleSelected(
+                  styles.selected.prefix,
+                  styles.selected.color,
+                  styles.selected.underline,
+                  styles.selected.italic
+              )
             : undefined;
 
         if (data.parents) {
@@ -52,42 +57,72 @@ abstract class Action {
         }
     }
 
-    public getName(): Action["name"] { return this.name; }
-    public getType(): Action["type"] { return this.type; }
+    public getName(): Action["name"] {
+        return this.name;
+    }
+    public getType(): Action["type"] {
+        return this.type;
+    }
 
-    public getPlugin(): Action["plugin"] | undefined { return this.plugin; }
-    public setPlugin(plugin: Action["plugin"]): this { this.plugin = plugin; return this; }
+    public getPlugin(): Action["plugin"] | undefined {
+        return this.plugin;
+    }
+    public setPlugin(plugin: Action["plugin"]): this {
+        this.plugin = plugin;
+        return this;
+    }
 
-    public getIndex(): Action["index"] | undefined { return this.index; }
-    public setIndex(index: Action["index"]): this { this.index = index; return this; }
+    public getIndex(): Action["index"] | undefined {
+        return this.index;
+    }
+    public setIndex(index: Action["index"]): this {
+        this.index = index;
+        return this;
+    }
 
-    public getParents(): Action["parents"][string][] { return Object.values(this.parents); }
-    public getParent(name: string): Action["parents"][string] | undefined { return this.parents[name]; }
-    public addParent(name: Action["parents"][string]): this { this.parents[name] = name; return this; }
+    public getParents(): Action["parents"][string][] {
+        return Object.values(this.parents);
+    }
+    public getParent(name: string): Action["parents"][string] | undefined {
+        return this.parents[name];
+    }
+    public addParent(name: Action["parents"][string]): this {
+        this.parents[name] = name;
+        return this;
+    }
 
-    public isGlobal(): Action["global"] { return this.global === true; }
+    public isGlobal(): Action["global"] {
+        return this.global === true;
+    }
 
-    public getIdle(): StyleIdle | undefined { return this.idle; }
+    public getIdle(): StyleIdle | undefined {
+        return this.idle;
+    }
     public setIdle(idle: StyleIdle | StyleIdleJson): this {
-        this.idle = idle instanceof StyleIdle
-            ? idle
-            : new StyleIdle(idle.prefix, idle.color, idle.underline, idle.italic);
+        this.idle =
+            idle instanceof StyleIdle ? idle : new StyleIdle(idle.prefix, idle.color, idle.underline, idle.italic);
         return this;
     }
 
-    public getHover(): StyleHover | undefined { return this.hover; }
+    public getHover(): StyleHover | undefined {
+        return this.hover;
+    }
     public setHover(hover: StyleHover | StyleHoverJson): this {
-        this.hover = hover instanceof StyleHover
-            ? hover
-            : new StyleHover(hover.prefix, hover.color, hover.underline, hover.italic);
+        this.hover =
+            hover instanceof StyleHover
+                ? hover
+                : new StyleHover(hover.prefix, hover.color, hover.underline, hover.italic);
         return this;
     }
 
-    public getSelected(): StyleSelected | undefined { return this.selected; }
+    public getSelected(): StyleSelected | undefined {
+        return this.selected;
+    }
     public setSelected(selected: StyleSelected | StyleSelectedJson): this {
-        this.selected = selected instanceof StyleSelected
-            ? selected
-            : new StyleSelected(selected.prefix, selected.color, selected.underline, selected.italic);
+        this.selected =
+            selected instanceof StyleSelected
+                ? selected
+                : new StyleSelected(selected.prefix, selected.color, selected.underline, selected.italic);
         return this;
     }
 

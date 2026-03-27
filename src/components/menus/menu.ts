@@ -56,7 +56,12 @@ abstract class Menu {
             ? new StyleHover(styles.hover.prefix, styles.hover.color, styles.hover.underline, styles.hover.italic)
             : undefined;
         this.selected = styles?.selected
-            ? new StyleSelected(styles.selected.prefix, styles.selected.color, styles.selected.underline, styles.selected.italic)
+            ? new StyleSelected(
+                  styles.selected.prefix,
+                  styles.selected.color,
+                  styles.selected.underline,
+                  styles.selected.italic
+              )
             : undefined;
 
         this.question = data.labels?.question;
@@ -69,43 +74,73 @@ abstract class Menu {
         }
     }
 
-    public getName(): Menu["name"] { return this.name; }
+    public getName(): Menu["name"] {
+        return this.name;
+    }
 
-    public getType(): Menu["type"] { return this.type; }
+    public getType(): Menu["type"] {
+        return this.type;
+    }
 
-    public getPlugin(): Menu["plugin"] | undefined { return this.plugin; }
-    public setPlugin(plugin: Menu["plugin"]): this { this.plugin = plugin; return this; }
+    public getPlugin(): Menu["plugin"] | undefined {
+        return this.plugin;
+    }
+    public setPlugin(plugin: Menu["plugin"]): this {
+        this.plugin = plugin;
+        return this;
+    }
 
-    public getIndex(): Menu["index"] | undefined { return this.index; }
-    public setIndex(index: Menu["index"]): this { this.index = index; return this; }
+    public getIndex(): Menu["index"] | undefined {
+        return this.index;
+    }
+    public setIndex(index: Menu["index"]): this {
+        this.index = index;
+        return this;
+    }
 
-    public getParents(): Menu["parents"][string][] { return Object.values(this.parents); }
-    public getParent(name: string): Menu["parents"][string] | undefined { return this.parents[name]; }
-    public addParent(name: Menu["parents"][string]): this { this.parents[name] = name; return this; }
+    public getParents(): Menu["parents"][string][] {
+        return Object.values(this.parents);
+    }
+    public getParent(name: string): Menu["parents"][string] | undefined {
+        return this.parents[name];
+    }
+    public addParent(name: Menu["parents"][string]): this {
+        this.parents[name] = name;
+        return this;
+    }
 
-    public isGlobal(): Menu["global"] { return this.global === true; }
+    public isGlobal(): Menu["global"] {
+        return this.global === true;
+    }
 
-    public getIdle(): StyleIdle | undefined { return this.idle; }
+    public getIdle(): StyleIdle | undefined {
+        return this.idle;
+    }
     public setIdle(idle: StyleIdle | StyleIdleJson): this {
-        this.idle = idle instanceof StyleIdle
-            ? idle
-            : new StyleIdle(idle.prefix, idle.color, idle.underline, idle.italic);
+        this.idle =
+            idle instanceof StyleIdle ? idle : new StyleIdle(idle.prefix, idle.color, idle.underline, idle.italic);
         return this;
     }
 
-    public getHover(): StyleHover | undefined { return this.hover; }
+    public getHover(): StyleHover | undefined {
+        return this.hover;
+    }
     public setHover(hover: StyleHover | StyleHoverJson): this {
-        this.hover = hover instanceof StyleHover
-            ? hover
-            : new StyleHover(hover.prefix, hover.color, hover.underline, hover.italic);
+        this.hover =
+            hover instanceof StyleHover
+                ? hover
+                : new StyleHover(hover.prefix, hover.color, hover.underline, hover.italic);
         return this;
     }
 
-    public getSelected(): StyleSelected | undefined { return this.selected; }
+    public getSelected(): StyleSelected | undefined {
+        return this.selected;
+    }
     public setSelected(selected: StyleSelected | StyleSelectedJson): this {
-        this.selected = selected instanceof StyleSelected
-            ? selected
-            : new StyleSelected(selected.prefix, selected.color, selected.underline, selected.italic);
+        this.selected =
+            selected instanceof StyleSelected
+                ? selected
+                : new StyleSelected(selected.prefix, selected.color, selected.underline, selected.italic);
         return this;
     }
 
@@ -115,11 +150,7 @@ abstract class Menu {
     public getQuestionLabel(language?: Language): string {
         const key = this.getQuestionName();
         const translated = Translations.getTranslation(key, language);
-        return translated !== key
-            ? translated
-            : this.question && this.question.length > 0
-              ? this.question
-              : key;
+        return translated !== key ? translated : this.question && this.question.length > 0 ? this.question : key;
     }
 
     public getTitleName(): string {
@@ -128,11 +159,7 @@ abstract class Menu {
     public getTitleLabel(language?: Language): string {
         const key = this.getTitleName();
         const translated = Translations.getTranslation(key, language);
-        return translated !== key
-            ? translated
-            : this.title && this.title.length > 0
-              ? this.title
-              : key;
+        return translated !== key ? translated : this.title && this.title.length > 0 ? this.title : key;
     }
 
     public getAnswerName(name: string): string {
@@ -150,11 +177,7 @@ abstract class Menu {
     public getSuccessLabel(language?: Language): string {
         const key = this.getSuccessName();
         const translated = Translations.getTranslation(key, language);
-        return translated !== key
-            ? translated
-            : this.success && this.success.length > 0
-              ? this.success
-              : key;
+        return translated !== key ? translated : this.success && this.success.length > 0 ? this.success : key;
     }
 
     public getErrorName(): string {
@@ -163,8 +186,12 @@ abstract class Menu {
     public getErrorLabel(language?: Language): string {
         const key = this.getErrorName();
         const translated = Translations.getTranslation(key, language);
-        if (translated !== key) return translated;
-        if (this.error && this.error.length > 0) return this.error;
+        if (translated !== key) {
+            return translated;
+        }
+        if (this.error && this.error.length > 0) {
+            return this.error;
+        }
         const generic = "default.input.error";
         const genericTranslated = Translations.getTranslation(generic, language);
         return genericTranslated !== generic ? genericTranslated : key;

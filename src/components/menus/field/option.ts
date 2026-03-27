@@ -39,19 +39,12 @@ class MenuFieldOption {
         this.label = label ?? (typeof value === "string" ? value : value.getName());
         this.multi = multi ?? false;
         //this.color  = color;
-        this.idle = idle
-            ? new MenuFieldConfigIdle(idle.prefix, idle.color, idle.underline, idle.italic)
-            : undefined;
+        this.idle = idle ? new MenuFieldConfigIdle(idle.prefix, idle.color, idle.underline, idle.italic) : undefined;
         this.hover = hover
             ? new MenuFieldConfigHover(hover.prefix, hover.color, hover.underline, hover.italic)
             : undefined;
         this.selected = selected
-            ? new MenuFieldConfigSelected(
-                  selected.prefix,
-                  selected.color,
-                  selected.underline,
-                  selected.italic
-              )
+            ? new MenuFieldConfigSelected(selected.prefix, selected.color, selected.underline, selected.italic)
             : undefined;
     }
 
@@ -229,11 +222,7 @@ class MenuFieldOption {
         return this;
     }
 
-    public getTranslationLabel(
-        isHover?: boolean,
-        isSelected?: boolean,
-        language?: Language
-    ): string {
+    public getTranslationLabel(isHover?: boolean, isSelected?: boolean, language?: Language): string {
         let prefix: string = "";
         let color: ColorName | undefined = undefined;
 

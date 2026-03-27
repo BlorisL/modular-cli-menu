@@ -1,18 +1,7 @@
 import { Cli } from "../components/cli";
 import { Translations } from "../components/translations";
-import {
-    MenuChoice,
-    MenuChoiceJson,
-    MenuInput,
-    MenuInputJson,
-    MenuField,
-} from "../components/menus";
-import {
-    ActionGoto,
-    ActionGotoJson,
-    ActionFunctionJson,
-    ActionFunction,
-} from "../components/actions";
+import { MenuChoice, MenuChoiceJson, MenuInput, MenuInputJson, MenuField } from "../components/menus";
+import { ActionGoto, ActionGotoJson, ActionFunctionJson, ActionFunction } from "../components/actions";
 import { PluginJson } from "../components/plugins";
 
 type MenuDefJson = (MenuChoiceJson | MenuInputJson) & { pluginName: string };
@@ -37,7 +26,9 @@ function assert(condition: boolean, description: string, detail?: string): void 
         passed++;
     } else {
         console.log(`  ${RED}✗${RESET} ${description}`);
-        if (detail) console.log(`    ${YELLOW}→ ${detail}${RESET}`);
+        if (detail) {
+            console.log(`    ${YELLOW}→ ${detail}${RESET}`);
+        }
         failed++;
     }
 }
@@ -161,7 +152,9 @@ function getBack(menuName: string): ActionGoto | undefined {
 
 function simulateRender(menuName: string, parentName?: string): void {
     const menu = cli.getMenu(menuName) as MenuChoice | undefined;
-    if (!menu || menuName === "main") return;
+    if (!menu || menuName === "main") {
+        return;
+    }
     const existing = getBack(menuName);
     if (existing) {
         existing.setTo(parentName ?? "main");
@@ -177,9 +170,7 @@ function simulateRender(menuName: string, parentName?: string): void {
 }
 
 function flatMenus(): MenuDefJson[] {
-    return plugins.flatMap((p) =>
-        (p.menus ?? []).map((m) => ({ ...m, pluginName: p.name }) as MenuDefJson)
-    );
+    return plugins.flatMap((p) => (p.menus ?? []).map((m) => ({ ...m, pluginName: p.name }) as MenuDefJson));
 }
 function flatActions(): ActionDefJson[] {
     return plugins.flatMap((p) => (p.actions ?? []).map((a) => ({ ...a, pluginName: p.name })));
@@ -272,7 +263,11 @@ for (const m of flatMenus()) {
             assert(actualParents.includes(p), `menu "${m.name}" ha parent "${p}"`);
         }
     } else {
-        assert(actualParents.length === 0, `menu "${m.name}" non ha parents dichiarati`, `trovati: ${actualParents.join(", ")}`);
+        assert(
+            actualParents.length === 0,
+            `menu "${m.name}" non ha parents dichiarati`,
+            `trovati: ${actualParents.join(", ")}`
+        );
     }
 }
 for (const a of flatActions()) {
@@ -283,7 +278,11 @@ for (const a of flatActions()) {
             assert(actualParents.includes(p), `action "${a.name}" ha parent "${p}"`);
         }
     } else {
-        assert(actualParents.length === 0, `action "${a.name}" non ha parents dichiarati`, `trovati: ${actualParents.join(", ")}`);
+        assert(
+            actualParents.length === 0,
+            `action "${a.name}" non ha parents dichiarati`,
+            `trovati: ${actualParents.join(", ")}`
+        );
     }
 }
 
@@ -305,11 +304,17 @@ for (const a of flatActions()) {
 // ── SUITE 9: Values statici dichiarati
 section("SUITE 9 — Values statici dichiarati");
 for (const m of flatMenus()) {
-    if (m.type !== "choice") continue;
+    if (m.type !== "choice") {
+        continue;
+    }
     const rawValues = m.values;
-    if (!rawValues || typeof rawValues === "function") continue;
+    if (!rawValues || typeof rawValues === "function") {
+        continue;
+    }
     const menu = cli.getMenu(m.name);
-    if (!(menu instanceof MenuChoice)) continue;
+    if (!(menu instanceof MenuChoice)) {
+        continue;
+    }
     for (const v of rawValues) {
         const valueName = typeof v === "string" ? v : v.value;
         assert(!!menu.getOption(valueName), `menu "${m.name}" contiene value "${valueName}"`);
@@ -324,37 +329,61 @@ assert(
 );
 for (const m of flatMenus()) {
     const menu = cli.getMenu(m.name);
-    if (!(menu instanceof MenuChoice)) continue;
+    if (!(menu instanceof MenuChoice)) {
+        continue;
+    }
     const backValues = menu.getOptions().filter((v) => v.getValue().startsWith("back_"));
-    assert(backValues.length === 0, `menu "${m.name}" non ha back_* nei values statici`, `trovati: ${backValues.map((v) => v.getValue()).join(", ")}`);
+    assert(
+        backValues.length === 0,
+        `menu "${m.name}" non ha back_* nei values statici`,
+        `trovati: ${backValues.map((v) => v.getValue()).join(", ")}`
+    );
 }
 
 // ── SUITE 11: Back dinamico
 section("SUITE 11 — Back dinamico (navigazione simulata)");
 
 simulateRender("submenu1", "main");
-assert(getBack("submenu1")?.getTo() === "main", 'main→submenu1: back_submenu1.to === "main"', `trovato: ${getBack("submenu1")?.getTo()}`);
+assert(
+    getBack("submenu1")?.getTo() === "main",
+    'main→submenu1: back_submenu1.to === "main"',
+    `trovato: ${getBack("submenu1")?.getTo()}`
+);
 
 simulateRender("submenu2", "submenu1");
-assert(getBack("submenu2")?.getTo() === "submenu1", 'submenu1→submenu2: back_submenu2.to === "submenu1"', `trovato: ${getBack("submenu2")?.getTo()}`);
+assert(
+    getBack("submenu2")?.getTo() === "submenu1",
+    'submenu1→submenu2: back_submenu2.to === "submenu1"',
+    `trovato: ${getBack("submenu2")?.getTo()}`
+);
 
 simulateRender("submenu2", "main");
-assert(getBack("submenu2")?.getTo() === "main", 'main→submenu2 (via goto): back_submenu2.to === "main"', `trovato: ${getBack("submenu2")?.getTo()}`);
+assert(
+    getBack("submenu2")?.getTo() === "main",
+    'main→submenu2 (via goto): back_submenu2.to === "main"',
+    `trovato: ${getBack("submenu2")?.getTo()}`
+);
 
 simulateRender("submenu2", "submenu1");
 simulateRender("language", "submenu2");
-assert(getBack("language")?.getTo() === "submenu2", 'submenu2→language: back_language.to === "submenu2"', `trovato: ${getBack("language")?.getTo()}`);
+assert(
+    getBack("language")?.getTo() === "submenu2",
+    'submenu2→language: back_language.to === "submenu2"',
+    `trovato: ${getBack("language")?.getTo()}`
+);
 const sub2ParentBeforeLang = getBack("submenu2")?.getTo();
 simulateRender("submenu2", sub2ParentBeforeLang);
-assert(getBack("submenu2")?.getTo() === "submenu1", 'dopo back da language→submenu2: back_submenu2.to === "submenu1"', `trovato: ${getBack("submenu2")?.getTo()}`);
+assert(
+    getBack("submenu2")?.getTo() === "submenu1",
+    'dopo back da language→submenu2: back_submenu2.to === "submenu1"',
+    `trovato: ${getBack("submenu2")?.getTo()}`
+);
 
 // ── SUITE 12: MenuInput
 section("SUITE 12 — MenuInput");
 
 const inputMenuDefs = plugins.flatMap((p) =>
-    (p.menus ?? [])
-        .filter((m): m is MenuInputJson => m.type === "input")
-        .map((m) => ({ ...m, pluginName: p.name }))
+    (p.menus ?? []).filter((m): m is MenuInputJson => m.type === "input").map((m) => ({ ...m, pluginName: p.name }))
 );
 
 for (const def of inputMenuDefs) {
@@ -408,20 +437,36 @@ section("SUITE 13 — Stili option per-option");
 
     const frOption = values.find((v) => v.getValue() === "fr");
     assert(!!frOption, 'opzione "fr" esiste nei values di language');
-    assert(frOption!.getSelectedPrefix() === "✓ ", 'fr selected.prefix === "✓ "', `trovato: ${frOption?.getSelectedPrefix()}`);
-    assert(frOption!.getSelectedColor() === "red", 'fr selected.color === "red"', `trovato: ${frOption?.getSelectedColor()}`);
+    assert(
+        frOption!.getSelectedPrefix() === "✓ ",
+        'fr selected.prefix === "✓ "',
+        `trovato: ${frOption?.getSelectedPrefix()}`
+    );
+    assert(
+        frOption!.getSelectedColor() === "red",
+        'fr selected.color === "red"',
+        `trovato: ${frOption?.getSelectedColor()}`
+    );
 
     const deOption = values.find((v) => v.getValue() === "de");
     assert(!!deOption, 'opzione "de" esiste nei values di language');
     assert(deOption!.getIdlePrefix() === "·", 'de idle.prefix === "·"', `trovato: ${deOption?.getIdlePrefix()}`);
     assert(deOption!.getIdleColor() === "gray", 'de idle.color === "gray"', `trovato: ${deOption?.getIdleColor()}`);
     assert(deOption!.getHoverPrefix() === "»", 'de hover.prefix === "»"', `trovato: ${deOption?.getHoverPrefix()}`);
-    assert(deOption!.getHoverColor() === "white", 'de hover.color === "white"', `trovato: ${deOption?.getHoverColor()}`);
+    assert(
+        deOption!.getHoverColor() === "white",
+        'de hover.color === "white"',
+        `trovato: ${deOption?.getHoverColor()}`
+    );
 }
 
 // ── Risultato finale
 console.log(`\n${"─".repeat(50)}`);
-console.log(`${BOLD}Risultato: ${GREEN}${passed} passed${RESET}${BOLD}, ${failed > 0 ? RED : ""}${failed} failed${RESET}`);
+console.log(
+    `${BOLD}Risultato: ${GREEN}${passed} passed${RESET}${BOLD}, ${failed > 0 ? RED : ""}${failed} failed${RESET}`
+);
 console.log("─".repeat(50));
 
-if (failed > 0) process.exit(1);
+if (failed > 0) {
+    process.exit(1);
+}

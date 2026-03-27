@@ -24,6 +24,18 @@ class Utility {
         config({ path: ".env.local", override: true });
 
         const env = process.env;
+        const envString = (value?: string): string | undefined => {
+            if (value && value.length > 0) {
+                return value;
+            }
+            return undefined;
+        };
+        const envBool = (value?: string): boolean | undefined => {
+            if (value && value.length > 0) {
+                return value === "true";
+            }
+            return undefined;
+        };
 
         if (env.DEBUG_LOG === "true") {
             try {
@@ -38,47 +50,16 @@ class Utility {
             }
         }
 
-        Utility.defaultLanguage =
-            env.DEFAULT_LANGUAGE && env.DEFAULT_LANGUAGE.length > 0
-                ? (env.DEFAULT_LANGUAGE as Language)
-                : undefined;
-        Utility.defaultIdlePrefix =
-            env.DEFAULT_CHOICE_IDLE_PREFIX && env.DEFAULT_CHOICE_IDLE_PREFIX.length > 0
-                ? env.DEFAULT_CHOICE_IDLE_PREFIX
-                : undefined;
-        Utility.defaultIdleColor =
-            env.DEFAULT_CHOICE_IDLE_COLOR && env.DEFAULT_CHOICE_IDLE_COLOR.length > 0
-                ? (env.DEFAULT_CHOICE_IDLE_COLOR as ColorName)
-                : undefined;
-        Utility.defaultHoverPrefix =
-            env.DEFAULT_CHOICE_HOVER_PREFIX && env.DEFAULT_CHOICE_HOVER_PREFIX.length > 0
-                ? env.DEFAULT_CHOICE_HOVER_PREFIX
-                : undefined;
-        Utility.defaultHoverColor =
-            env.DEFAULT_CHOICE_HOVER_COLOR && env.DEFAULT_CHOICE_HOVER_COLOR.length > 0
-                ? (env.DEFAULT_CHOICE_HOVER_COLOR as ColorName)
-                : undefined;
-        Utility.defaultSelectedPrefix =
-            env.DEFAULT_CHOICE_SELECTED_PREFIX && env.DEFAULT_CHOICE_SELECTED_PREFIX.length > 0
-                ? env.DEFAULT_CHOICE_SELECTED_PREFIX
-                : undefined;
-        Utility.defaultSelectedColor =
-            env.DEFAULT_CHOICE_SELECTED_COLOR && env.DEFAULT_CHOICE_SELECTED_COLOR.length > 0
-                ? (env.DEFAULT_CHOICE_SELECTED_COLOR as ColorName)
-                : undefined;
-        Utility.defaultIdleUnderline =
-            env.DEFAULT_CHOICE_IDLE_UNDERLINE && env.DEFAULT_CHOICE_IDLE_UNDERLINE.length > 0
-                ? env.DEFAULT_CHOICE_IDLE_UNDERLINE === "true"
-                : undefined;
-        Utility.defaultHoverUnderline =
-            env.DEFAULT_CHOICE_HOVER_UNDERLINE && env.DEFAULT_CHOICE_HOVER_UNDERLINE.length > 0
-                ? env.DEFAULT_CHOICE_HOVER_UNDERLINE === "true"
-                : undefined;
-        Utility.defaultSelectedUnderline =
-            env.DEFAULT_CHOICE_SELECTED_UNDERLINE && 
-            env.DEFAULT_CHOICE_SELECTED_UNDERLINE.length > 0
-                ? env.DEFAULT_CHOICE_SELECTED_UNDERLINE === "true"
-                : undefined;
+        Utility.defaultLanguage = envString(env.DEFAULT_LANGUAGE) as Language | undefined;
+        Utility.defaultIdlePrefix = envString(env.DEFAULT_CHOICE_IDLE_PREFIX);
+        Utility.defaultIdleColor = envString(env.DEFAULT_CHOICE_IDLE_COLOR) as ColorName | undefined;
+        Utility.defaultHoverPrefix = envString(env.DEFAULT_CHOICE_HOVER_PREFIX);
+        Utility.defaultHoverColor = envString(env.DEFAULT_CHOICE_HOVER_COLOR) as ColorName | undefined;
+        Utility.defaultSelectedPrefix = envString(env.DEFAULT_CHOICE_SELECTED_PREFIX);
+        Utility.defaultSelectedColor = envString(env.DEFAULT_CHOICE_SELECTED_COLOR) as ColorName | undefined;
+        Utility.defaultIdleUnderline = envBool(env.DEFAULT_CHOICE_IDLE_UNDERLINE);
+        Utility.defaultHoverUnderline = envBool(env.DEFAULT_CHOICE_HOVER_UNDERLINE);
+        Utility.defaultSelectedUnderline = envBool(env.DEFAULT_CHOICE_SELECTED_UNDERLINE);
     }
 
     public static isDebugLog(): boolean {

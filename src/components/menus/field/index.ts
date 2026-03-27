@@ -88,32 +88,54 @@ class MenuField extends Menu {
             const aGlobal = aItem?.isGlobal() ?? false;
             const bGlobal = bItem?.isGlobal() ?? false;
 
-            if (aGlobal && !bGlobal) return 1;
-            if (!aGlobal && bGlobal) return -1;
+            if (aGlobal && !bGlobal) {
+                return 1;
+            }
+            if (!aGlobal && bGlobal) {
+                return -1;
+            }
 
             if (aGlobal && bGlobal) {
                 const aIdx = aItem?.getIndex() ?? Infinity;
                 const bIdx = bItem?.getIndex() ?? Infinity;
                 const aRes = aIdx < 0;
                 const bRes = bIdx < 0;
-                if (aRes && !bRes) return 1;
-                if (!aRes && bRes) return -1;
-                if (aRes && bRes) return bIdx - aIdx;
-                if (aIdx !== bIdx) return aIdx - bIdx;
+                if (aRes && !bRes) {
+                    return 1;
+                }
+                if (!aRes && bRes) {
+                    return -1;
+                }
+                if (aRes && bRes) {
+                    return bIdx - aIdx;
+                }
+                if (aIdx !== bIdx) {
+                    return aIdx - bIdx;
+                }
                 const aAct = aItem instanceof Action;
                 const bAct = bItem instanceof Action;
-                if (aAct && !bAct) return -1;
-                if (!aAct && bAct) return 1;
+                if (aAct && !bAct) {
+                    return -1;
+                }
+                if (!aAct && bAct) {
+                    return 1;
+                }
                 return aItem!.getName().localeCompare(bItem!.getName());
             }
 
             const aIdx = aItem ? (aItem.getIndex() ?? Infinity) : Infinity;
             const bIdx = bItem ? (bItem.getIndex() ?? Infinity) : Infinity;
-            if (aIdx !== bIdx) return aIdx - bIdx;
+            if (aIdx !== bIdx) {
+                return aIdx - bIdx;
+            }
             const aAct = aItem instanceof Action;
             const bAct = bItem instanceof Action;
-            if (aAct && !bAct) return -1;
-            if (!aAct && bAct) return 1;
+            if (aAct && !bAct) {
+                return -1;
+            }
+            if (!aAct && bAct) {
+                return 1;
+            }
             const aName = aItem ? aItem.getName() : a.getValue();
             const bName = bItem ? bItem.getName() : b.getValue();
             return aName.localeCompare(bName);
@@ -128,33 +150,65 @@ class MenuField extends Menu {
         option.setIdlePrefix(option.getIdlePrefix() ?? this.idle?.getPrefix() ?? Utility.getDefaultIdlePrefix());
         option.setIdleColor(option.getIdleColor() ?? this.idle?.getColor() ?? Utility.getDefaultIdleColor());
         const idleUnderline = option.isIdleUnderline() ?? this.idle?.isUnderline() ?? Utility.getDefaultIdleUnderline();
-        if (idleUnderline !== undefined) option.setIdleUnderline(idleUnderline);
+        if (idleUnderline !== undefined) {
+            option.setIdleUnderline(idleUnderline);
+        }
         const idleItalic = option.isIdleItalic() ?? this.idle?.isItalic();
-        if (idleItalic !== undefined) option.setIdleItalic(idleItalic);
+        if (idleItalic !== undefined) {
+            option.setIdleItalic(idleItalic);
+        }
 
         // ── Hover
-        option.setHoverPrefix(option.getHoverPrefix() ?? this.hover?.getPrefix() ?? Utility.getDefaultHoverPrefix() ?? option.getIdlePrefix());
-        option.setHoverColor(option.getHoverColor() ?? this.hover?.getColor() ?? Utility.getDefaultHoverColor() ?? option.getIdleColor());
-        const hoverUnderline = option.isHoverUnderline() ?? this.hover?.isUnderline() ?? Utility.getDefaultHoverUnderline();
-        if (hoverUnderline !== undefined) option.setHoverUnderline(hoverUnderline);
+        option.setHoverPrefix(
+            option.getHoverPrefix() ??
+                this.hover?.getPrefix() ??
+                Utility.getDefaultHoverPrefix() ??
+                option.getIdlePrefix()
+        );
+        option.setHoverColor(
+            option.getHoverColor() ?? this.hover?.getColor() ?? Utility.getDefaultHoverColor() ?? option.getIdleColor()
+        );
+        const hoverUnderline =
+            option.isHoverUnderline() ?? this.hover?.isUnderline() ?? Utility.getDefaultHoverUnderline();
+        if (hoverUnderline !== undefined) {
+            option.setHoverUnderline(hoverUnderline);
+        }
         const hoverItalic = option.isHoverItalic() ?? this.hover?.isItalic();
-        if (hoverItalic !== undefined) option.setHoverItalic(hoverItalic);
+        if (hoverItalic !== undefined) {
+            option.setHoverItalic(hoverItalic);
+        }
 
         // ── Selected
-        option.setSelectedPrefix(option.getSelectedPrefix() ?? this.selected?.getPrefix() ?? Utility.getDefaultSelectedPrefix() ?? option.getIdlePrefix());
-        option.setSelectedColor(option.getSelectedColor() ?? this.selected?.getColor() ?? Utility.getDefaultSelectedColor() ?? option.getIdleColor());
-        const selectedUnderline = option.isSelectedUnderline() ?? this.selected?.isUnderline() ?? Utility.getDefaultSelectedUnderline();
-        if (selectedUnderline !== undefined) option.setSelectedUnderline(selectedUnderline);
+        option.setSelectedPrefix(
+            option.getSelectedPrefix() ??
+                this.selected?.getPrefix() ??
+                Utility.getDefaultSelectedPrefix() ??
+                option.getIdlePrefix()
+        );
+        option.setSelectedColor(
+            option.getSelectedColor() ??
+                this.selected?.getColor() ??
+                Utility.getDefaultSelectedColor() ??
+                option.getIdleColor()
+        );
+        const selectedUnderline =
+            option.isSelectedUnderline() ?? this.selected?.isUnderline() ?? Utility.getDefaultSelectedUnderline();
+        if (selectedUnderline !== undefined) {
+            option.setSelectedUnderline(selectedUnderline);
+        }
         const selectedItalic = option.isSelectedItalic() ?? this.selected?.isItalic();
-        if (selectedItalic !== undefined) option.setSelectedItalic(selectedItalic);
+        if (selectedItalic !== undefined) {
+            option.setSelectedItalic(selectedItalic);
+        }
     }
 
     // ── mode helpers
 
     public hasChoices(): boolean {
-        const resolved = typeof this.values === "function"
-            ? (this.values as MenuFieldValuesResolvedFn)({ menu: this })
-            : this.values;
+        const resolved =
+            typeof this.values === "function"
+                ? (this.values as MenuFieldValuesResolvedFn)({ menu: this })
+                : this.values;
         return Object.keys(resolved).length > 0;
     }
 
@@ -165,7 +219,9 @@ class MenuField extends Menu {
 
     // ── values API (choice options)
 
-    public getOptions(): MenuFieldOption[] { return this.sortValues(); }
+    public getOptions(): MenuFieldOption[] {
+        return this.sortValues();
+    }
 
     public getOption(name: string): MenuFieldOption | undefined {
         return this.resolveValues()[name];
@@ -188,7 +244,14 @@ class MenuField extends Menu {
 
         if (value instanceof Menu || value instanceof Action) {
             name = value.getName();
-            option = new MenuFieldOption(value, value.getName(), false, value.getIdle()?.toJson(), value.getHover()?.toJson(), value.getSelected()?.toJson());
+            option = new MenuFieldOption(
+                value,
+                value.getName(),
+                false,
+                value.getIdle()?.toJson(),
+                value.getHover()?.toJson(),
+                value.getSelected()?.toJson()
+            );
         } else if (value instanceof MenuFieldOption) {
             name = value.getValue();
             option = value;
@@ -197,7 +260,14 @@ class MenuField extends Menu {
             option = new MenuFieldOption(value);
         } else if (typeof value === "object") {
             name = value.value;
-            option = new MenuFieldOption(value.value, value.label, value.multi, value.idle, value.hover, value.selected);
+            option = new MenuFieldOption(
+                value.value,
+                value.label,
+                value.multi,
+                value.idle,
+                value.hover,
+                value.selected
+            );
         }
 
         if (name && option) {
@@ -241,16 +311,22 @@ class MenuField extends Menu {
 
     // ── configs API
 
-    public getConfigs(): MenuFieldConfigs { return this.configs; }
+    public getConfigs(): MenuFieldConfigs {
+        return this.configs;
+    }
     public setConfigs(data: MenuFieldConfigs | MenuFieldConfigsJson): this {
         this.configs = data instanceof MenuFieldConfigs ? data : new MenuFieldConfigs(data);
         return this;
     }
 
     /** Shortcut for getConfigs().getChoiceConfigs() */
-    public getChoiceConfigs(): MenuChoiceConfigs | undefined { return this.configs.getChoiceConfigs(); }
+    public getChoiceConfigs(): MenuChoiceConfigs | undefined {
+        return this.configs.getChoiceConfigs();
+    }
     /** Shortcut for getConfigs().getInputConfigs() */
-    public getInputConfigs(): MenuInputConfigs | undefined { return this.configs.getInputConfigs(); }
+    public getInputConfigs(): MenuInputConfigs | undefined {
+        return this.configs.getInputConfigs();
+    }
 
     // ── placeholder label
 
@@ -270,14 +346,18 @@ class MenuField extends Menu {
 
     // ── global choices
 
-    public getGlobalChoices(): (Choice | Separator)[] { return this.globalChoices; }
-    public setGlobalChoices(choices: (Choice | Separator)[]): this { this.globalChoices = choices; return this; }
+    public getGlobalChoices(): (Choice | Separator)[] {
+        return this.globalChoices;
+    }
+    public setGlobalChoices(choices: (Choice | Separator)[]): this {
+        this.globalChoices = choices;
+        return this;
+    }
 
     // ── toJson
 
     public toJson(): MenuFieldJson {
-        const choicesValues = Object.values(this.resolveValues())
-            .map((v) => v.toJson());
+        const choicesValues = Object.values(this.resolveValues()).map((v) => v.toJson());
         const choiceCfg = this.configs.getChoiceConfigs();
         const inputCfg = this.configs.getInputConfigs();
 
@@ -295,7 +375,12 @@ class MenuField extends Menu {
         const hasChoicesSection = this.hasChoices() || this.globalChoices.length > 0;
         const inputCfg = this.configs.getInputConfigs();
         const placeholder = inputCfg?.getPlaceholder() ?? "";
-        const hasInputSection = !!(inputCfg?.getCallback() || inputCfg?.getValidate() || inputCfg?.isFastSubmit() || placeholder);
+        const hasInputSection = !!(
+            inputCfg?.getCallback() ||
+            inputCfg?.getValidate() ||
+            inputCfg?.isFastSubmit() ||
+            placeholder
+        );
 
         if (hasInputSection && (inputCfg?.isClear() ?? true)) {
             console.clear();
@@ -309,15 +394,21 @@ class MenuField extends Menu {
         const inputValue = inputCfg?.getValue() ?? "";
 
         const buildChoices = (): (Choice | Separator)[] => {
-            if (!hasChoicesSection) return [];
+            if (!hasChoicesSection) {
+                return [];
+            }
 
             const values = this.getOptions();
             const globalIndex = values.findIndex((v) => v.getItem()?.isGlobal());
             const items: (MenuFieldOption | Separator)[] = [...values];
-            if (globalIndex >= 0) items.splice(globalIndex, 0, new Separator());
+            if (globalIndex >= 0) {
+                items.splice(globalIndex, 0, new Separator());
+            }
 
             const choiceList: (Choice | Separator)[] = items.map((item) => {
-                if (item instanceof Separator) return item;
+                if (item instanceof Separator) {
+                    return item;
+                }
 
                 const isSelected = isSelectable && !item.getItem()?.isGlobal() && this.isSelectedValue(item.getValue());
 
@@ -327,13 +418,43 @@ class MenuField extends Menu {
                         item.getItem()?.getTitleLabel(language) ??
                         Translations.getTranslation(item.getLabel() ?? item.getValue(), language),
                     multi: item.isMulti(),
-                    ...(item.getIdle() ? { idle: { prefix: item.getIdlePrefix(), color: item.getIdleColor(), underline: item.isIdleUnderline(), italic: item.isIdleItalic() } } : {}),
-                    ...(item.getHover() ? { hover: { prefix: item.getHoverPrefix(), color: item.getHoverColor(), underline: item.isHoverUnderline(), italic: item.isHoverItalic() } } : {}),
-                    ...(item.getSelected() ? { selected: { prefix: item.getSelectedPrefix(), color: item.getSelectedColor(), underline: item.isSelectedUnderline(), italic: item.isSelectedItalic(), active: isSelected } } : {}),
+                    ...(item.getIdle()
+                        ? {
+                              idle: {
+                                  prefix: item.getIdlePrefix(),
+                                  color: item.getIdleColor(),
+                                  underline: item.isIdleUnderline(),
+                                  italic: item.isIdleItalic(),
+                              },
+                          }
+                        : {}),
+                    ...(item.getHover()
+                        ? {
+                              hover: {
+                                  prefix: item.getHoverPrefix(),
+                                  color: item.getHoverColor(),
+                                  underline: item.isHoverUnderline(),
+                                  italic: item.isHoverItalic(),
+                              },
+                          }
+                        : {}),
+                    ...(item.getSelected()
+                        ? {
+                              selected: {
+                                  prefix: item.getSelectedPrefix(),
+                                  color: item.getSelectedColor(),
+                                  underline: item.isSelectedUnderline(),
+                                  italic: item.isSelectedItalic(),
+                                  active: isSelected,
+                              },
+                          }
+                        : {}),
                 };
             });
 
-            if (this.globalChoices.length > 0) choiceList.push(...this.globalChoices);
+            if (this.globalChoices.length > 0) {
+                choiceList.push(...this.globalChoices);
+            }
             return choiceList;
         };
 
@@ -343,7 +464,7 @@ class MenuField extends Menu {
                 [
                     new Date().toISOString(),
                     `${this.getName()} - ${this.getQuestionLabel(language)}`,
-                    ...choiceList.map((c) => c instanceof Separator ? c.separator : (c as Choice).label),
+                    ...choiceList.map((c) => (c instanceof Separator ? c.separator : (c as Choice).label)),
                 ].join("\n") + "\n"
             );
         }
@@ -352,10 +473,14 @@ class MenuField extends Menu {
         const translatedValidate = validate
             ? (value: string): boolean | string => {
                   const res = validate(value);
-                  if (res === true || res === undefined) return true;
+                  if (res === true || res === undefined) {
+                      return true;
+                  }
                   if (typeof res === "string" && res.length > 0) {
                       const asKey = Translations.getTranslation(res, language);
-                      if (asKey !== res) return asKey;
+                      if (asKey !== res) {
+                          return asKey;
+                      }
                   }
                   return this.getErrorLabel(language);
               }
@@ -380,7 +505,11 @@ class MenuField extends Menu {
 
         if (result.type === "input") {
             inputCfg?.setValue(result.value);
-            Utility.log([new Date().toISOString(), `${this.getName()} - ${this.getQuestionLabel(language)}`, result.value].join("\n") + "\n");
+            Utility.log(
+                [new Date().toISOString(), `${this.getName()} - ${this.getQuestionLabel(language)}`, result.value].join(
+                    "\n"
+                ) + "\n"
+            );
             return result.value;
         }
 
@@ -397,7 +526,9 @@ class MenuField extends Menu {
             const option = this.getOption(val);
             return option ? !(option.getItem() instanceof Action) : true;
         });
-        if (nonActionSelected.length > 0) choiceCfg?.setSelectedValues(nonActionSelected);
+        if (nonActionSelected.length > 0) {
+            choiceCfg?.setSelectedValues(nonActionSelected);
+        }
         return result.values;
     }
 }

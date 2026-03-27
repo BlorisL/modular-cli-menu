@@ -18,9 +18,4 @@ class MenuChoice extends MenuField {
     }
 }
 
-export {
-    type MenuChoiceJson,
-    type MenuChoiceConfigsJson,
-    MenuChoice,
-    MenuChoiceConfigs,
-};
+export { type MenuChoiceJson, type MenuChoiceConfigsJson, MenuChoice, MenuChoiceConfigs };

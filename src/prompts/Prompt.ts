@@ -1,12 +1,4 @@
-import {
-    createPrompt,
-    useState,
-    useKeypress,
-    usePrefix,
-    isEnterKey,
-    isSpaceKey,
-    Separator,
-} from "@inquirer/core";
+import { createPrompt, useState, useKeypress, usePrefix, isEnterKey, isSpaceKey, Separator } from "@inquirer/core";
 import chalk, { ColorName } from "chalk";
 
 // Types
@@ -168,9 +160,7 @@ function renderChoiceLines(
         }
         const choice = item as Choice;
         const isActive = focusedOnList && index === activeIndex;
-        const isSelected = choice.multi
-            ? (selected?.has(choice.value) ?? false)
-            : (choice.selected?.active ?? false);
+        const isSelected = choice.multi ? (selected?.has(choice.value) ?? false) : (choice.selected?.active ?? false);
         // True only the render immediately after toggling ON — label color uses selected.
         const isJustSelected = choice.multi && (justSelected?.has(choice.value) ?? false);
 
@@ -194,11 +184,9 @@ function renderChoiceLines(
 
         if (isActive && isSelected) {
             // Prefix: selected always wins
-            stylePrefix =
-                choice.selected?.prefix ?? choice.hover?.prefix ?? choice.idle?.prefix ?? "";
+            stylePrefix = choice.selected?.prefix ?? choice.hover?.prefix ?? choice.idle?.prefix ?? "";
             prefixColor = choice.selected?.color ?? choice.hover?.color ?? choice.idle?.color;
-            prefixUnderline =
-                choice.selected?.underline ?? choice.hover?.underline ?? choice.idle?.underline;
+            prefixUnderline = choice.selected?.underline ?? choice.hover?.underline ?? choice.idle?.underline;
             prefixItalic = choice.selected?.italic ?? choice.hover?.italic ?? choice.idle?.italic;
             // Label: justSelected → selected wins (immediate feedback); otherwise hover wins (cursor readability)
             labelColor = isJustSelected
@@ -283,9 +271,7 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
     const firstSelectable = allItems.findIndex((i) => !isSeparator(i));
     const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected ?? []));
     const [justSelected, setJustSelected] = useState<Set<string>>(new Set());
-    const [activeIndex, setActiveIndex] = useState<number>(
-        firstSelectable >= 0 ? firstSelectable : 0
-    );
+    const [activeIndex, setActiveIndex] = useState<number>(firstSelectable >= 0 ? firstSelectable : 0);
 
     // Focus: 'input' | 'list', only meaningful when both sections are active
     const [focus, setFocus] = useState<"input" | "list">(hasInput ? "input" : "list");
@@ -454,11 +440,7 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
         }
 
         const inputState: InputState = { inputValue, cursor, error };
-        const displayValue = renderInputLine(
-            inputState,
-            inputCfg!,
-            focus === "input" || !hasChoices
-        );
+        const displayValue = renderInputLine(inputState, inputCfg!, focus === "input" || !hasChoices);
         const focusMarker = hasChoices && focus !== "input" ? " " : chalk.cyan("❯");
 
         if (hasChoices) {
@@ -482,13 +464,7 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
             lines.push(new Separator().separator);
         }
         // If focus is on input, hide cursor before rendering choices so it doesn't appear below
-        const choiceLines = renderChoiceLines(
-            allItems,
-            activeIndex,
-            focus === "list",
-            selected,
-            justSelected
-        );
+        const choiceLines = renderChoiceLines(allItems, activeIndex, focus === "list", selected, justSelected);
         if (hasInput && focus === "input") {
             if (choiceLines.length > 0) {
                 choiceLines[0] = "\x1B[?25l" + choiceLines[0];
