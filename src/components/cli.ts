@@ -25,7 +25,7 @@ class Cli {
      * Builds a Choice for a global item (back, exit, language, etc.)
      * applying env defaults as fallback for hover/selected, with idle fallback for color/underline/italic.
      */
-    protected static buildGlobalChoice(value: string, label: string, item: Menu | Action): Choice {
+    protected buildGlobalChoice(value: string, label: string, item: Menu | Action): Choice {
         const idle = item.getIdle();
         const hover = item.getHover();
         const sel = item.getSelected();
@@ -106,7 +106,7 @@ class Cli {
                     backAction.getIdle()?.toJson()
                 ).getTranslationLabel(false, false);
                 globalChoices.push(new Separator());
-                globalChoices.push(Cli.buildGlobalChoice(backAction.getTo(), label, backAction));
+                globalChoices.push(this.buildGlobalChoice(backAction.getTo(), label, backAction));
             }
             this.getGlobalItems()
                 .filter((g) => g.getName() !== "back")
@@ -117,7 +117,7 @@ class Cli {
                         false,
                         globalItem.getIdle()?.toJson()
                     ).getTranslationLabel(false, false);
-                    globalChoices.push(Cli.buildGlobalChoice(globalItem.getName(), label, globalItem));
+                    globalChoices.push(this.buildGlobalChoice(globalItem.getName(), label, globalItem));
                 });
             item.setGlobalChoices(item.getConfigs().getInputConfigs()?.isFastSubmit() ? [] : globalChoices);
         }
