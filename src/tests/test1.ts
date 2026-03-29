@@ -237,18 +237,18 @@ section("SUITE 6 — Stili");
 for (const m of flatMenus()) {
     if (m.styles?.idle?.color) {
         assert(
-            cli.getMenu(m.name)?.getIdle()?.getColor() === m.styles.idle.color,
+            cli.getMenu(m.name)?.getStyles().getIdle()?.getColor() === m.styles.idle.color,
             `menu "${m.name}".styles.idle.color === "${m.styles.idle.color}"`,
-            `trovato: ${cli.getMenu(m.name)?.getIdle()?.getColor()}`
+            `trovato: ${cli.getMenu(m.name)?.getStyles().getIdle()?.getColor()}`
         );
     }
 }
 for (const a of flatActions()) {
     if (a.styles?.idle?.color) {
         assert(
-            cli.getAction(a.name)?.getIdle()?.getColor() === a.styles.idle.color,
+            cli.getAction(a.name)?.getStyles().getIdle()?.getColor() === a.styles.idle.color,
             `action "${a.name}".styles.idle.color === "${a.styles.idle.color}"`,
-            `trovato: ${cli.getAction(a.name)?.getIdle()?.getColor()}`
+            `trovato: ${cli.getAction(a.name)?.getStyles().getIdle()?.getColor()}`
         );
     }
 }

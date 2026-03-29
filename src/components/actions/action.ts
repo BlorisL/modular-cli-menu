@@ -1,13 +1,5 @@
 import { Language, Translations } from "../translations";
-import { StyleIdle, StyleIdleJson } from "../styles/idle";
-import { StyleHover, StyleHoverJson } from "../styles/hover";
-import { StyleSelected, StyleSelectedJson } from "../styles/selected";
-
-type ActionJsonStyles = {
-    idle?: StyleIdleJson;
-    hover?: StyleHoverJson;
-    selected?: StyleSelectedJson;
-};
+import { ActionStyles, ActionStylesJson } from "./styles";
 
 type ActionJson = {
     name: string;
@@ -16,7 +8,7 @@ type ActionJson = {
     index?: number;
     parents?: string[];
     global?: boolean;
-    styles?: ActionJsonStyles;
+    styles?: ActionStylesJson;
 };
 
 abstract class Action {
@@ -26,31 +18,14 @@ abstract class Action {
     protected index?: ActionJson["index"];
     protected parents: Record<string, Exclude<ActionJson["parents"], undefined>[number]> = {};
     protected global: Exclude<ActionJson["global"], undefined> = false;
-    protected idle?: StyleIdle;
-    protected hover?: StyleHover;
-    protected selected?: StyleSelected;
+    protected styles: ActionStyles;
 
     constructor(data: ActionJson) {
         this.name = data.name;
         this.plugin = data.plugin;
         this.index = data.index;
         this.global = data.global ?? false;
-
-        const styles = data.styles;
-        this.idle = styles?.idle
-            ? new StyleIdle(styles.idle.prefix, styles.idle.color, styles.idle.underline, styles.idle.italic)
-            : undefined;
-        this.hover = styles?.hover
-            ? new StyleHover(styles.hover.prefix, styles.hover.color, styles.hover.underline, styles.hover.italic)
-            : undefined;
-        this.selected = styles?.selected
-            ? new StyleSelected(
-                  styles.selected.prefix,
-                  styles.selected.color,
-                  styles.selected.underline,
-                  styles.selected.italic
-              )
-            : undefined;
+        this.styles = new ActionStyles(data.styles);
 
         if (data.parents) {
             data.parents.forEach((parent) => this.addParent(parent));
@@ -95,34 +70,11 @@ abstract class Action {
         return this.global === true;
     }
 
-    public getIdle(): StyleIdle | undefined {
-        return this.idle;
+    public getStyles(): ActionStyles {
+        return this.styles;
     }
-    public setIdle(idle: StyleIdle | StyleIdleJson): this {
-        this.idle =
-            idle instanceof StyleIdle ? idle : new StyleIdle(idle.prefix, idle.color, idle.underline, idle.italic);
-        return this;
-    }
-
-    public getHover(): StyleHover | undefined {
-        return this.hover;
-    }
-    public setHover(hover: StyleHover | StyleHoverJson): this {
-        this.hover =
-            hover instanceof StyleHover
-                ? hover
-                : new StyleHover(hover.prefix, hover.color, hover.underline, hover.italic);
-        return this;
-    }
-
-    public getSelected(): StyleSelected | undefined {
-        return this.selected;
-    }
-    public setSelected(selected: StyleSelected | StyleSelectedJson): this {
-        this.selected =
-            selected instanceof StyleSelected
-                ? selected
-                : new StyleSelected(selected.prefix, selected.color, selected.underline, selected.italic);
+    public setStyles(styles: ActionStyles | ActionStylesJson): this {
+        this.styles = styles instanceof ActionStyles ? styles : new ActionStyles(styles);
         return this;
     }
 
@@ -135,10 +87,8 @@ abstract class Action {
     }
 
     public toJson(): ActionJson {
-        const idle = this.idle?.toJson();
-        const hover = this.hover?.toJson();
-        const selected = this.selected?.toJson();
-        const hasStyles = idle || hover || selected;
+        const stylesJson = this.styles.toJson();
+        const hasStyles = stylesJson.idle || stylesJson.hover || stylesJson.selected;
 
         return {
             name: this.name,
@@ -147,11 +97,11 @@ abstract class Action {
             index: this.index,
             parents: this.getParents(),
             global: this.global,
-            ...(hasStyles ? { styles: { idle, hover, selected } } : {}),
+            ...(hasStyles ? { styles: stylesJson } : {}),
         };
     }
 
     public abstract run(): Promise<unknown>;
 }
 
-export { Action, type ActionJson, type ActionJsonStyles };
+export { Action, ActionStyles, type ActionJson, type ActionStylesJson };

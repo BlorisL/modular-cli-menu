@@ -1,20 +1,7 @@
 import { Language, Translations } from "../translations";
-import { StyleIdle, StyleIdleJson } from "../styles/idle";
-import { StyleHover, StyleHoverJson } from "../styles/hover";
-import { StyleSelected, StyleSelectedJson } from "../styles/selected";
+import { MenuStyles, MenuStylesJson } from "./styles";
+import { MenuLabels, MenuLabelsJson } from "./labels";
 
-type MenuJsonStyles = {
-    idle?: StyleIdleJson;
-    hover?: StyleHoverJson;
-    selected?: StyleSelectedJson;
-};
-
-type MenuJsonLabels = {
-    question?: string;
-    title?: string;
-    success?: string;
-    error?: string;
-};
 
 type MenuJson = {
     name: string;
@@ -23,8 +10,8 @@ type MenuJson = {
     index?: number;
     parents?: string[];
     global?: boolean;
-    styles?: MenuJsonStyles;
-    labels?: MenuJsonLabels;
+    styles?: MenuStylesJson;
+    labels?: MenuLabelsJson;
 };
 
 abstract class Menu {
@@ -34,40 +21,16 @@ abstract class Menu {
     protected parents: Record<string, Exclude<MenuJson["parents"], undefined>[number]> = {};
     protected index: MenuJson["index"];
     protected global: Exclude<MenuJson["global"], undefined>;
-    protected idle?: StyleIdle;
-    protected hover?: StyleHover;
-    protected selected?: StyleSelected;
-    protected question?: string;
-    protected title?: string;
-    protected success?: string;
-    protected error?: string;
+    protected styles: MenuStyles;
+    protected labels: MenuLabels;
 
     constructor(data: MenuJson) {
         this.name = data.name;
         this.plugin = data.plugin;
         this.index = data.index;
         this.global = data.global ?? false;
-
-        const styles = data.styles;
-        this.idle = styles?.idle
-            ? new StyleIdle(styles.idle.prefix, styles.idle.color, styles.idle.underline, styles.idle.italic)
-            : undefined;
-        this.hover = styles?.hover
-            ? new StyleHover(styles.hover.prefix, styles.hover.color, styles.hover.underline, styles.hover.italic)
-            : undefined;
-        this.selected = styles?.selected
-            ? new StyleSelected(
-                  styles.selected.prefix,
-                  styles.selected.color,
-                  styles.selected.underline,
-                  styles.selected.italic
-              )
-            : undefined;
-
-        this.question = data.labels?.question;
-        this.title = data.labels?.title;
-        this.success = data.labels?.success;
-        this.error = data.labels?.error;
+        this.styles = new MenuStyles(data.styles);
+        this.labels = new MenuLabels(data.labels);
 
         if (data.parents) {
             data.parents.forEach((parent) => this.addParent(parent));
@@ -113,44 +76,30 @@ abstract class Menu {
         return this.global === true;
     }
 
-    public getIdle(): StyleIdle | undefined {
-        return this.idle;
+    public getStyles(): MenuStyles {
+        return this.styles;
     }
-    public setIdle(idle: StyleIdle | StyleIdleJson): this {
-        this.idle =
-            idle instanceof StyleIdle ? idle : new StyleIdle(idle.prefix, idle.color, idle.underline, idle.italic);
-        return this;
-    }
-
-    public getHover(): StyleHover | undefined {
-        return this.hover;
-    }
-    public setHover(hover: StyleHover | StyleHoverJson): this {
-        this.hover =
-            hover instanceof StyleHover
-                ? hover
-                : new StyleHover(hover.prefix, hover.color, hover.underline, hover.italic);
-        return this;
-    }
-
-    public getSelected(): StyleSelected | undefined {
-        return this.selected;
-    }
-    public setSelected(selected: StyleSelected | StyleSelectedJson): this {
-        this.selected =
-            selected instanceof StyleSelected
-                ? selected
-                : new StyleSelected(selected.prefix, selected.color, selected.underline, selected.italic);
+    public setStyles(styles: MenuStyles | MenuStylesJson): this {
+        this.styles = styles instanceof MenuStyles ? styles : new MenuStyles(styles);
         return this;
     }
 
     public getQuestionName(): string {
         return `${this.getPlugin() ?? "default"}.${this.getName()}.question`;
     }
+    public getLabels(): MenuLabels {
+        return this.labels;
+    }
+    public setLabels(labels: MenuLabels | MenuLabelsJson): this {
+        this.labels = labels instanceof MenuLabels ? labels : new MenuLabels(labels);
+        return this;
+    }
+
     public getQuestionLabel(language?: Language): string {
         const key = this.getQuestionName();
         const translated = Translations.getTranslation(key, language);
-        return translated !== key ? translated : this.question && this.question.length > 0 ? this.question : key;
+        const q = this.labels.getQuestion();
+        return translated !== key ? translated : q && q.length > 0 ? q : key;
     }
 
     public getTitleName(): string {
@@ -159,7 +108,8 @@ abstract class Menu {
     public getTitleLabel(language?: Language): string {
         const key = this.getTitleName();
         const translated = Translations.getTranslation(key, language);
-        return translated !== key ? translated : this.title && this.title.length > 0 ? this.title : key;
+        const t = this.labels.getTitle();
+        return translated !== key ? translated : t && t.length > 0 ? t : key;
     }
 
     public getAnswerName(name: string): string {
@@ -177,7 +127,8 @@ abstract class Menu {
     public getSuccessLabel(language?: Language): string {
         const key = this.getSuccessName();
         const translated = Translations.getTranslation(key, language);
-        return translated !== key ? translated : this.success && this.success.length > 0 ? this.success : key;
+        const s = this.labels.getSuccess();
+        return translated !== key ? translated : s && s.length > 0 ? s : key;
     }
 
     public getErrorName(): string {
@@ -189,8 +140,9 @@ abstract class Menu {
         if (translated !== key) {
             return translated;
         }
-        if (this.error && this.error.length > 0) {
-            return this.error;
+        const e = this.labels.getError();
+        if (e && e.length > 0) {
+            return e;
         }
         const generic = "default.input.error";
         const genericTranslated = Translations.getTranslation(generic, language);
@@ -198,16 +150,10 @@ abstract class Menu {
     }
 
     public toJson(): MenuJson {
-        const idle = this.idle?.toJson();
-        const hover = this.hover?.toJson();
-        const selected = this.selected?.toJson();
-        const hasStyles = idle || hover || selected;
-
-        const question = this.question;
-        const title = this.title;
-        const success = this.success;
-        const error = this.error;
-        const hasLabels = question || title || success || error;
+        const stylesJson = this.styles.toJson();
+        const hasStyles = stylesJson.idle || stylesJson.hover || stylesJson.selected;
+        const labelsJson = this.labels.toJson();
+        const hasLabels = labelsJson.question || labelsJson.title || labelsJson.success || labelsJson.error;
 
         return {
             name: this.name,
@@ -216,12 +162,12 @@ abstract class Menu {
             index: this.index,
             parents: this.getParents(),
             global: this.global,
-            ...(hasStyles ? { styles: { idle, hover, selected } } : {}),
-            ...(hasLabels ? { labels: { question, title, success, error } } : {}),
+            ...(hasStyles ? { styles: stylesJson } : {}),
+            ...(hasLabels ? { labels: labelsJson } : {}),
         };
     }
 
     public abstract run(): Promise<unknown>;
 }
 
-export { Menu, type MenuJson, type MenuJsonStyles, type MenuJsonLabels };
+export { Menu, MenuStyles, MenuLabels, type MenuJson, type MenuStylesJson, type MenuLabelsJson };

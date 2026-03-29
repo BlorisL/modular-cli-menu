@@ -26,9 +26,9 @@ class Cli {
      * applying env defaults as fallback for hover/selected, with idle fallback for color/underline/italic.
      */
     protected buildGlobalChoice(value: string, label: string, item: Menu | Action): Choice {
-        const idle = item.getIdle();
-        const hover = item.getHover();
-        const sel = item.getSelected();
+        const idle = item.getStyles().getIdle();
+        const hover = item.getStyles().getHover();
+        const sel = item.getStyles().getSelected();
 
         const idleColor = idle?.getColor();
         const idleUnderline = idle?.isUnderline();
@@ -109,7 +109,7 @@ class Cli {
                     backAction,
                     backAction.getName(),
                     false,
-                    backAction.getIdle()?.toJson()
+                    backAction.getStyles().getIdle()?.toJson()
                 ).getTranslationLabel(false, false);
                 globalChoices.push(new Separator());
                 globalChoices.push(this.buildGlobalChoice(backAction.getTo(), label, backAction));
@@ -121,7 +121,7 @@ class Cli {
                         globalItem,
                         globalItem.getName(),
                         false,
-                        globalItem.getIdle()?.toJson()
+                        globalItem.getStyles().getIdle()?.toJson()
                     ).getTranslationLabel(false, false);
                     globalChoices.push(this.buildGlobalChoice(globalItem.getName(), label, globalItem));
                 });

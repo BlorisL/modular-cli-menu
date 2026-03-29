@@ -28,14 +28,8 @@ type MenuFieldValuesResolvedFn = (data: { menu: MenuField }) => MenuFieldValuesM
 
 class MenuField extends Menu {
     protected type: MenuJson["type"] = "field";
-
-    // choice values
     protected values: MenuFieldValuesMap | MenuFieldValuesResolvedFn = {};
-
-    // single config container
     protected configs: MenuFieldConfigs = new MenuFieldConfigs();
-
-    // runtime
     protected globalChoices: (Choice | Separator)[] = [];
 
     constructor(data: MenuFieldJson) {
@@ -147,13 +141,13 @@ class MenuField extends Menu {
      */
     protected applyOptionStyles(option: MenuFieldOption): void {
         // ── Idle
-        option.setIdlePrefix(option.getIdlePrefix() ?? this.idle?.getPrefix() ?? Utility.getDefaultIdlePrefix());
-        option.setIdleColor(option.getIdleColor() ?? this.idle?.getColor() ?? Utility.getDefaultIdleColor());
-        const idleUnderline = option.isIdleUnderline() ?? this.idle?.isUnderline() ?? Utility.getDefaultIdleUnderline();
+        option.setIdlePrefix(option.getIdlePrefix() ?? this.getStyles().getIdle()?.getPrefix() ?? Utility.getDefaultIdlePrefix());
+        option.setIdleColor(option.getIdleColor() ?? this.getStyles().getIdle()?.getColor() ?? Utility.getDefaultIdleColor());
+        const idleUnderline = option.isIdleUnderline() ?? this.getStyles().getIdle()?.isUnderline() ?? Utility.getDefaultIdleUnderline();
         if (idleUnderline !== undefined) {
             option.setIdleUnderline(idleUnderline);
         }
-        const idleItalic = option.isIdleItalic() ?? this.idle?.isItalic();
+        const idleItalic = option.isIdleItalic() ?? this.getStyles().getIdle()?.isItalic();
         if (idleItalic !== undefined) {
             option.setIdleItalic(idleItalic);
         }
@@ -161,19 +155,19 @@ class MenuField extends Menu {
         // ── Hover
         option.setHoverPrefix(
             option.getHoverPrefix() ??
-                this.hover?.getPrefix() ??
+                this.getStyles().getHover()?.getPrefix() ??
                 Utility.getDefaultHoverPrefix() ??
                 option.getIdlePrefix()
         );
         option.setHoverColor(
-            option.getHoverColor() ?? this.hover?.getColor() ?? Utility.getDefaultHoverColor() ?? option.getIdleColor()
+            option.getHoverColor() ?? this.getStyles().getHover()?.getColor() ?? Utility.getDefaultHoverColor() ?? option.getIdleColor()
         );
         const hoverUnderline =
-            option.isHoverUnderline() ?? this.hover?.isUnderline() ?? Utility.getDefaultHoverUnderline();
+            option.isHoverUnderline() ?? this.getStyles().getHover()?.isUnderline() ?? Utility.getDefaultHoverUnderline();
         if (hoverUnderline !== undefined) {
             option.setHoverUnderline(hoverUnderline);
         }
-        const hoverItalic = option.isHoverItalic() ?? this.hover?.isItalic();
+        const hoverItalic = option.isHoverItalic() ?? this.getStyles().getHover()?.isItalic();
         if (hoverItalic !== undefined) {
             option.setHoverItalic(hoverItalic);
         }
@@ -181,22 +175,22 @@ class MenuField extends Menu {
         // ── Selected
         option.setSelectedPrefix(
             option.getSelectedPrefix() ??
-                this.selected?.getPrefix() ??
+                this.getStyles().getSelected()?.getPrefix() ??
                 Utility.getDefaultSelectedPrefix() ??
                 option.getIdlePrefix()
         );
         option.setSelectedColor(
             option.getSelectedColor() ??
-                this.selected?.getColor() ??
+                this.getStyles().getSelected()?.getColor() ??
                 Utility.getDefaultSelectedColor() ??
                 option.getIdleColor()
         );
         const selectedUnderline =
-            option.isSelectedUnderline() ?? this.selected?.isUnderline() ?? Utility.getDefaultSelectedUnderline();
+            option.isSelectedUnderline() ?? this.getStyles().getSelected()?.isUnderline() ?? Utility.getDefaultSelectedUnderline();
         if (selectedUnderline !== undefined) {
             option.setSelectedUnderline(selectedUnderline);
         }
-        const selectedItalic = option.isSelectedItalic() ?? this.selected?.isItalic();
+        const selectedItalic = option.isSelectedItalic() ?? this.getStyles().getSelected()?.isItalic();
         if (selectedItalic !== undefined) {
             option.setSelectedItalic(selectedItalic);
         }
@@ -248,9 +242,9 @@ class MenuField extends Menu {
                 value,
                 value.getName(),
                 false,
-                value.getIdle()?.toJson(),
-                value.getHover()?.toJson(),
-                value.getSelected()?.toJson()
+                value.getStyles().getIdle()?.toJson(),
+                value.getStyles().getHover()?.toJson(),
+                value.getStyles().getSelected()?.toJson()
             );
         } else if (value instanceof MenuFieldOption) {
             name = value.getValue();
@@ -487,7 +481,7 @@ class MenuField extends Menu {
             : undefined;
 
         const result = await prompt({
-            message: Utility.write(this.getQuestionLabel(language), this.idle?.getColor()),
+            message: Utility.write(this.getQuestionLabel(language), this.getStyles().getIdle()?.getColor()),
             ...(hasInputSection
                 ? {
                       input: {
