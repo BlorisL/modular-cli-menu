@@ -1,4 +1,4 @@
-import { Action, ActionJson } from "./action";
+import { Action, ActionJson } from "../action";
 
 type ActionGotoJson = ActionJson & {
     type: "goto";
