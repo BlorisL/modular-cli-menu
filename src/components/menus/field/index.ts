@@ -457,7 +457,8 @@ class MenuField extends Menu {
             Utility.log(
                 [
                     new Date().toISOString(),
-                    `${this.getName()} - ${this.getQuestionLabel(language)}`,
+                    //`${this.getName()} - ${this.getQuestionLabel(language)}`,
+                    `${this.getName()} - ${this.getLabels().getQuestion()?.getValue(language)}`,
                     ...choiceList.map((c) => (c instanceof Separator ? c.separator : (c as Choice).label)),
                 ].join("\n") + "\n"
             );
@@ -466,22 +467,23 @@ class MenuField extends Menu {
         const validate = inputCfg?.getValidate();
         const translatedValidate = validate
             ? (value: string): boolean | string => {
-                  const res = validate(value);
-                  if (res === true || res === undefined) {
-                      return true;
-                  }
-                  if (typeof res === "string" && res.length > 0) {
-                      const asKey = Translations.getTranslation(res, language);
-                      if (asKey !== res) {
-                          return asKey;
-                      }
-                  }
-                  return this.getErrorLabel(language);
-              }
+                const res = validate(value);
+                if (res === true || res === undefined) {
+                    return true;
+                }
+                if (typeof res === "string" && res.length > 0) {
+                    const asKey = Translations.getTranslation(res, language);
+                    if (asKey !== res) {
+                        return asKey;
+                    }
+                }
+                return this.getLabels().getError()?.getValue(language); //this.getErrorLabel(language);
+            }
             : undefined;
 
         const result = await prompt({
-            message: Utility.write(this.getQuestionLabel(language), this.getStyles().getIdle()?.getColor()),
+            //message: Utility.write(this.getQuestionLabel(language), this.getStyles().getIdle()?.getColor()),
+            message: Utility.write(this.getLabels().getQuestion()?.getValue(language), this.getStyles().getIdle()?.getColor()),
             ...(hasInputSection
                 ? {
                       input: {
@@ -500,7 +502,8 @@ class MenuField extends Menu {
         if (result.type === "input") {
             inputCfg?.setValue(result.value);
             Utility.log(
-                [new Date().toISOString(), `${this.getName()} - ${this.getQuestionLabel(language)}`, result.value].join(
+                //[new Date().toISOString(), `${this.getName()} - ${this.getQuestionLabel(language)}`, result.value].join(
+                [new Date().toISOString(), `${this.getName()} - ${this.getLabels().getQuestion()?.getValue(language)}`, result.value].join(
                     "\n"
                 ) + "\n"
             );

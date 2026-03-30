@@ -92,7 +92,8 @@ cli.addPlugin({
                     callback: async ({ values, menu, parent }): Promise<void> => {
                         if (values.length > 0) {
                             Translations.setCurrentLanguage(values[0]);
-                            Cli.write(menu.getSuccessLabel(Translations.getSelectedLanguage()), "green");
+                            //Cli.write(menu.getSuccessLabel(Translations.getSelectedLanguage()), "green");
+                            Cli.write(menu.getLabels().getSuccess()?.getValue(Translations.getSelectedLanguage()), "green");
                             await cli.run("press-to-continue", parent);
                         }
                     },
@@ -276,7 +277,8 @@ cli.addPlugin({
                 configs: {
                     validate: (value): boolean => value.trim().length > 0,
                     callback: async ({ menu, value, language, parent }): Promise<void> => {
-                        Cli.write(`${menu.getSuccessLabel(language)}: ${value}`, "green");
+                        //Cli.write(`${menu.getSuccessLabel(language)}: ${value}`, "green");
+                        Cli.write(`${menu.getLabels().getSuccess()?.getValue(language)}: ${value}`, "green");
                         await cli.run("press-to-continue", parent);
                     },
                 },
@@ -303,7 +305,8 @@ cli.addPlugin({
                     selectable: true,
                     defaultValues: ["notifications"],
                     callback: async ({ values, menu, parent }): Promise<void> => {
-                        Cli.write(`${menu.getSuccessLabel()} ${values.join(", ")}`, "green");
+                        //Cli.write(`${menu.getSuccessLabel()} ${values.join(", ")}`, "green");
+                        Cli.write(`${menu.getLabels().getSuccess()?.getValue()} ${values.join(", ")}`, "green");
                         await cli.run("press-to-continue", parent);
                     },
                 },

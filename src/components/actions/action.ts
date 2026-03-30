@@ -1,4 +1,5 @@
 import { Language, Translations } from "../translations";
+import { ActionLabels, ActionLabelsJson } from "./labels";
 import { ActionStyles, ActionStylesJson } from "./styles";
 
 type ActionJson = {
@@ -9,6 +10,7 @@ type ActionJson = {
     parents?: string[];
     global?: boolean;
     styles?: ActionStylesJson;
+    labels?: ActionLabelsJson;
 };
 
 abstract class Action {
@@ -19,6 +21,7 @@ abstract class Action {
     protected parents: Record<string, Exclude<ActionJson["parents"], undefined>[number]> = {};
     protected global: Exclude<ActionJson["global"], undefined> = false;
     protected styles: ActionStyles;
+    protected labels!: ActionLabels;
 
     constructor(data: ActionJson) {
         this.name = data.name;
@@ -26,10 +29,19 @@ abstract class Action {
         this.index = data.index;
         this.global = data.global ?? false;
         this.styles = new ActionStyles(data.styles);
+        this.initializeLabels(data.labels);
 
         if (data.parents) {
             data.parents.forEach((parent) => this.addParent(parent));
         }
+    }
+
+    protected initializeLabels(labels: ActionLabelsJson | undefined): void {
+        const data: NonNullable<ActionLabelsJson> = labels ?? {};
+        if(!data.title) {
+            data.title = `${this.getPlugin() ?? "default"}.${this.getName()}.title`;
+        }
+        this.labels = new ActionLabels(data);
     }
 
     public getName(): Action["name"] {
@@ -75,6 +87,13 @@ abstract class Action {
     }
     public setStyles(styles: ActionStyles | ActionStylesJson): this {
         this.styles = styles instanceof ActionStyles ? styles : new ActionStyles(styles);
+        return this;
+    }
+    public getLabels(): ActionLabels {
+        return this.labels;
+    }
+    public setLabels(labels: ActionLabels | ActionLabelsJson): this {
+        this.labels = labels instanceof ActionLabels ? labels : new ActionLabels(labels);
         return this;
     }
 

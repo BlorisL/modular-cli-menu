@@ -22,7 +22,7 @@ abstract class Menu {
     protected index: MenuJson["index"];
     protected global: Exclude<MenuJson["global"], undefined>;
     protected styles: MenuStyles;
-    protected labels: MenuLabels;
+    protected labels!: MenuLabels;
 
     constructor(data: MenuJson) {
         this.name = data.name;
@@ -30,11 +30,30 @@ abstract class Menu {
         this.index = data.index;
         this.global = data.global ?? false;
         this.styles = new MenuStyles(data.styles);
-        this.labels = new MenuLabels(data.labels);
+        this.initializeLabels(data.labels);
 
         if (data.parents) {
             data.parents.forEach((parent) => this.addParent(parent));
         }
+    }
+
+    protected initializeLabels(labels: MenuJson["labels"]): void {
+        this.labels = new MenuLabels();
+        this.getLabels()
+            .setQuestion(labels?.question ?? `${this.getPlugin() ?? "default"}.${this.getName()}.question`)
+            .setTitle(labels?.title ?? `${this.getPlugin() ?? "default"}.${this.getName()}.title`)
+            .setSuccess(labels?.success ?? `${this.getPlugin() ?? "default"}.${this.getName()}.success`)
+            .setError(
+                labels?.error ?? `${this.getPlugin() ?? "default"}.${this.getName()}.error`,
+                (value, translate) => {
+                    const defaultError = translate("default.input.error")!;
+                    return value === undefined
+                        ? defaultError
+                        : value
+                    ;
+                }
+            )
+        ;
     }
 
     public getName(): Menu["name"] {

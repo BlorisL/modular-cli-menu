@@ -53,7 +53,14 @@ class Translations {
             return name;
         }
 
-        return Translations.items[name]?.[lang] ?? name;
+        let translated: typeof Translations['items'][string][typeof lang] | undefined = undefined;
+        try {
+            translated = Translations.items[name]?.[lang];
+        } catch {
+            //console.error(`Error retrieving translation for key "${name}" and language "${lang}":`, error);
+        }
+
+        return translated ?? name;
     }
 
     public static addTranslations(items: TranslationJson): Translations {
