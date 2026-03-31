@@ -1,23 +1,23 @@
 import { Label } from "../translations";
 
 type MenuLabelsJson = {
-    question: string;
-    title: string;
-    success: string;
-    error: string;
+    question?: string;
+    title?: string;
+    success?: string;
+    error?: string;
 };
 
 class MenuLabels {
-    protected question: Label;
-    protected title: Label;
-    protected success: Label;
-    protected error: Label;
+    protected question?: Label;
+    protected title?: Label;
+    protected success?: Label;
+    protected error?: Label;
 
     constructor(data: MenuLabelsJson) {
-        this.question = new Label(data.question);
-        this.title = new Label(data.title);
-        this.success = new Label(data.success);
-        this.error = new Label(data.error);
+        this.question = data.question ? new Label(data.question) : undefined;
+        this.title = data.title ? new Label(data.title) : undefined;
+        this.success = data.success ? new Label(data.success) : undefined;
+        this.error = data.error ? new Label(data.error) : undefined;
     }
 
     public getQuestion(): MenuLabels["question"] {
@@ -74,10 +74,10 @@ class MenuLabels {
 
     public toJson(): MenuLabelsJson {
         return {
-            question: this.question.getValue(),
-            title: this.title.getValue(),
-            success: this.success.getValue(),
-            error: this.error.getValue(),
+            ...(this.question ? { question: this.question.getValue() } : {}),
+            ...(this.title ? { title: this.title.getValue() } : {}),
+            ...(this.success ? { success: this.success.getValue() } : {}),
+            ...(this.error ? { error: this.error.getValue() } : {}),
         };
     }
 }

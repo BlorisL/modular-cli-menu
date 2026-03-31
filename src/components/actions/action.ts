@@ -1,4 +1,3 @@
-import { Language, Translations } from "../translations";
 import { ActionLabels, ActionLabelsJson } from "./labels";
 import { ActionStyles, ActionStylesJson } from "./styles";
 
@@ -29,19 +28,13 @@ abstract class Action {
         this.index = data.index;
         this.global = data.global ?? false;
         this.styles = new ActionStyles(data.styles);
-        this.initializeLabels(data.labels);
+        this.labels = new ActionLabels({
+            title: data.labels?.title ?? `${this.getPlugin() ?? "default"}.${this.getName()}.title`,
+        });
 
         if (data.parents) {
             data.parents.forEach((parent) => this.addParent(parent));
         }
-    }
-
-    protected initializeLabels(labels: ActionLabelsJson | undefined): void {
-        const data: NonNullable<ActionLabelsJson> = labels ?? {};
-        if(!data.title) {
-            data.title = `${this.getPlugin() ?? "default"}.${this.getName()}.title`;
-        }
-        this.labels = new ActionLabels(data);
     }
 
     public getName(): Action["name"] {
@@ -95,14 +88,6 @@ abstract class Action {
     public setLabels(labels: ActionLabels | ActionLabelsJson): this {
         this.labels = labels instanceof ActionLabels ? labels : new ActionLabels(labels);
         return this;
-    }
-
-    public getTitleName(): string {
-        return `${this.getPlugin() ?? "default"}.${this.getName()}.title`;
-    }
-    public getTitleLabel(language?: Language): string {
-        const name = this.getTitleName();
-        return Translations.getTranslation(name, language) ?? name;
     }
 
     public toJson(): ActionJson {

@@ -5,15 +5,18 @@ import { Utility } from "../../utility";
 import { prompt, Choice, Separator } from "@/prompts/Prompt";
 import { MenuFieldOption, MenuFieldOptionJson } from "./option";
 import { MenuFieldConfigs, MenuFieldConfigsJson } from "./configs";
+import { MenuFieldLabels, MenuFieldLabelsJson } from "./labels";
 import { MenuChoiceConfigs } from "../choice/config";
 import { MenuInputConfigs } from "../input/config";
+import { MenuInputLabels } from "../input/labels";
 
 // ── JSON types
 
 type MenuFieldJsonValue = string | MenuFieldOptionJson;
 
-type MenuFieldJson = Omit<MenuJson, "type"> & {
+type MenuFieldJson = Omit<MenuJson, "type" | "labels"> & {
     type: "field";
+    labels?: MenuFieldLabelsJson;
     values?: Array<MenuFieldJsonValue> | ((data: { menu: MenuField }) => Array<MenuFieldJsonValue>);
     configs?: MenuFieldConfigsJson;
 };
@@ -54,7 +57,7 @@ class MenuField extends Menu {
                             option = new MenuFieldOption(v);
                         } else if (typeof v === "object") {
                             name = v.value;
-                            option = new MenuFieldOption(v.value, v.label, v.multi, v.idle, v.hover, v.selected);
+                            option = new MenuFieldOption(v.value, v.multi, v.labels, v.styles);
                         }
                         if (name && option) {
                             menu.applyOptionStyles(option);
@@ -140,60 +143,29 @@ class MenuField extends Menu {
      * Applies layered styling to an option: per-option > menu styles > env default.
      */
     protected applyOptionStyles(option: MenuFieldOption): void {
+        const os = option.getStyles();
+        const ms = this.getStyles();
+
         // ── Idle
-        option.setIdlePrefix(option.getIdlePrefix() ?? this.getStyles().getIdle()?.getPrefix() ?? Utility.getDefaultIdlePrefix());
-        option.setIdleColor(option.getIdleColor() ?? this.getStyles().getIdle()?.getColor() ?? Utility.getDefaultIdleColor());
-        const idleUnderline = option.isIdleUnderline() ?? this.getStyles().getIdle()?.isUnderline() ?? Utility.getDefaultIdleUnderline();
-        if (idleUnderline !== undefined) {
-            option.setIdleUnderline(idleUnderline);
-        }
-        const idleItalic = option.isIdleItalic() ?? this.getStyles().getIdle()?.isItalic();
-        if (idleItalic !== undefined) {
-            option.setIdleItalic(idleItalic);
-        }
-
-        // ── Hover
-        option.setHoverPrefix(
-            option.getHoverPrefix() ??
-                this.getStyles().getHover()?.getPrefix() ??
-                Utility.getDefaultHoverPrefix() ??
-                option.getIdlePrefix()
-        );
-        option.setHoverColor(
-            option.getHoverColor() ?? this.getStyles().getHover()?.getColor() ?? Utility.getDefaultHoverColor() ?? option.getIdleColor()
-        );
-        const hoverUnderline =
-            option.isHoverUnderline() ?? this.getStyles().getHover()?.isUnderline() ?? Utility.getDefaultHoverUnderline();
-        if (hoverUnderline !== undefined) {
-            option.setHoverUnderline(hoverUnderline);
-        }
-        const hoverItalic = option.isHoverItalic() ?? this.getStyles().getHover()?.isItalic();
-        if (hoverItalic !== undefined) {
-            option.setHoverItalic(hoverItalic);
-        }
-
-        // ── Selected
-        option.setSelectedPrefix(
-            option.getSelectedPrefix() ??
-                this.getStyles().getSelected()?.getPrefix() ??
-                Utility.getDefaultSelectedPrefix() ??
-                option.getIdlePrefix()
-        );
-        option.setSelectedColor(
-            option.getSelectedColor() ??
-                this.getStyles().getSelected()?.getColor() ??
-                Utility.getDefaultSelectedColor() ??
-                option.getIdleColor()
-        );
-        const selectedUnderline =
-            option.isSelectedUnderline() ?? this.getStyles().getSelected()?.isUnderline() ?? Utility.getDefaultSelectedUnderline();
-        if (selectedUnderline !== undefined) {
-            option.setSelectedUnderline(selectedUnderline);
-        }
-        const selectedItalic = option.isSelectedItalic() ?? this.getStyles().getSelected()?.isItalic();
-        if (selectedItalic !== undefined) {
-            option.setSelectedItalic(selectedItalic);
-        }
+        const idlePrefix = os.getIdle()?.getPrefix() ?? ms.getIdle()?.getPrefix() ?? Utility.getDefaultIdlePrefix();
+        const idleColor  = os.getIdle()?.getColor()  ?? ms.getIdle()?.getColor()  ?? Utility.getDefaultIdleColor();
+        const idleUnderline = os.getIdle()?.isUnderline() ?? ms.getIdle()?.isUnderline() ?? Utility.getDefaultIdleUnderline();
+        const idleItalic    = os.getIdle()?.isItalic()    ?? ms.getIdle()?.isItalic();
+        option.setStyles({
+            idle: { prefix: idlePrefix, color: idleColor, underline: idleUnderline, italic: idleItalic },
+            hover: {
+                prefix:    os.getHover()?.getPrefix()    ?? ms.getHover()?.getPrefix()    ?? Utility.getDefaultHoverPrefix()    ?? idlePrefix,
+                color:     os.getHover()?.getColor()     ?? ms.getHover()?.getColor()     ?? Utility.getDefaultHoverColor()     ?? idleColor,
+                underline: os.getHover()?.isUnderline()  ?? ms.getHover()?.isUnderline()  ?? Utility.getDefaultHoverUnderline(),
+                italic:    os.getHover()?.isItalic()     ?? ms.getHover()?.isItalic(),
+            },
+            selected: {
+                prefix:    os.getSelected()?.getPrefix()    ?? ms.getSelected()?.getPrefix()    ?? Utility.getDefaultSelectedPrefix()    ?? idlePrefix,
+                color:     os.getSelected()?.getColor()     ?? ms.getSelected()?.getColor()     ?? Utility.getDefaultSelectedColor()     ?? idleColor,
+                underline: os.getSelected()?.isUnderline()  ?? ms.getSelected()?.isUnderline()  ?? Utility.getDefaultSelectedUnderline(),
+                italic:    os.getSelected()?.isItalic()     ?? ms.getSelected()?.isItalic(),
+            },
+        });
     }
 
     // ── mode helpers
@@ -238,14 +210,7 @@ class MenuField extends Menu {
 
         if (value instanceof Menu || value instanceof Action) {
             name = value.getName();
-            option = new MenuFieldOption(
-                value,
-                value.getName(),
-                false,
-                value.getStyles().getIdle()?.toJson(),
-                value.getStyles().getHover()?.toJson(),
-                value.getStyles().getSelected()?.toJson()
-            );
+            option = new MenuFieldOption(value).setStyles(value.getStyles().toJson());
         } else if (value instanceof MenuFieldOption) {
             name = value.getValue();
             option = value;
@@ -254,14 +219,7 @@ class MenuField extends Menu {
             option = new MenuFieldOption(value);
         } else if (typeof value === "object") {
             name = value.value;
-            option = new MenuFieldOption(
-                value.value,
-                value.label,
-                value.multi,
-                value.idle,
-                value.hover,
-                value.selected
-            );
+            option = new MenuFieldOption(value.value, value.multi, value.labels, value.styles);
         }
 
         if (name && option) {
@@ -322,22 +280,6 @@ class MenuField extends Menu {
         return this.configs.getInputConfigs();
     }
 
-    // ── placeholder label
-
-    public getPlaceholderName(): string {
-        return `${this.getPlugin() ?? "default"}.${this.getName()}.placeholder`;
-    }
-
-    public getPlaceholderLabel(language?: Language): string {
-        const placeholder = this.configs.getInputConfigs()?.getPlaceholder() ?? "";
-        if (placeholder.length > 0) {
-            return Translations.getTranslation(placeholder, language) ?? placeholder;
-        }
-        const key = this.getPlaceholderName();
-        const translated = Translations.getTranslation(key, language);
-        return translated !== key ? translated : key;
-    }
-
     // ── global choices
 
     public getGlobalChoices(): (Choice | Separator)[] {
@@ -368,12 +310,13 @@ class MenuField extends Menu {
     public async run(language?: Language): Promise<string | string[]> {
         const hasChoicesSection = this.hasChoices() || this.globalChoices.length > 0;
         const inputCfg = this.configs.getInputConfigs();
-        const placeholder = inputCfg?.getPlaceholder() ?? "";
+        const labels = this.getLabels();
+        const resolvedPlaceholder = (labels instanceof MenuInputLabels ? labels.getPlaceholder()?.getValue(language) : undefined) ?? "";
         const hasInputSection = !!(
             inputCfg?.getCallback() ||
             inputCfg?.getValidate() ||
             inputCfg?.isFastSubmit() ||
-            placeholder
+            resolvedPlaceholder.length > 0
         );
 
         if (hasInputSection && (inputCfg?.isClear() ?? true)) {
@@ -409,36 +352,37 @@ class MenuField extends Menu {
                 return {
                     value: item.getValue(),
                     label:
-                        item.getItem()?.getTitleLabel(language) ??
-                        Translations.getTranslation(item.getLabel() ?? item.getValue(), language),
+                        item.getItem()?.getLabels().getTitle()?.getValue(language) ??
+                        item.getLabels().getTitle()?.getValue(language) ??
+                        Translations.getTranslation(item.getValue(), language),
                     multi: item.isMulti(),
-                    ...(item.getIdle()
+                    ...(item.getStyles().getIdle()
                         ? {
                               idle: {
-                                  prefix: item.getIdlePrefix(),
-                                  color: item.getIdleColor(),
-                                  underline: item.isIdleUnderline(),
-                                  italic: item.isIdleItalic(),
+                                  prefix: item.getStyles().getIdle()?.getPrefix(),
+                                  color: item.getStyles().getIdle()?.getColor(),
+                                  underline: item.getStyles().getIdle()?.isUnderline(),
+                                  italic: item.getStyles().getIdle()?.isItalic(),
                               },
                           }
                         : {}),
-                    ...(item.getHover()
+                    ...(item.getStyles().getHover()
                         ? {
                               hover: {
-                                  prefix: item.getHoverPrefix(),
-                                  color: item.getHoverColor(),
-                                  underline: item.isHoverUnderline(),
-                                  italic: item.isHoverItalic(),
+                                  prefix: item.getStyles().getHover()?.getPrefix(),
+                                  color: item.getStyles().getHover()?.getColor(),
+                                  underline: item.getStyles().getHover()?.isUnderline(),
+                                  italic: item.getStyles().getHover()?.isItalic(),
                               },
                           }
                         : {}),
-                    ...(item.getSelected()
+                    ...(item.getStyles().getSelected()
                         ? {
                               selected: {
-                                  prefix: item.getSelectedPrefix(),
-                                  color: item.getSelectedColor(),
-                                  underline: item.isSelectedUnderline(),
-                                  italic: item.isSelectedItalic(),
+                                  prefix: item.getStyles().getSelected()?.getPrefix(),
+                                  color: item.getStyles().getSelected()?.getColor(),
+                                  underline: item.getStyles().getSelected()?.isUnderline(),
+                                  italic: item.getStyles().getSelected()?.isItalic(),
                                   active: isSelected,
                               },
                           }
@@ -457,7 +401,6 @@ class MenuField extends Menu {
             Utility.log(
                 [
                     new Date().toISOString(),
-                    //`${this.getName()} - ${this.getQuestionLabel(language)}`,
                     `${this.getName()} - ${this.getLabels().getQuestion()?.getValue(language)}`,
                     ...choiceList.map((c) => (c instanceof Separator ? c.separator : (c as Choice).label)),
                 ].join("\n") + "\n"
@@ -477,18 +420,17 @@ class MenuField extends Menu {
                         return asKey;
                     }
                 }
-                return this.getLabels().getError()?.getValue(language); //this.getErrorLabel(language);
+                return this.getLabels().getError()?.getValue(language) ?? true;
             }
             : undefined;
 
         const result = await prompt({
-            //message: Utility.write(this.getQuestionLabel(language), this.getStyles().getIdle()?.getColor()),
-            message: Utility.write(this.getLabels().getQuestion()?.getValue(language), this.getStyles().getIdle()?.getColor()),
+            message: this.getLabels().getQuestion()!.write({ color: this.getStyles().getIdle()?.getColor() }, language),
             ...(hasInputSection
                 ? {
                       input: {
                           value: inputValue,
-                          placeholder: this.getPlaceholderLabel(language),
+                          placeholder: resolvedPlaceholder,
                           fastSubmit: inputCfg?.isFastSubmit() ?? false,
                           inline: inputCfg?.isInline() ?? false,
                           validate: translatedValidate,
@@ -502,7 +444,6 @@ class MenuField extends Menu {
         if (result.type === "input") {
             inputCfg?.setValue(result.value);
             Utility.log(
-                //[new Date().toISOString(), `${this.getName()} - ${this.getQuestionLabel(language)}`, result.value].join(
                 [new Date().toISOString(), `${this.getName()} - ${this.getLabels().getQuestion()?.getValue(language)}`, result.value].join(
                     "\n"
                 ) + "\n"
@@ -532,9 +473,11 @@ class MenuField extends Menu {
 
 export {
     type MenuFieldJson,
+    type MenuFieldLabelsJson,
     type MenuFieldOptionJson,
     type MenuFieldJsonValue,
     MenuField,
+    MenuFieldLabels,
     MenuFieldOption,
     MenuFieldConfigs,
     type MenuFieldConfigsJson,

@@ -1,4 +1,6 @@
 import { TranslationJson, Translations } from ".";
+import { Utility } from "../utility";
+import { ColorName } from "chalk";
 
 class Label {
     protected name: string;
@@ -32,6 +34,10 @@ class Label {
             ? this.callback(value, translate) 
             : (value ?? this.getName())
         ;
+    }
+
+    public write(style?: { prefix?: string; color?: ColorName }, language?: keyof TranslationJson[string]): string {
+        return Utility.write(`${style?.prefix ?? ""}${this.getValue(language)}`, style?.color);
     }
 
     public toJson(): { name: string; value: string } {

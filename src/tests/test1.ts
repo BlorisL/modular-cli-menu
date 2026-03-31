@@ -108,8 +108,10 @@ const plugins: PluginJson[] = [
                 name: "nickname",
                 type: "input",
                 parents: ["submenu1"],
-                configs: {
+                labels: {
                     placeholder: "Enter your nickname...",
+                },
+                configs: {
                     validate: (value: string): boolean | string =>
                         value.trim().length > 0 || "Nickname cannot be empty",
                     callback: async (): Promise<void> => {},
@@ -402,10 +404,10 @@ for (const def of inputMenuDefs) {
         assert((instance as MenuInput).getValue() === "", `"${def.name}".value inizia vuoto`);
     }
 
-    if (def.configs?.placeholder !== undefined) {
+    if (def.labels?.placeholder !== undefined) {
         assert(
-            (instance as MenuInput).getPlaceholder() === def.configs.placeholder,
-            `"${def.name}".placeholder === "${def.configs.placeholder}"`,
+            (instance as MenuInput).getPlaceholder() === def.labels.placeholder,
+            `"${def.name}".placeholder === "${def.labels.placeholder}"`,
             `trovato: ${(instance as MenuInput).getPlaceholder()}`
         );
     }
@@ -438,25 +440,25 @@ section("SUITE 13 — Stili option per-option");
     const frOption = values.find((v) => v.getValue() === "fr");
     assert(!!frOption, 'opzione "fr" esiste nei values di language');
     assert(
-        frOption!.getSelectedPrefix() === "✓ ",
+        frOption!.getStyles().getSelected()?.getPrefix() === "✓ ",
         'fr selected.prefix === "✓ "',
-        `trovato: ${frOption?.getSelectedPrefix()}`
+        `trovato: ${frOption?.getStyles().getSelected()?.getPrefix()}`
     );
     assert(
-        frOption!.getSelectedColor() === "red",
+        frOption!.getStyles().getSelected()?.getColor() === "red",
         'fr selected.color === "red"',
-        `trovato: ${frOption?.getSelectedColor()}`
+        `trovato: ${frOption?.getStyles().getSelected()?.getColor()}`
     );
 
     const deOption = values.find((v) => v.getValue() === "de");
     assert(!!deOption, 'opzione "de" esiste nei values di language');
-    assert(deOption!.getIdlePrefix() === "·", 'de idle.prefix === "·"', `trovato: ${deOption?.getIdlePrefix()}`);
-    assert(deOption!.getIdleColor() === "gray", 'de idle.color === "gray"', `trovato: ${deOption?.getIdleColor()}`);
-    assert(deOption!.getHoverPrefix() === "»", 'de hover.prefix === "»"', `trovato: ${deOption?.getHoverPrefix()}`);
+    assert(deOption!.getStyles().getIdle()?.getPrefix() === "·", 'de idle.prefix === "·"', `trovato: ${deOption?.getStyles().getIdle()?.getPrefix()}`);
+    assert(deOption!.getStyles().getIdle()?.getColor() === "gray", 'de idle.color === "gray"', `trovato: ${deOption?.getStyles().getIdle()?.getColor()}`);
+    assert(deOption!.getStyles().getHover()?.getPrefix() === "»", 'de hover.prefix === "»"', `trovato: ${deOption?.getStyles().getHover()?.getPrefix()}`);
     assert(
-        deOption!.getHoverColor() === "white",
+        deOption!.getStyles().getHover()?.getColor() === "white",
         'de hover.color === "white"',
-        `trovato: ${deOption?.getHoverColor()}`
+        `trovato: ${deOption?.getStyles().getHover()?.getColor()}`
     );
 }
 

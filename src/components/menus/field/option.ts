@@ -1,51 +1,77 @@
-import { ColorName } from "chalk";
 import { Menu } from "../menu";
 import { Action } from "../../actions";
 import { Language, Translations } from "../../translations";
+import { Label } from "../../translations";
 import { Utility } from "../../utility";
-import { MenuFieldConfigSelected, MenuFieldConfigSelectedJson } from "./selected";
-import { MenuFieldConfigIdle, MenuFieldConfigIdleJson } from "./idle";
-import { MenuFieldConfigHover, MenuFieldConfigHoverJson } from "./hover";
+import { MenuStyles, MenuStylesJson } from "../styles";
+
+// 
+
+type MenuFieldOptionLabelsJson = {
+    title?: string;
+};
+
+class MenuFieldOptionLabels {
+    protected title?: Label;
+
+    constructor(data?: MenuFieldOptionLabelsJson) {
+        this.title = data?.title ? new Label(data.title) : undefined;
+    }
+
+    public getTitle(): MenuFieldOptionLabels["title"] {
+        return this.title;
+    }
+    public setTitle(
+        title: NonNullable<MenuFieldOptionLabels["title"] | MenuFieldOptionLabelsJson["title"]>,
+        callback?: Label["callback"],
+    ): this {
+        this.title = title instanceof Label
+            ? new Label(title.getName(), callback ?? title.getCallback())
+            : new Label(title);
+        return this;
+    }
+
+    public toJson(): MenuFieldOptionLabelsJson {
+        return {
+            ...(this.title ? { title: this.title.getValue() } : {}),
+        };
+    }
+}
+
 
 type MenuFieldOptionJson = {
     value: string;
-    label?: string;
     multi?: boolean;
-    //color?: ColorName;
-    idle?: MenuFieldConfigIdleJson;
-    hover?: MenuFieldConfigHoverJson;
-    selected?: MenuFieldConfigSelectedJson;
+    labels?: MenuFieldOptionLabelsJson;
+    styles?: MenuStylesJson;
 };
+
+// ── Class
 
 class MenuFieldOption {
     protected value: string | Menu | Action;
-    protected label: string;
+    protected labels: MenuFieldOptionLabels;
     protected multi: boolean;
-    //protected color?: ColorName;
-    protected idle?: MenuFieldConfigIdle;
-    protected hover?: MenuFieldConfigHover;
-    protected selected?: MenuFieldConfigSelected;
+    protected styles: MenuStyles;
 
     constructor(
         value: string | Menu | Action,
         label?: string,
         multi?: boolean,
-        //color?: ColorName,
-        idle?: MenuFieldConfigIdleJson,
-        hover?: MenuFieldConfigHoverJson,
-        selected?: MenuFieldConfigSelectedJson
+        idle?: MenuStylesJson["idle"],
+        hover?: MenuStylesJson["hover"],
+        selected?: MenuStylesJson["selected"]
     ) {
         this.value = value;
-        this.label = label ?? (typeof value === "string" ? value : value.getName());
+        this.labels = new MenuFieldOptionLabels({
+            title: label ?? (typeof value === "string" ? value : value.getName()),
+        });
         this.multi = multi ?? false;
-        //this.color  = color;
-        this.idle = idle ? new MenuFieldConfigIdle(idle.prefix, idle.color, idle.underline, idle.italic) : undefined;
-        this.hover = hover
-            ? new MenuFieldConfigHover(hover.prefix, hover.color, hover.underline, hover.italic)
-            : undefined;
-        this.selected = selected
-            ? new MenuFieldConfigSelected(selected.prefix, selected.color, selected.underline, selected.italic)
-            : undefined;
+        this.styles = new MenuStyles({
+            ...(idle ? { idle } : {}),
+            ...(hover ? { hover } : {}),
+            ...(selected ? { selected } : {}),
+        });
     }
 
     public getValue(): string {
@@ -55,13 +81,6 @@ class MenuFieldOption {
         this.value = value;
         return this;
     }
-
-    public getLabel(): string {
-        return this.label;
-    }
-
-    //public getColor(): MenuFieldOption['color'] | undefined { return this.color; }
-    //public setColor(color: MenuFieldOption['color']): this { this.color = color; return this; }
 
     public isMulti(): boolean {
         return this.multi;
@@ -75,200 +94,60 @@ class MenuFieldOption {
         return typeof this.value === "string" ? undefined : this.value;
     }
 
-    public getIdle(): MenuFieldConfigIdle | undefined {
-        return this.idle;
+    public getLabels(): MenuFieldOptionLabels {
+        return this.labels;
     }
-    public getIdlePrefix(): string | undefined {
-        return this.idle?.getPrefix();
-    }
-    public setIdlePrefix(prefix?: string): this {
-        if (!this.idle) {
-            this.idle = new MenuFieldConfigIdle();
-        }
-        this.idle.setPrefix(prefix);
-
-        return this;
-    }
-    public getIdleColor(): ColorName | undefined {
-        return this.idle?.getColor();
-    }
-    public setIdleColor(color?: ColorName): this {
-        if (!this.idle) {
-            this.idle = new MenuFieldConfigIdle();
-        }
-        this.idle.setColor(color);
-
+    public setLabels(labels: MenuFieldOptionLabels | MenuFieldOptionLabelsJson): this {
+        this.labels = labels instanceof MenuFieldOptionLabels ? labels : new MenuFieldOptionLabels(labels);
         return this;
     }
 
-    public isIdleUnderline(): boolean | undefined {
-        return this.idle?.isUnderline();
+    public getStyles(): MenuStyles {
+        return this.styles;
     }
-    public setIdleUnderline(underline?: boolean): this {
-        if (!this.idle) {
-            this.idle = new MenuFieldConfigIdle();
-        }
-        this.idle.setUnderline(underline);
-
-        return this;
-    }
-    public isIdleItalic(): boolean | undefined {
-        return this.idle?.isItalic();
-    }
-    public setIdleItalic(italic?: boolean): this {
-        if (!this.idle) {
-            this.idle = new MenuFieldConfigIdle();
-        }
-        this.idle.setItalic(italic);
-
-        return this;
-    }
-
-    public getHover(): MenuFieldConfigHover | undefined {
-        return this.hover;
-    }
-    public getHoverPrefix(): string | undefined {
-        return this.hover?.getPrefix();
-    }
-    public setHoverPrefix(prefix?: string): this {
-        if (!this.hover) {
-            this.hover = new MenuFieldConfigHover();
-        }
-        this.hover.setPrefix(prefix);
-
-        return this;
-    }
-    public getHoverColor(): ColorName | undefined {
-        return this.hover?.getColor();
-    }
-    public setHoverColor(color?: ColorName): this {
-        if (!this.hover) {
-            this.hover = new MenuFieldConfigHover();
-        }
-        this.hover.setColor(color);
-
-        return this;
-    }
-
-    public isHoverUnderline(): boolean | undefined {
-        return this.hover?.isUnderline();
-    }
-    public setHoverUnderline(underline?: boolean): this {
-        if (!this.hover) {
-            this.hover = new MenuFieldConfigHover();
-        }
-        this.hover.setUnderline(underline);
-
-        return this;
-    }
-    public isHoverItalic(): boolean | undefined {
-        return this.hover?.isItalic();
-    }
-    public setHoverItalic(italic?: boolean): this {
-        if (!this.hover) {
-            this.hover = new MenuFieldConfigHover();
-        }
-        this.hover.setItalic(italic);
-
-        return this;
-    }
-
-    public getSelected(): MenuFieldConfigSelected | undefined {
-        return this.selected;
-    }
-    public getSelectedPrefix(): string | undefined {
-        return this.selected?.getPrefix();
-    }
-    public setSelectedPrefix(prefix?: string): this {
-        if (!this.selected) {
-            this.selected = new MenuFieldConfigSelected();
-        }
-        this.selected.setPrefix(prefix);
-
-        return this;
-    }
-    public getSelectedColor(): ColorName | undefined {
-        return this.selected?.getColor();
-    }
-    public setSelectedColor(color?: ColorName): this {
-        if (!this.selected) {
-            this.selected = new MenuFieldConfigSelected();
-        }
-        this.selected.setColor(color);
-
-        return this;
-    }
-
-    public isSelectedUnderline(): boolean | undefined {
-        return this.selected?.isUnderline();
-    }
-    public setSelectedUnderline(underline?: boolean): this {
-        if (!this.selected) {
-            this.selected = new MenuFieldConfigSelected();
-        }
-        this.selected.setUnderline(underline);
-
-        return this;
-    }
-    public isSelectedItalic(): boolean | undefined {
-        return this.selected?.isItalic();
-    }
-    public setSelectedItalic(italic?: boolean): this {
-        if (!this.selected) {
-            this.selected = new MenuFieldConfigSelected();
-        }
-        this.selected.setItalic(italic);
-
+    public setStyles(styles: MenuStyles | MenuStylesJson): this {
+        this.styles = styles instanceof MenuStyles ? styles : new MenuStyles(styles);
         return this;
     }
 
     public getTranslationLabel(isHover?: boolean, isSelected?: boolean, language?: Language): string {
         let prefix: string = "";
-        let color: ColorName | undefined = undefined;
+        let color = this.styles.getIdle()?.getColor();
 
         if (isHover) {
-            if (this.getHover()?.getColor()) {
-                color = this.getHover()?.getColor();
-            }
-            if ((this.getHover()?.getPrefix() ?? "").length > 0) {
-                prefix = this.getHover()!.getPrefix()!;
-            }
+            const h = this.styles.getHover();
+            if (h?.getColor()) color = h.getColor();
+            if ((h?.getPrefix() ?? "").length > 0) prefix = h!.getPrefix()!;
         }
 
         if (isSelected) {
-            if (this.getSelected()?.getColor()) {
-                color = this.getSelected()?.getColor();
-            }
-            if ((this.getSelected()?.getPrefix() ?? "").length > 0) {
-                prefix = this.getSelected()!.getPrefix()!;
-            }
+            const s = this.styles.getSelected();
+            if (s?.getColor()) color = s.getColor();
+            if ((s?.getPrefix() ?? "").length > 0) prefix = s!.getPrefix()!;
         }
 
         if (prefix.length === 0) {
-            if (this.getIdle()?.getPrefix()) {
-                prefix = this.getIdle()?.getPrefix() ?? "";
-            }
-        }
-        if (color === undefined) {
-            if (this.getIdle()?.getColor()) {
-                color = this.getIdle()?.getColor();
-            }
+            prefix = this.styles.getIdle()?.getPrefix() ?? "";
         }
 
         const translation =
-            this.getItem()?.getTitleLabel(language) ??
-            Translations.getTranslation(this.getLabel() ?? this.getValue(), language);
+            this.getItem()?.getLabels().getTitle()?.getValue(language) ??
+            this.labels.getTitle()?.getValue(language) ??
+            Translations.getTranslation(this.getValue(), language);
 
         return Utility.write(`${prefix}${translation}`, color);
     }
 
     public toJson(): MenuFieldOptionJson {
+        const labelsJson = this.labels.toJson();
+        const stylesJson = this.styles.toJson();
         return {
             value: this.getValue(),
-            label: this.getLabel(),
             multi: this.isMulti(),
+            ...(labelsJson.title ? { labels: labelsJson } : {}),
+            ...(stylesJson.idle || stylesJson.hover || stylesJson.selected ? { styles: stylesJson } : {}),
         };
     }
 }
 
-export { type MenuFieldOptionJson, MenuFieldOption };
+export { type MenuFieldOptionLabelsJson, MenuFieldOptionLabels, type MenuFieldOptionJson, MenuFieldOption };

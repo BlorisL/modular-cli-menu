@@ -93,7 +93,10 @@ cli.addPlugin({
                         if (values.length > 0) {
                             Translations.setCurrentLanguage(values[0]);
                             //Cli.write(menu.getSuccessLabel(Translations.getSelectedLanguage()), "green");
-                            Cli.write(menu.getLabels().getSuccess()?.getValue(Translations.getSelectedLanguage()), "green");
+                            const message = menu.getLabels().getSuccess()?.getValue(Translations.getSelectedLanguage()) ?? "Language set successfully.";
+                            if(message) {
+                                Cli.write(message, "green");
+                            }
                             await cli.run("press-to-continue", parent);
                         }
                     },
@@ -311,10 +314,10 @@ cli.addPlugin({
                     },
                 },
                 values: [
-                    { value: "notifications", label: "test1.features.answer.notifications", multi: true },
-                    { value: "darkmode", label: "test1.features.answer.darkmode", multi: true },
-                    { value: "autosave", label: "test1.features.answer.autosave", multi: true },
-                    { value: "analytics", label: "test1.features.answer.analytics", multi: true },
+                    { value: "notifications", labels: { title: "test1.features.answer.notifications" }, multi: true },
+                    { value: "darkmode", labels: { title: "test1.features.answer.darkmode" }, multi: true },
+                    { value: "autosave", labels: { title: "test1.features.answer.autosave" }, multi: true },
+                    { value: "analytics", labels: { title: "test1.features.answer.analytics" }, multi: true },
                 ],
             },
         ],

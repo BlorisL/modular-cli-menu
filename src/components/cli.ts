@@ -1,6 +1,6 @@
 import { ColorName } from "chalk";
 import { Action, ActionFunction, ActionFunctionJson, ActionGoto, ActionGotoJson } from "./actions";
-import { Menu, MenuField, MenuFieldJson, MenuFieldOption } from "./menus";
+import { Menu, MenuField, MenuFieldJson } from "./menus";
 import { MenuChoice, MenuChoiceJson } from "./menus/choice";
 import { MenuInput, MenuInputJson } from "./menus/input";
 import { Choice, Separator } from "@/prompts/Prompt";
@@ -105,24 +105,14 @@ class Cli {
                 const backAction = new ActionGoto(backTemplate.toJson())
                     .setName("back_input")
                     .setTo(parentName ?? "main");
-                const label = new MenuFieldOption(
-                    backAction,
-                    backAction.getName(),
-                    false,
-                    backAction.getStyles().getIdle()?.toJson()
-                ).getTranslationLabel(false, false);
+                const label = backAction.getLabels().getTitle()!.write(backAction.getStyles().getIdle()?.toJson());
                 globalChoices.push(new Separator());
                 globalChoices.push(this.buildGlobalChoice(backAction.getTo(), label, backAction));
             }
             this.getGlobalItems()
                 .filter((g) => g.getName() !== "back")
                 .forEach((globalItem) => {
-                    const label = new MenuFieldOption(
-                        globalItem,
-                        globalItem.getName(),
-                        false,
-                        globalItem.getStyles().getIdle()?.toJson()
-                    ).getTranslationLabel(false, false);
+                    const label = globalItem.getLabels().getTitle()!.write(globalItem.getStyles().getIdle()?.toJson());
                     globalChoices.push(this.buildGlobalChoice(globalItem.getName(), label, globalItem));
                 });
             item.setGlobalChoices(item.getConfigs().getInputConfigs()?.isFastSubmit() ? [] : globalChoices);

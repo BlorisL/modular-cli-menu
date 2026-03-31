@@ -121,8 +121,10 @@ class Utility {
                 name: "press-to-continue",
                 type: "input",
                 value: "",
-                configs: {
+                labels: {
                     placeholder: message,
+                },
+                configs: {
                     clear: false,
                 },
             });

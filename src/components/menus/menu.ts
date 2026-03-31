@@ -30,30 +30,16 @@ abstract class Menu {
         this.index = data.index;
         this.global = data.global ?? false;
         this.styles = new MenuStyles(data.styles);
-        this.initializeLabels(data.labels);
+        this.labels = new MenuLabels({
+            question: data.labels?.question ?? `${this.getPlugin() ?? "default"}.${this.getName()}.question`,
+            title: data.labels?.title ?? `${this.getPlugin() ?? "default"}.${this.getName()}.title`,
+            success: data.labels?.success ?? `${this.getPlugin() ?? "default"}.${this.getName()}.success`,
+            error: data.labels?.error ?? `${this.getPlugin() ?? "default"}.${this.getName()}.error`,
+        });
 
         if (data.parents) {
             data.parents.forEach((parent) => this.addParent(parent));
         }
-    }
-
-    protected initializeLabels(labels: MenuJson["labels"]): void {
-        this.labels = new MenuLabels();
-        this.getLabels()
-            .setQuestion(labels?.question ?? `${this.getPlugin() ?? "default"}.${this.getName()}.question`)
-            .setTitle(labels?.title ?? `${this.getPlugin() ?? "default"}.${this.getName()}.title`)
-            .setSuccess(labels?.success ?? `${this.getPlugin() ?? "default"}.${this.getName()}.success`)
-            .setError(
-                labels?.error ?? `${this.getPlugin() ?? "default"}.${this.getName()}.error`,
-                (value, translate) => {
-                    const defaultError = translate("default.input.error")!;
-                    return value === undefined
-                        ? defaultError
-                        : value
-                    ;
-                }
-            )
-        ;
     }
 
     public getName(): Menu["name"] {
@@ -103,32 +89,12 @@ abstract class Menu {
         return this;
     }
 
-    public getQuestionName(): string {
-        return `${this.getPlugin() ?? "default"}.${this.getName()}.question`;
-    }
-    public getLabels(): MenuLabels {
+    public getLabels(): Menu['labels'] {
         return this.labels;
     }
-    public setLabels(labels: MenuLabels | MenuLabelsJson): this {
+    public setLabels(labels: Menu['labels'] | MenuLabelsJson): this {
         this.labels = labels instanceof MenuLabels ? labels : new MenuLabels(labels);
         return this;
-    }
-
-    public getQuestionLabel(language?: Language): string {
-        const key = this.getQuestionName();
-        const translated = Translations.getTranslation(key, language);
-        const q = this.labels.getQuestion();
-        return translated !== key ? translated : q && q.length > 0 ? q : key;
-    }
-
-    public getTitleName(): string {
-        return `${this.getPlugin() ?? "default"}.${this.getName()}.title`;
-    }
-    public getTitleLabel(language?: Language): string {
-        const key = this.getTitleName();
-        const translated = Translations.getTranslation(key, language);
-        const t = this.labels.getTitle();
-        return translated !== key ? translated : t && t.length > 0 ? t : key;
     }
 
     public getAnswerName(name: string): string {
@@ -138,34 +104,6 @@ abstract class Menu {
         const key = this.getAnswerName(name);
         const translated = Translations.getTranslation(key, language);
         return translated !== key ? translated : name;
-    }
-
-    public getSuccessName(): string {
-        return `${this.getPlugin() ?? "default"}.${this.getName()}.success`;
-    }
-    public getSuccessLabel(language?: Language): string {
-        const key = this.getSuccessName();
-        const translated = Translations.getTranslation(key, language);
-        const s = this.labels.getSuccess();
-        return translated !== key ? translated : s && s.length > 0 ? s : key;
-    }
-
-    public getErrorName(): string {
-        return `${this.getPlugin() ?? "default"}.${this.getName()}.error`;
-    }
-    public getErrorLabel(language?: Language): string {
-        const key = this.getErrorName();
-        const translated = Translations.getTranslation(key, language);
-        if (translated !== key) {
-            return translated;
-        }
-        const e = this.labels.getError();
-        if (e && e.length > 0) {
-            return e;
-        }
-        const generic = "default.input.error";
-        const genericTranslated = Translations.getTranslation(generic, language);
-        return genericTranslated !== generic ? genericTranslated : key;
     }
 
     public toJson(): MenuJson {

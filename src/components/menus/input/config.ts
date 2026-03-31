@@ -1,7 +1,6 @@
 import { MenuField } from "..";
 
 type MenuInputConfigsJson = {
-    placeholder?: string;
     clear?: boolean;
     fastSubmit?: boolean;
     inline?: boolean;
@@ -11,7 +10,6 @@ type MenuInputConfigsJson = {
 
 class MenuInputConfigs {
     protected value: string = "";
-    protected placeholder: NonNullable<MenuInputConfigsJson["placeholder"]> = "";
     protected clear: NonNullable<MenuInputConfigsJson["clear"]> = true;
     protected fastSubmit: NonNullable<MenuInputConfigsJson["fastSubmit"]> = false;
     protected inline: NonNullable<MenuInputConfigsJson["inline"]> = false;
@@ -20,7 +18,6 @@ class MenuInputConfigs {
 
     constructor(data?: MenuInputConfigsJson) {
         if (data) {
-            this.placeholder = data.placeholder ?? "";
             this.clear = data.clear ?? true;
             this.fastSubmit = data.fastSubmit ?? false;
             this.inline = data.inline ?? false;
@@ -34,14 +31,6 @@ class MenuInputConfigs {
     }
     public setValue(v: string): this {
         this.value = v;
-        return this;
-    }
-
-    public getPlaceholder(): MenuInputConfigsJson["placeholder"] {
-        return this.placeholder;
-    }
-    public setPlaceholder(v: NonNullable<MenuInputConfigsJson["placeholder"]>): this {
-        this.placeholder = v;
         return this;
     }
 
@@ -87,7 +76,6 @@ class MenuInputConfigs {
 
     public toJson(): MenuInputConfigsJson {
         return {
-            ...(this.placeholder ? { placeholder: this.placeholder } : {}),
             clear: this.clear,
             ...(this.fastSubmit ? { fastSubmit: this.fastSubmit } : {}),
             ...(this.inline ? { inline: this.inline } : {}),
