@@ -1,11 +1,10 @@
-import { Menu, MenuJson } from "../menu";
+import { Menu, MenuJson, MenuLabelsJson } from "../menu";
 import { Action } from "../../actions";
 import { Language, Translations } from "../../translations";
 import { Utility } from "../../utility";
 import { prompt, Choice, Separator } from "@/prompts/Prompt";
 import { MenuFieldOption, MenuFieldOptionJson } from "./option";
 import { MenuFieldConfigs, MenuFieldConfigsJson } from "./configs";
-import { MenuFieldLabels, MenuFieldLabelsJson } from "./labels";
 import { MenuChoiceConfigs } from "../choice/config";
 import { MenuInputConfigs } from "../input/config";
 import { MenuInputLabels } from "../input/labels";
@@ -16,7 +15,7 @@ type MenuFieldJsonValue = string | MenuFieldOptionJson;
 
 type MenuFieldJson = Omit<MenuJson, "type" | "labels"> & {
     type: "field";
-    labels?: MenuFieldLabelsJson;
+    labels?: MenuLabelsJson;
     values?: Array<MenuFieldJsonValue> | ((data: { menu: MenuField }) => Array<MenuFieldJsonValue>);
     configs?: MenuFieldConfigsJson;
 };
@@ -473,11 +472,9 @@ class MenuField extends Menu {
 
 export {
     type MenuFieldJson,
-    type MenuFieldLabelsJson,
     type MenuFieldOptionJson,
     type MenuFieldJsonValue,
     MenuField,
-    MenuFieldLabels,
     MenuFieldOption,
     MenuFieldConfigs,
     type MenuFieldConfigsJson,
