@@ -5,8 +5,6 @@ import { Utility } from "../../utility";
 import { prompt, Choice, Separator } from "@/prompts/Prompt";
 import { MenuFieldOption, MenuFieldOptionJson } from "./option";
 import { MenuFieldConfigs, MenuFieldConfigsJson } from "./configs";
-import { MenuChoiceConfigs } from "../choice/config";
-import { MenuInputConfigs } from "../input/config";
 import { MenuInputLabels } from "../input/labels";
 
 // JSON types
@@ -235,37 +233,6 @@ class MenuField extends Menu {
         return this;
     }
 
-    // selected values API (delegates to choice configs)
-
-    public getSelectedValues(): string[] {
-        return this.configs.getChoiceConfigs()?.getSelectedValues() ?? [];
-    }
-    public setSelectedValues(values: string[]): this {
-        this.configs.getChoiceConfigs()?.setSelectedValues(values);
-        return this;
-    }
-    public addSelectedValue(value: string): this {
-        this.configs.getChoiceConfigs()?.addSelectedValue(value);
-        return this;
-    }
-    public delSelectedValue(value: string): this {
-        this.configs.getChoiceConfigs()?.delSelectedValue(value);
-        return this;
-    }
-    public isSelectedValue(value: string): boolean {
-        return this.configs.getChoiceConfigs()?.isSelectedValue(value) ?? false;
-    }
-
-    // input value API (delegates to input configs)
-
-    public getInputValue(): string {
-        return this.configs.getInputConfigs()?.getValue() ?? "";
-    }
-    public setInputValue(value: string): this {
-        this.configs.getInputConfigs()?.setValue(value);
-        return this;
-    }
-
     // configs API
 
     public getConfigs(): MenuFieldConfigs {
@@ -274,15 +241,6 @@ class MenuField extends Menu {
     public setConfigs(data: MenuFieldConfigs | MenuFieldConfigsJson): this {
         this.configs = data instanceof MenuFieldConfigs ? data : new MenuFieldConfigs(data);
         return this;
-    }
-
-    /** Shortcut for getConfigs().getChoiceConfigs() */
-    public getChoiceConfigs(): MenuChoiceConfigs | undefined {
-        return this.configs.getChoiceConfigs();
-    }
-    /** Shortcut for getConfigs().getInputConfigs() */
-    public getInputConfigs(): MenuInputConfigs | undefined {
-        return this.configs.getInputConfigs();
     }
 
     // global choices
@@ -355,7 +313,10 @@ class MenuField extends Menu {
                     return item;
                 }
 
-                const isSelected = isSelectable && !item.getItem()?.isGlobal() && this.isSelectedValue(item.getValue());
+                const isSelected =
+                    isSelectable &&
+                    !item.getItem()?.isGlobal() &&
+                    (this.getConfigs().getChoiceConfigs()?.isSelectedValue(item.getValue()) ?? false);
 
                 return {
                     value: item.getValue(),

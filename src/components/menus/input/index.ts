@@ -38,7 +38,7 @@ class MenuInput extends MenuField {
 
     /** Returns the current input value. */
     public getValue(): string {
-        return this.getInputValue();
+        return this.getConfigs().getInputConfigs()?.getValue() ?? "";
     }
 
     public override getLabels(): MenuInputLabels {

@@ -174,7 +174,9 @@ class Cli {
                 return;
             }
 
-            const isBackNavigation = inputResult !== item.getInputValue() && this.getMenu(inputResult) !== undefined;
+            const isBackNavigation =
+                inputResult !== (item.getConfigs().getInputConfigs()?.getValue() ?? "") &&
+                this.getMenu(inputResult) !== undefined;
             if (isBackNavigation) {
                 const targetMenu = this.getMenu(inputResult);
                 const targetParent =
@@ -185,7 +187,7 @@ class Cli {
 
             await item.getConfigs().getInputConfigs()?.getCallback()?.({
                 menu: item,
-                value: item.getInputValue(),
+                value: item.getConfigs().getInputConfigs()?.getValue() ?? "",
                 language: Translations.getSelectedLanguage(),
                 parent: parentName,
             });
@@ -215,7 +217,7 @@ class Cli {
             await choiceCallback({
                 menu: item,
                 language: Translations.getSelectedLanguage(),
-                values: item.getSelectedValues(),
+                values: item.getConfigs().getChoiceConfigs()?.getSelectedValues() ?? [],
                 parent: parentName,
             });
         } else {
