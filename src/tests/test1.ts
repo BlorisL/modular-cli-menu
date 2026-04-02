@@ -10,7 +10,7 @@ type ActionDefJson = (ActionGotoJson | ActionFunctionJson) & { pluginName: strin
 /** Typed access to Cli's protected getActionTypeBack for testing. */
 type TestCli = { getActionTypeBack(menu: MenuField): ActionGoto | undefined };
 
-// ── Output helpers
+// Output helpers
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
 const YELLOW = "\x1b[33m";
@@ -37,7 +37,7 @@ function section(title: string): void {
     console.log(`\n${BOLD}${title}${RESET}`);
 }
 
-// ── Plugin configuration
+// Plugin configuration
 const plugins: PluginJson[] = [
     {
         name: "default",
@@ -141,11 +141,11 @@ const plugins: PluginJson[] = [
     },
 ];
 
-// ── Costruzione CLI
+// Costruzione CLI
 const cli = new Cli();
 plugins.forEach((p) => cli.addPlugin(p));
 
-// ── Helpers per i test
+// Helpers per i test
 
 function getBack(menuName: string): ActionGoto | undefined {
     const menu = cli.getMenu(menuName) as MenuChoice | undefined;
@@ -178,19 +178,19 @@ function flatActions(): ActionDefJson[] {
     return plugins.flatMap((p) => (p.actions ?? []).map((a) => ({ ...a, pluginName: p.name })));
 }
 
-// ── SUITE 1: Menus registrati
+// SUITE 1: Menus registrati
 section("SUITE 1 — Menus registrati");
 for (const m of flatMenus()) {
     assert(!!cli.getMenu(m.name), `menu "${m.name}" registrato`);
 }
 
-// ── SUITE 2: Actions registrate
+// SUITE 2: Actions registrate
 section("SUITE 2 — Actions registrate");
 for (const a of flatActions()) {
     assert(!!cli.getAction(a.name), `action "${a.name}" registrata`);
 }
 
-// ── SUITE 3: Plugin assegnati
+// SUITE 3: Plugin assegnati
 section("SUITE 3 — Plugin assegnati");
 for (const m of flatMenus()) {
     assert(
@@ -207,7 +207,7 @@ for (const a of flatActions()) {
     );
 }
 
-// ── SUITE 4: Global flag
+// SUITE 4: Global flag
 section("SUITE 4 — Global flag");
 for (const m of flatMenus()) {
     const isGlobal = m.global === true;
@@ -218,7 +218,7 @@ for (const a of flatActions()) {
     assert(cli.getAction(a.name)?.isGlobal() === isGlobal, `action "${a.name}" isGlobal === ${isGlobal}`);
 }
 
-// ── SUITE 5: Tipo delle actions
+// SUITE 5: Tipo delle actions
 section("SUITE 5 — Tipo delle actions");
 for (const a of flatActions()) {
     const instance = cli.getAction(a.name);
@@ -234,7 +234,7 @@ for (const a of flatActions()) {
     }
 }
 
-// ── SUITE 6: Stili
+// SUITE 6: Stili
 section("SUITE 6 — Stili");
 for (const m of flatMenus()) {
     if (m.styles?.idle?.color) {
@@ -255,7 +255,7 @@ for (const a of flatActions()) {
     }
 }
 
-// ── SUITE 7: Parents dichiarati
+// SUITE 7: Parents dichiarati
 section("SUITE 7 — Parents dichiarati");
 for (const m of flatMenus()) {
     const declaredParents = m.parents ?? [];
@@ -288,7 +288,7 @@ for (const a of flatActions()) {
     }
 }
 
-// ── SUITE 8: Values iniettati via parents
+// SUITE 8: Values iniettati via parents
 section("SUITE 8 — Values iniettati dai parents");
 for (const m of flatMenus()) {
     for (const parentName of m.parents ?? []) {
@@ -303,7 +303,7 @@ for (const a of flatActions()) {
     }
 }
 
-// ── SUITE 9: Values statici dichiarati
+// SUITE 9: Values statici dichiarati
 section("SUITE 9 — Values statici dichiarati");
 for (const m of flatMenus()) {
     if (m.type !== "choice") {
@@ -323,7 +323,7 @@ for (const m of flatMenus()) {
     }
 }
 
-// ── SUITE 10: Nessun back_ nella struttura statica
+// SUITE 10: Nessun back_ nella struttura statica
 section("SUITE 10 — Nessun back_* nella struttura statica");
 assert(
     cli.getActions().filter((a) => a.getName().startsWith("back_")).length === 0,
@@ -342,7 +342,7 @@ for (const m of flatMenus()) {
     );
 }
 
-// ── SUITE 11: Back dinamico
+// SUITE 11: Back dinamico
 section("SUITE 11 — Back dinamico (navigazione simulata)");
 
 simulateRender("submenu1", "main");
@@ -381,7 +381,7 @@ assert(
     `trovato: ${getBack("submenu2")?.getTo()}`
 );
 
-// ── SUITE 12: MenuInput
+// SUITE 12: MenuInput
 section("SUITE 12 — MenuInput");
 
 const inputMenuDefs = plugins.flatMap((p) =>
@@ -428,7 +428,7 @@ for (const def of inputMenuDefs) {
     }
 }
 
-// ── SUITE 13: Stili option per-option su language
+// SUITE 13: Stili option per-option su language
 section("SUITE 13 — Stili option per-option");
 
 {
@@ -462,7 +462,7 @@ section("SUITE 13 — Stili option per-option");
     );
 }
 
-// ── Risultato finale
+// Risultato finale
 console.log(`\n${"─".repeat(50)}`);
 console.log(
     `${BOLD}Risultato: ${GREEN}${passed} passed${RESET}${BOLD}, ${failed > 0 ? RED : ""}${failed} failed${RESET}`

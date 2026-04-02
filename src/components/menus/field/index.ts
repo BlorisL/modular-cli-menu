@@ -9,7 +9,7 @@ import { MenuChoiceConfigs } from "../choice/config";
 import { MenuInputConfigs } from "../input/config";
 import { MenuInputLabels } from "../input/labels";
 
-// ── JSON types
+// JSON types
 
 type MenuFieldJsonValue = string | MenuFieldOptionJson;
 
@@ -20,13 +20,13 @@ type MenuFieldJson = Omit<MenuJson, "type" | "labels"> & {
     configs?: MenuFieldConfigsJson;
 };
 
-// ── Internal types
+// Internal types
 
 type MenuFieldValuesMap = Record<string, MenuFieldOption>;
 type MenuFieldValuesFn = (data: { menu: MenuField }) => Array<MenuFieldJsonValue>;
 type MenuFieldValuesResolvedFn = (data: { menu: MenuField }) => MenuFieldValuesMap;
 
-// ── MenuField
+// MenuField
 
 class MenuField extends Menu {
     protected type: MenuJson["type"] = "field";
@@ -69,16 +69,10 @@ class MenuField extends Menu {
         }
     }
 
-    // ── internals
-
-    protected resolveValues(): MenuFieldValuesMap {
-        return typeof this.values === "function"
-            ? (this.values as MenuFieldValuesResolvedFn)({ menu: this })
-            : this.values;
-    }
+    // internals
 
     protected sortValues(): MenuFieldOption[] {
-        return Object.values(this.resolveValues()).sort((a, b) => {
+        return this.getValuesList().sort((a, b) => {
             const aItem = a.getItem();
             const bItem = b.getItem();
             const aGlobal = aItem?.isGlobal() ?? false;
@@ -145,29 +139,30 @@ class MenuField extends Menu {
         const os = option.getStyles();
         const ms = this.getStyles();
 
-        // ── Idle
+        // Idle
         const idlePrefix = os.getIdle()?.getPrefix() ?? ms.getIdle()?.getPrefix() ?? Utility.getDefaultIdlePrefix();
-        const idleColor  = os.getIdle()?.getColor()  ?? ms.getIdle()?.getColor()  ?? Utility.getDefaultIdleColor();
+        const idleColor = os.getIdle()?.getColor() ?? ms.getIdle()?.getColor()  ?? Utility.getDefaultIdleColor();
         const idleUnderline = os.getIdle()?.isUnderline() ?? ms.getIdle()?.isUnderline() ?? Utility.getDefaultIdleUnderline();
-        const idleItalic    = os.getIdle()?.isItalic()    ?? ms.getIdle()?.isItalic();
+        const idleItalic = os.getIdle()?.isItalic() ?? ms.getIdle()?.isItalic();
+
         option.setStyles({
             idle: { prefix: idlePrefix, color: idleColor, underline: idleUnderline, italic: idleItalic },
             hover: {
-                prefix:    os.getHover()?.getPrefix()    ?? ms.getHover()?.getPrefix()    ?? Utility.getDefaultHoverPrefix()    ?? idlePrefix,
-                color:     os.getHover()?.getColor()     ?? ms.getHover()?.getColor()     ?? Utility.getDefaultHoverColor()     ?? idleColor,
-                underline: os.getHover()?.isUnderline()  ?? ms.getHover()?.isUnderline()  ?? Utility.getDefaultHoverUnderline(),
-                italic:    os.getHover()?.isItalic()     ?? ms.getHover()?.isItalic(),
+                prefix: os.getHover()?.getPrefix() ?? ms.getHover()?.getPrefix() ?? Utility.getDefaultHoverPrefix() ?? idlePrefix,
+                color: os.getHover()?.getColor() ?? ms.getHover()?.getColor() ?? Utility.getDefaultHoverColor() ?? idleColor,
+                underline: os.getHover()?.isUnderline() ?? ms.getHover()?.isUnderline() ?? Utility.getDefaultHoverUnderline(),
+                italic: os.getHover()?.isItalic() ?? ms.getHover()?.isItalic(),
             },
             selected: {
-                prefix:    os.getSelected()?.getPrefix()    ?? ms.getSelected()?.getPrefix()    ?? Utility.getDefaultSelectedPrefix()    ?? idlePrefix,
-                color:     os.getSelected()?.getColor()     ?? ms.getSelected()?.getColor()     ?? Utility.getDefaultSelectedColor()     ?? idleColor,
-                underline: os.getSelected()?.isUnderline()  ?? ms.getSelected()?.isUnderline()  ?? Utility.getDefaultSelectedUnderline(),
-                italic:    os.getSelected()?.isItalic()     ?? ms.getSelected()?.isItalic(),
+                prefix: os.getSelected()?.getPrefix() ?? ms.getSelected()?.getPrefix() ?? Utility.getDefaultSelectedPrefix() ?? idlePrefix,
+                color: os.getSelected()?.getColor() ?? ms.getSelected()?.getColor() ?? Utility.getDefaultSelectedColor() ?? idleColor,
+                underline: os.getSelected()?.isUnderline() ?? ms.getSelected()?.isUnderline() ?? Utility.getDefaultSelectedUnderline(),
+                italic: os.getSelected()?.isItalic() ?? ms.getSelected()?.isItalic(),
             },
         });
     }
 
-    // ── mode helpers
+    // helpers
 
     public hasChoices(): boolean {
         const resolved =
@@ -182,14 +177,25 @@ class MenuField extends Menu {
         return !!(ic?.getCallback() || ic?.getValidate() || ic?.isFastSubmit());
     }
 
-    // ── values API (choice options)
+    // values API (choice options)
 
-    public getOptions(): MenuFieldOption[] {
-        return this.sortValues();
+    public getValues(map: boolean = false): MenuFieldOption[] | MenuFieldValuesMap {
+        const values = typeof this.values === "function"
+            ? (this.values as MenuFieldValuesResolvedFn)({ menu: this })
+            : this.values
+        ;
+        return map ? values : Object.values(values);
+    }
+
+    public getValuesMap(): MenuFieldValuesMap { return this.getValues(true) as MenuFieldValuesMap; }
+    public getValuesList(): MenuFieldOption[] { return this.getValues(false) as MenuFieldOption[]; }
+
+    public getOptions(sorted: boolean = false): MenuFieldOption[] {
+        return sorted ? this.sortValues() : this.getValuesList();
     }
 
     public getOption(name: string): MenuFieldOption | undefined {
-        return this.resolveValues()[name];
+        return this.getValuesMap()[name];
     }
 
     public setOption(name: string, value: MenuFieldOption): this {
@@ -229,7 +235,7 @@ class MenuField extends Menu {
         return this;
     }
 
-    // ── selected values API (delegates to choice configs)
+    // selected values API (delegates to choice configs)
 
     public getSelectedValues(): string[] {
         return this.configs.getChoiceConfigs()?.getSelectedValues() ?? [];
@@ -250,7 +256,7 @@ class MenuField extends Menu {
         return this.configs.getChoiceConfigs()?.isSelectedValue(value) ?? false;
     }
 
-    // ── input value API (delegates to input configs)
+    // input value API (delegates to input configs)
 
     public getInputValue(): string {
         return this.configs.getInputConfigs()?.getValue() ?? "";
@@ -260,7 +266,7 @@ class MenuField extends Menu {
         return this;
     }
 
-    // ── configs API
+    // configs API
 
     public getConfigs(): MenuFieldConfigs {
         return this.configs;
@@ -279,7 +285,7 @@ class MenuField extends Menu {
         return this.configs.getInputConfigs();
     }
 
-    // ── global choices
+    // global choices
 
     public getGlobalChoices(): (Choice | Separator)[] {
         return this.globalChoices;
@@ -289,10 +295,10 @@ class MenuField extends Menu {
         return this;
     }
 
-    // ── toJson
+    // toJson
 
     public toJson(): MenuFieldJson {
-        const choicesValues = Object.values(this.resolveValues()).map((v) => v.toJson());
+        const choicesValues = this.getValuesList().map((v) => v.toJson());
         const choiceCfg = this.configs.getChoiceConfigs();
         const inputCfg = this.configs.getInputConfigs();
 
@@ -304,13 +310,16 @@ class MenuField extends Menu {
         };
     }
 
-    // ── run
+    // run
 
     public async run(language?: Language): Promise<string | string[]> {
         const hasChoicesSection = this.hasChoices() || this.globalChoices.length > 0;
         const inputCfg = this.configs.getInputConfigs();
         const labels = this.getLabels();
-        const resolvedPlaceholder = (labels instanceof MenuInputLabels ? labels.getPlaceholder()?.getValue(language) : undefined) ?? "";
+        const resolvedPlaceholder = (labels instanceof MenuInputLabels 
+            ? labels.getPlaceholder()?.getValue(language) 
+            : undefined
+        ) ?? "";
         const hasInputSection = !!(
             inputCfg?.getCallback() ||
             inputCfg?.getValidate() ||
