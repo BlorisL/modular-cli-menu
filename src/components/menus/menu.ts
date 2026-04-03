@@ -1,4 +1,3 @@
-import { Language, Translations } from "@/components/translations";
 import { MenuStyles, MenuStylesJson } from "./styles";
 import { MenuLabels, MenuLabelsJson } from "./labels";
 

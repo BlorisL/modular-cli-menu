@@ -7,7 +7,6 @@ import { MenuFieldOption, MenuFieldOptionJson } from "./option";
 import { MenuFieldConfigs, MenuFieldConfigsJson } from "./configs";
 import { MenuChoice, MenuChoiceJson, MenuChoiceJsonValue } from "@/components/menus/choice";
 import { MenuInput } from "@/components/menus/input";
-import { MenuInputLabels } from "@/components/menus/input/labels";
 
 // JSON types
 
