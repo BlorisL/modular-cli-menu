@@ -4,11 +4,15 @@ on:
   push:
     branches:
       - main
+      # Aggiungi altri ambienti qui, es:
+      # - beta
+      # - alpha
 
 permissions:
   contents: write
   issues: write
   pull-requests: write
+  id-token: write  # Richiesto per npm provenance (OIDC, senza NPM_TOKEN)
 
 jobs:
   release:
@@ -25,37 +29,39 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
 
       - name: Configure Git identity
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config --global user.name 'Bot'
+          git config --global user.email 'bot@noreply.github.com'
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Pubblicazione su npm via OIDC provenance — nessun NPM_TOKEN necessario.
+          # Requisito: abilitare "Trusted Publishing" per questo repo su npmjs.com
+          # (Account → Package → Settings → Publish granular access token / OIDC)
+          NPM_CONFIG_PROVENANCE: 'true'
         run: npx semantic-release
 
-      - name: Stash prepack changes
-        run: |
-          git stash push -m "Stashing prepack changes" || echo "No prepack changes to stash"
-
       - name: Sync dev branch with main
+        if: github.ref == 'refs/heads/main'
         run: |
           git fetch origin dev:dev || git checkout -b dev
           git checkout dev
           git pull origin dev || true
           git merge main --ff-only || (git merge main && git push origin dev)
           git push origin dev
-
-      - name: Clean up stash
-        if: always()
-        run: |
-          git stash drop || echo "No stash to drop"

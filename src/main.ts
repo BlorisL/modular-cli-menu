@@ -2,6 +2,12 @@ import { Cli } from "./components/cli";
 import { MenuFieldJsonValue } from "./components/menus";
 import { Translations } from "./components/translations";
 
+// Re-export library exports
+//export { Cli } from "./components/cli";
+//export { Translations } from "./components/translations";
+//export { MenuChoice, MenuInput, MenuField } from "./components/menus";
+//export { ActionGoto, ActionFunction } from "./components/actions";
+
 const cli = new Cli();
 
 const write = Cli.write;
