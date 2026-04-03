@@ -1,4 +1,4 @@
-import { Language, Translations } from "../translations";
+import { Language, Translations } from "@/components/translations";
 import { MenuStyles, MenuStylesJson } from "./styles";
 import { MenuLabels, MenuLabelsJson } from "./labels";
 
@@ -35,6 +35,7 @@ abstract class Menu {
             title: data.labels?.title ?? `${this.getPlugin() ?? "default"}.${this.getName()}.title`,
             success: data.labels?.success ?? `${this.getPlugin() ?? "default"}.${this.getName()}.success`,
             error: data.labels?.error ?? `${this.getPlugin() ?? "default"}.${this.getName()}.error`,
+            answer: data.labels?.answer ?? `${this.getPlugin() ?? "default"}.${this.getName()}.answer`,
         });
 
         if (data.parents) {
@@ -95,15 +96,6 @@ abstract class Menu {
     public setLabels(labels: Menu['labels'] | MenuLabelsJson): this {
         this.labels = labels instanceof MenuLabels ? labels : new MenuLabels(labels);
         return this;
-    }
-
-    public getAnswerName(name: string): string {
-        return `${this.getPlugin() ?? "default"}.${this.getName()}.answer.${name}`;
-    }
-    public getAnswerLabel(name: string, language?: Language): string {
-        const key = this.getAnswerName(name);
-        const translated = Translations.getTranslation(key, language);
-        return translated !== key ? translated : name;
     }
 
     public toJson(): MenuJson {

@@ -1,4 +1,4 @@
-import { Utility } from "../utility";
+import { Utility } from "@/components/utility";
 
 type Language = string;
 

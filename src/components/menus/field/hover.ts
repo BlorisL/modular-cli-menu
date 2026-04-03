@@ -1,4 +1,4 @@
-import { StyleHover, StyleHoverJson } from "../../styles/hover";
+import { StyleHover, StyleHoverJson } from "@/components/styles/hover";
 
 // Backward-compatible aliases
 type MenuFieldConfigHoverJson = StyleHoverJson;

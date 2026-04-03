@@ -1,4 +1,4 @@
-import { StyleHover, StyleHoverJson, StyleIdle, StyleIdleJson, StyleSelected, StyleSelectedJson } from "../styles";
+import { StyleHover, StyleHoverJson, StyleIdle, StyleIdleJson, StyleSelected, StyleSelectedJson } from "@/components/styles";
 
 type ActionStylesJson = {
     idle?: StyleIdleJson;

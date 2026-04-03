@@ -1,23 +1,41 @@
-import { Label } from "../translations";
+import { Label } from "@/components/translations";
 
 type MenuLabelsJson = {
     question?: string;
     title?: string;
     success?: string;
     error?: string;
+    answer?: string;
 };
 
 class MenuLabels {
+    protected answer?: Label;
     protected question?: Label;
     protected title?: Label;
     protected success?: Label;
     protected error?: Label;
 
     constructor(data: MenuLabelsJson) {
+        this.answer = data.answer ? new Label(data.answer) : undefined;
         this.question = data.question ? new Label(data.question) : undefined;
         this.title = data.title ? new Label(data.title) : undefined;
         this.success = data.success ? new Label(data.success) : undefined;
         this.error = data.error ? new Label(data.error) : undefined;
+    }
+
+    public getAnswer(name?: string): Label | undefined {
+        if (name === undefined) return this.answer;
+        if (!this.answer) return undefined;
+        return new Label(`${this.answer.getName()}.${name}`);
+    }
+    public setAnswer(
+        answer: NonNullable<MenuLabels['answer'] | MenuLabelsJson['answer']>,
+        callback?: Label['callback'],
+    ): this {
+        this.answer = answer instanceof Label
+            ? new Label(answer.getName(), callback ?? answer.getCallback())
+            : new Label(answer, callback);
+        return this;
     }
 
     public getQuestion(): MenuLabels["question"] {
@@ -78,6 +96,7 @@ class MenuLabels {
             ...(this.title ? { title: this.title.getValue() } : {}),
             ...(this.success ? { success: this.success.getValue() } : {}),
             ...(this.error ? { error: this.error.getValue() } : {}),
+            ...(this.answer ? { answer: this.answer.getName() } : {}),
         };
     }
 }

@@ -71,6 +71,7 @@
     ],
     "scripts": {
         "dev": "tsx src/dev.ts",
+        "example": "f() { tsx src/examples/example-${1}.ts; }; f",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "fix": "npm run lint:fix && npm run format",

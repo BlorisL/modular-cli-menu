@@ -1,15 +1,14 @@
-import { MenuField } from "..";
+import type { MenuInput } from "./index";
 
 type MenuInputConfigsJson = {
     clear?: boolean;
     fastSubmit?: boolean;
     inline?: boolean;
     validate?: (value: string) => boolean | string;
-    callback?: (data: { menu: MenuField; value: string; language?: string; parent?: string }) => Promise<void>;
+    callback?: (data: { menu: MenuInput; value: string; language?: string; parent?: string }) => Promise<void>;
 };
 
 class MenuInputConfigs {
-    protected value: string = "";
     protected clear: NonNullable<MenuInputConfigsJson["clear"]> = true;
     protected fastSubmit: NonNullable<MenuInputConfigsJson["fastSubmit"]> = false;
     protected inline: NonNullable<MenuInputConfigsJson["inline"]> = false;
@@ -24,14 +23,6 @@ class MenuInputConfigs {
             this.validate = data.validate;
             this.callback = data.callback;
         }
-    }
-
-    public getValue(): string {
-        return this.value;
-    }
-    public setValue(v: string): this {
-        this.value = v;
-        return this;
     }
 
     public isClear(): MenuInputConfigsJson["clear"] {

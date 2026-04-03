@@ -30,8 +30,9 @@ class Cli {
         const hover = item.getStyles().getHover();
         const sel = item.getStyles().getSelected();
 
-        const idleColor = idle?.getColor();
-        const idleUnderline = idle?.isUnderline();
+        const idlePrefix = idle?.getPrefix() ?? Utility.getDefaultIdlePrefix();
+        const idleColor = idle?.getColor() ?? Utility.getDefaultIdleColor();
+        const idleUnderline = idle?.isUnderline() ?? Utility.getDefaultIdleUnderline();
         const idleItalic = idle?.isItalic();
 
         return {
@@ -39,7 +40,7 @@ class Cli {
             label,
             multi: false,
             idle: {
-                prefix: " ",
+                prefix: idlePrefix,
                 color: idleColor,
                 underline: idleUnderline,
                 italic: idleItalic,
@@ -77,7 +78,7 @@ class Cli {
         return items;
     }
 
-    protected getActionTypeBack(menu: MenuField): ActionGoto | undefined {
+    protected getActionTypeBack(menu: MenuField | MenuChoice): ActionGoto | undefined {
         const item = menu.getOptions().find((v) => v.getValue().startsWith("back_"));
         const action = item?.getItem();
         if (action instanceof ActionGoto) {
@@ -86,25 +87,155 @@ class Cli {
         return this.getAction(item?.getValue() || "") as ActionGoto | undefined;
     }
 
+    protected resolveTargetParent(menu: Menu | undefined, runtimeParent?: string): string | undefined {
+        if (!menu) {
+            return undefined;
+        }
+
+        if (runtimeParent && menu.getParents().includes(runtimeParent)) {
+            return runtimeParent;
+        }
+
+        if (menu instanceof MenuField || menu instanceof MenuChoice) {
+            const dynamic = this.getActionTypeBack(menu)?.getTo();
+            if (dynamic) {
+                return dynamic;
+            }
+        }
+
+        const declaredParents = menu.getParents();
+        if (declaredParents.length === 1) {
+            return declaredParents[0];
+        }
+
+        return undefined;
+    }
+
     // Run handlers
 
     protected async runMenuInput(item: MenuInput, parentName?: string): Promise<void> {
-        await this.runMenuField(item, parentName);
+        // Build sidebar global choices
+        const globalChoices: (Choice | Separator)[] = [];
+        const resolvedParent = this.resolveTargetParent(item, parentName) ?? "main";
+        const backTemplate = this.getAction("back") as ActionGoto | undefined;
+        if (backTemplate) {
+            const backAction = new ActionGoto(backTemplate.toJson())
+                .setName("back_input")
+                .setTo(resolvedParent);
+            const label = backAction.getLabels().getTitle()!.write(backAction.getStyles().getIdle()?.toJson());
+            globalChoices.push(new Separator());
+            globalChoices.push(this.buildGlobalChoice(backAction.getTo(), label, backAction));
+        }
+        this.getGlobalItems()
+            .filter((g) => g.getName() !== "back")
+            .forEach((globalItem) => {
+                const label = globalItem.getLabels().getTitle()!.write(globalItem.getStyles().getIdle()?.toJson());
+                globalChoices.push(this.buildGlobalChoice(globalItem.getName(), label, globalItem));
+            });
+        item.setGlobalChoices(item.getConfigs().isFastSubmit() ? [] : globalChoices);
+
+        const runResult = await item.run();
+
+        // Input result (string)
+        if (!Array.isArray(runResult)) {
+            const inputResult = runResult;
+            const globalAction = this.getGlobalItems().find((g) => g.getName() === inputResult);
+            if (globalAction) { await this.run(globalAction, item); return; }
+
+            const isBackNavigation =
+                inputResult !== item.getValue() && this.getMenu(inputResult) !== undefined;
+            if (isBackNavigation) {
+                const targetMenu = this.getMenu(inputResult);
+                const targetParent = this.resolveTargetParent(targetMenu, parentName);
+                await this.run(inputResult, targetParent);
+                return;
+            }
+
+            await item.getConfigs().getCallback()?.({
+                menu: item,
+                value: item.getValue(),
+                language: Translations.getSelectedLanguage(),
+                parent: parentName,
+            });
+            return;
+        }
+
+        // Sidebar selection (string[])
+        for (const answer of runResult) {
+            const globalAction = this.getGlobalItems().find((g) => g.getName() === answer);
+            if (globalAction) { await this.run(globalAction, item); return; }
+
+            const targetMenu = this.getMenu(answer);
+            if (targetMenu) {
+                const targetParent = this.resolveTargetParent(targetMenu, parentName);
+                await this.run(answer, targetParent);
+                return;
+            }
+        }
     }
 
     protected async runMenuChoices(item: MenuChoice, parentName?: string): Promise<void> {
-        await this.runMenuField(item, parentName);
+        // Inject global items into choice list
+        this.getGlobalItems().forEach((globalItem) => {
+            if (globalItem.getName() === item.getName()) return;
+
+            if (globalItem.getName() === "back") {
+                if (item.getName() === "main") return;
+                const backTemplate = this.getAction("back") as ActionGoto;
+                if (!backTemplate) return;
+                const backName = `back_${item.getName()}`;
+                const existing = this.getActionTypeBack(item);
+                if (existing) {
+                    const isParentGlobal = parentName
+                        ? this.getMenu(parentName)?.isGlobal() || this.getAction(parentName)?.isGlobal()
+                        : false;
+                    if (parentName !== undefined && !isParentGlobal) existing.setTo(parentName);
+                } else {
+                    item.addOption(new ActionGoto(backTemplate.toJson()).setName(backName).setTo(parentName ?? "main"));
+                }
+            } else if (globalItem.getName() === "exit") {
+                const exitAction = this.getAction("exit");
+                if (exitAction) item.addOption(exitAction);
+            } else {
+                if (!item.getOption(globalItem.getName())) item.addOption(globalItem);
+            }
+        });
+
+        const answers = await item.run() as string[];
+
+        for (const answer of answers) {
+            if (answer.startsWith("back_")) {
+                const backAction = item.getOption(answer)?.getItem();
+                if (backAction instanceof ActionGoto) { await this.run(backAction, item); return; }
+            }
+            const globalAction = this.getGlobalItems().find((g) => g.getName() === answer);
+            if (globalAction) { await this.run(globalAction, item); return; }
+        }
+
+        const choiceCallback = item.getConfigs().getCallback();
+        if (choiceCallback) {
+            await choiceCallback({
+                menu: item,
+                language: Translations.getSelectedLanguage(),
+                values: item.getSelectedValues(),
+                parent: parentName,
+            });
+        } else {
+            for (const answer of answers) { await this.run(answer, item); }
+        }
     }
 
     protected async runMenuField(item: MenuField, parentName?: string): Promise<void> {
-        // Input setup: build sidebar global choices
+        // Input sidebar setup
         if (item.hasInput()) {
+            const inputCfg = item.getInput()!.getConfigs();
             const globalChoices: (Choice | Separator)[] = [];
+            const resolvedParent = this.resolveTargetParent(item, parentName) ?? "main";
             const backTemplate = this.getAction("back") as ActionGoto | undefined;
             if (backTemplate) {
                 const backAction = new ActionGoto(backTemplate.toJson())
                     .setName("back_input")
-                    .setTo(parentName ?? "main");
+                    .setTo(resolvedParent);
                 const label = backAction.getLabels().getTitle()!.write(backAction.getStyles().getIdle()?.toJson());
                 globalChoices.push(new Separator());
                 globalChoices.push(this.buildGlobalChoice(backAction.getTo(), label, backAction));
@@ -115,79 +246,58 @@ class Cli {
                     const label = globalItem.getLabels().getTitle()!.write(globalItem.getStyles().getIdle()?.toJson());
                     globalChoices.push(this.buildGlobalChoice(globalItem.getName(), label, globalItem));
                 });
-            item.setGlobalChoices(item.getConfigs().getInputConfigs()?.isFastSubmit() ? [] : globalChoices);
+            item.setGlobalChoices(inputCfg.isFastSubmit() ? [] : globalChoices);
         }
 
-        // Choice setup: inject global items into menu values
+        // Choice setup: inject global items
         if (item.hasChoices()) {
             this.getGlobalItems().forEach((globalItem) => {
-                if (globalItem.getName() === item.getName()) {
-                    return;
-                }
+                if (globalItem.getName() === item.getName()) return;
 
                 if (globalItem.getName() === "back") {
-                    if (item.getName() === "main") {
-                        return;
-                    }
+                    if (item.getName() === "main") return;
                     const backTemplate = this.getAction("back") as ActionGoto;
-                    if (!backTemplate) {
-                        return;
-                    }
-
+                    if (!backTemplate) return;
                     const backName = `back_${item.getName()}`;
                     const existing = this.getActionTypeBack(item);
                     if (existing) {
                         const isParentGlobal = parentName
                             ? this.getMenu(parentName)?.isGlobal() || this.getAction(parentName)?.isGlobal()
                             : false;
-                        if (parentName !== undefined && !isParentGlobal) {
-                            existing.setTo(parentName);
-                        }
+                        if (parentName !== undefined && !isParentGlobal) existing.setTo(parentName);
                     } else {
-                        item.addOption(
-                            new ActionGoto(backTemplate.toJson()).setName(backName).setTo(parentName ?? "main")
-                        );
+                        item.addOption(new ActionGoto(backTemplate.toJson()).setName(backName).setTo(parentName ?? "main"));
                     }
                 } else if (globalItem.getName() === "exit") {
                     const exitAction = this.getAction("exit");
-                    if (exitAction) {
-                        item.addOption(exitAction);
-                    }
+                    if (exitAction) item.addOption(exitAction);
                 } else {
-                    if (!item.getOption(globalItem.getName())) {
-                        item.addOption(globalItem);
-                    }
+                    if (!item.getOption(globalItem.getName())) item.addOption(globalItem);
                 }
             });
         }
 
-        // Run the field (prompt handles both input + choices together)
         const runResult = await item.run();
 
         // Input result (string)
         if (!Array.isArray(runResult)) {
             const inputResult = runResult;
-
             const globalAction = this.getGlobalItems().find((g) => g.getName() === inputResult);
-            if (globalAction) {
-                await this.run(globalAction, item);
-                return;
-            }
+            if (globalAction) { await this.run(globalAction, item); return; }
 
             const isBackNavigation =
-                inputResult !== (item.getConfigs().getInputConfigs()?.getValue() ?? "") &&
+                inputResult !== item.getInput()!.getValue() &&
                 this.getMenu(inputResult) !== undefined;
             if (isBackNavigation) {
                 const targetMenu = this.getMenu(inputResult);
-                const targetParent =
-                    targetMenu instanceof MenuField ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
+                const targetParent = this.resolveTargetParent(targetMenu, parentName);
                 await this.run(inputResult, targetParent);
                 return;
             }
 
-            await item.getConfigs().getInputConfigs()?.getCallback()?.({
-                menu: item,
-                value: item.getConfigs().getInputConfigs()?.getValue() ?? "",
+            await item.getInput()?.getConfigs().getCallback()?.({
+                menu: item.getInput()!,
+                value: item.getInput()!.getValue(),
                 language: Translations.getSelectedLanguage(),
                 parent: parentName,
             });
@@ -196,34 +306,32 @@ class Cli {
 
         // Choice result (string[])
         const answers = runResult;
-
         for (const answer of answers) {
             if (answer.startsWith("back_")) {
                 const backAction = item.getOption(answer)?.getItem();
-                if (backAction instanceof ActionGoto) {
-                    await this.run(backAction, item);
-                    return;
-                }
+                if (backAction instanceof ActionGoto) { await this.run(backAction, item); return; }
             }
             const globalAction = this.getGlobalItems().find((g) => g.getName() === answer);
-            if (globalAction) {
-                await this.run(globalAction, item);
+            if (globalAction) { await this.run(globalAction, item); return; }
+
+            const targetMenu = this.getMenu(answer);
+            if (targetMenu) {
+                const targetParent = this.resolveTargetParent(targetMenu, parentName);
+                await this.run(answer, targetParent);
                 return;
             }
         }
 
-        const choiceCallback = item.getConfigs().getChoiceConfigs()?.getCallback();
+        const choiceCallback = item.getChoice()?.getConfigs().getCallback();
         if (choiceCallback) {
             await choiceCallback({
-                menu: item,
+                menu: item.getChoice()!,
                 language: Translations.getSelectedLanguage(),
-                values: item.getConfigs().getChoiceConfigs()?.getSelectedValues() ?? [],
+                values: item.getSelectedValues(),
                 parent: parentName,
             });
         } else {
-            for (const answer of answers) {
-                await this.run(answer, item);
-            }
+            for (const answer of answers) { await this.run(answer, item); }
         }
     }
 
@@ -232,9 +340,7 @@ class Cli {
         const targetMenu = this.getMenu(targetName);
         const isBackAction = item.getName().startsWith("back_");
         const targetParent = isBackAction
-            ? targetMenu instanceof MenuField
-                ? this.getActionTypeBack(targetMenu)?.getTo()
-                : undefined
+            ? this.resolveTargetParent(targetMenu, parentName)
             : parentName;
 
         await this.run(targetName, targetParent);
@@ -268,11 +374,11 @@ class Cli {
                 menuInstance = menu;
             } else {
                 if (menu.type === "field") {
-                    menuInstance = new MenuField(menu as MenuFieldJson);
+                    menuInstance = new MenuField({ ...(menu as MenuFieldJson), plugin: plugin ?? menu.plugin });
                 } else if (menu.type === "choice") {
-                    menuInstance = new MenuChoice(menu as MenuChoiceJson);
+                    menuInstance = new MenuChoice({ ...(menu as MenuChoiceJson), plugin: plugin ?? menu.plugin });
                 } else if (menu.type === "input") {
-                    menuInstance = new MenuInput(menu as MenuInputJson);
+                    menuInstance = new MenuInput({ ...(menu as MenuInputJson), plugin: plugin ?? menu.plugin });
                 }
             }
             if (menuInstance) {
@@ -307,10 +413,10 @@ class Cli {
         } else {
             switch (action.type) {
                 case "function":
-                    actionInstance = new ActionFunction(action as ActionFunctionJson);
+                    actionInstance = new ActionFunction({ ...(action as ActionFunctionJson), plugin: plugin ?? action.plugin });
                     break;
                 case "goto":
-                    actionInstance = new ActionGoto(action as ActionGotoJson);
+                    actionInstance = new ActionGoto({ ...(action as ActionGotoJson), plugin: plugin ?? action.plugin });
                     break;
             }
         }
@@ -342,14 +448,14 @@ class Cli {
                     if (back) {
                         const targetMenu = this.getMenu(back.getTo());
                         const targetParent =
-                            targetMenu instanceof MenuField ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
+                            targetMenu instanceof MenuField || targetMenu instanceof MenuChoice ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
                         return this.run(back.getTo(), targetParent);
                     }
                 } else {
                     const targetName = parent ?? "main";
                     const targetMenu = this.getMenu(targetName);
                     const targetParent =
-                        targetMenu instanceof MenuField ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
+                        targetMenu instanceof MenuField || targetMenu instanceof MenuChoice ? this.getActionTypeBack(targetMenu)?.getTo() : undefined;
                     return this.run(targetName, targetParent);
                 }
                 break;
@@ -363,7 +469,7 @@ class Cli {
         this.getMenus().forEach((menu) => {
             menu.getParents().forEach((parentName) => {
                 const parentMenu = this.getMenu(parentName);
-                if (parentMenu instanceof MenuField) {
+                if (parentMenu instanceof MenuField || parentMenu instanceof MenuChoice) {
                     if (!parentMenu.getOption(menu.getName())) {
                         parentMenu.addOption(menu);
                     }
@@ -373,7 +479,7 @@ class Cli {
         this.getActions().forEach((action) => {
             action.getParents().forEach((parentName) => {
                 const parentMenu = this.getMenu(parentName);
-                if (parentMenu instanceof MenuField) {
+                if (parentMenu instanceof MenuField || parentMenu instanceof MenuChoice) {
                     if (!parentMenu.getOption(action.getName())) {
                         parentMenu.addOption(action);
                     }
@@ -395,7 +501,7 @@ class Cli {
             typeof value === "string"
                 ? this.getMenu(value) ||
                   this.getAction(value) ||
-                  (value.startsWith("back_") && parent instanceof MenuField
+                  (value.startsWith("back_") && (parent instanceof MenuField || parent instanceof MenuChoice)
                       ? (parent.getOption(value)?.getItem() as ActionGoto | undefined)
                       : undefined)
                 : value;

@@ -1,15 +1,14 @@
-import { MenuField } from "..";
+import type { MenuChoice } from "./index";
 
 type MenuChoiceConfigsJson = {
     selectable?: boolean;
     defaultValues?: string[];
-    callback?: (data: { menu: MenuField; values: string[]; language?: string; parent?: string }) => Promise<void>;
+    callback?: (data: { menu: MenuChoice; values: string[]; language?: string; parent?: string }) => Promise<void>;
 };
 
 class MenuChoiceConfigs {
     protected selectable: boolean = false;
     protected defaultValues: string[] = [];
-    protected selectedValues: string[] = [];
     protected callback?: MenuChoiceConfigsJson["callback"];
 
     constructor(data?: MenuChoiceConfigsJson) {
@@ -18,7 +17,6 @@ class MenuChoiceConfigs {
         }
         if (data?.defaultValues) {
             this.defaultValues = data.defaultValues;
-            this.selectedValues = [...data.defaultValues];
         }
         if (data?.callback) {
             this.callback = data.callback;
@@ -39,27 +37,6 @@ class MenuChoiceConfigs {
     public setDefaultValues(v: string[]): this {
         this.defaultValues = v;
         return this;
-    }
-
-    public getSelectedValues(): string[] {
-        return this.selectedValues;
-    }
-    public setSelectedValues(v: string[]): this {
-        this.selectedValues = v;
-        return this;
-    }
-    public addSelectedValue(v: string): this {
-        if (!this.selectedValues.includes(v)) {
-            this.selectedValues.push(v);
-        }
-        return this;
-    }
-    public delSelectedValue(v: string): this {
-        this.selectedValues = this.selectedValues.filter((s) => s !== v);
-        return this;
-    }
-    public isSelectedValue(v: string): boolean {
-        return this.selectedValues.includes(v);
     }
 
     public getCallback(): MenuChoiceConfigsJson["callback"] {

@@ -1,8 +1,8 @@
-import { ActionFunctionJson, ActionGotoJson } from "../actions";
-import { MenuFieldJson } from "../menus/field";
-import { MenuChoiceJson } from "../menus/choice";
-import { MenuInputJson } from "../menus/input";
-import { TranslationJson } from "../translations";
+import { ActionFunctionJson, ActionGotoJson } from "@/components/actions";
+import { MenuFieldJson } from "@/components/menus/field";
+import { MenuChoiceJson } from "@/components/menus/choice";
+import { MenuInputJson } from "@/components/menus/input";
+import { TranslationJson } from "@/components/translations";
 
 type PluginJson = {
     name: string;

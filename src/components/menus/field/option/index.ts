@@ -1,6 +1,6 @@
-import { Menu } from "../../menu";
-import { Action } from "../../../actions";
-import { MenuStyles, MenuStylesJson } from "../../styles";
+import { Menu } from "@/components/menus/menu";
+import { Action } from "@/components/actions";
+import { MenuStyles, MenuStylesJson } from "@/components/menus/styles";
 import { MenuFieldOptionLabels, MenuFieldOptionLabelsJson } from "./labels";
 
 type MenuFieldOptionJson = {

@@ -1,5 +1,5 @@
-import { MenuChoiceConfigs, MenuChoiceConfigsJson } from "../choice/config";
-import { MenuInputConfigs, MenuInputConfigsJson } from "../input/config";
+import { MenuChoiceConfigs, MenuChoiceConfigsJson } from "@/components/menus/choice/config";
+import { MenuInputConfigs, MenuInputConfigsJson } from "@/components/menus/input/config";
 
 type MenuFieldConfigsJson = {
     choice?: MenuChoiceConfigsJson;

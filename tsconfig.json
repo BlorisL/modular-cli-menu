@@ -11,12 +11,9 @@
         "resolveJsonModule": true,
         "allowImportingTsExtensions": true,
         "noEmit": true,
-        "baseUrl": ".",
         "paths": {
-            "@/*": ["src/*"],
-            "@classes/*": ["src/classes/*"],
-            "@types/*": ["src/types/*"],
-            "@prompts/*": ["src/prompts/*"]
+            "@/*": ["./src/*"],
+            "@prompts/*": ["./src/prompts/*"]
         }
     },
     "include": ["src/**/*"]

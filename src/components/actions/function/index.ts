@@ -1,4 +1,4 @@
-import { Action, ActionJson } from "../action";
+import { Action, ActionJson } from "@/components/actions/action";
 
 type ActionFunctionJson = ActionJson & {
     type: "function";

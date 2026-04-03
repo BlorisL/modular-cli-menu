@@ -1,4 +1,4 @@
-import { Label } from "../translations";
+import { Label } from "@/components/translations";
 
 type ActionLabelsJson = {
     title?: string;

@@ -1,14 +1,14 @@
-import { Cli } from "../components/cli";
-import { Translations } from "../components/translations";
-import { MenuChoice, MenuChoiceJson, MenuInput, MenuInputJson, MenuField } from "../components/menus";
-import { ActionGoto, ActionGotoJson, ActionFunctionJson, ActionFunction } from "../components/actions";
-import { PluginJson } from "../components/plugins";
+import { Cli } from "@/components/cli";
+import { Translations } from "@/components/translations";
+import { MenuChoice, MenuChoiceJson, MenuInput, MenuInputJson, MenuField } from "@/components/menus";
+import { ActionGoto, ActionGotoJson, ActionFunctionJson, ActionFunction } from "@/components/actions";
+import { PluginJson } from "@/components/plugins";
 
 type MenuDefJson = (MenuChoiceJson | MenuInputJson) & { pluginName: string };
 type ActionDefJson = (ActionGotoJson | ActionFunctionJson) & { pluginName: string };
 
 /** Typed access to Cli's protected getActionTypeBack for testing. */
-type TestCli = { getActionTypeBack(menu: MenuField): ActionGoto | undefined };
+type TestCli = { getActionTypeBack(menu: MenuField | MenuChoice): ActionGoto | undefined };
 
 // Output helpers
 const GREEN = "\x1b[32m";
@@ -66,7 +66,7 @@ const plugins: PluginJson[] = [
                         idle: lang == "de" ? { prefix: "·", color: "gray" as const } : undefined,
                         hover: lang == "de" ? { prefix: "»", color: "white" as const } : undefined,
                         selected: lang == "fr" ? { prefix: "✓ ", color: "red" as const } : undefined,
-                        label: data.menu.getAnswerName(lang),
+                        labels: { title: `${data.menu.getLabels().getAnswer()?.getName()}.${lang}` },
                     })),
             },
         ],

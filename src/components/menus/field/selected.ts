@@ -1,4 +1,4 @@
-import { StyleSelected, StyleSelectedJson } from "../../styles/selected";
+import { StyleSelected, StyleSelectedJson } from "@/components/styles/selected";
 
 // Backward-compatible aliases
 type MenuFieldConfigSelectedJson = StyleSelectedJson;

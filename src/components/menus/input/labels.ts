@@ -1,11 +1,11 @@
 import { Label } from "@/components/translations";
-import { MenuFieldLabels, MenuFieldLabelsJson } from "../field/labels";
+import { MenuLabels, MenuLabelsJson } from "../labels";
 
-type MenuInputLabelsJson = MenuFieldLabelsJson & {
+type MenuInputLabelsJson = MenuLabelsJson & {
     placeholder?: string;
 };
 
-class MenuInputLabels extends MenuFieldLabels {
+class MenuInputLabels extends MenuLabels {
     protected placeholder?: Label;
 
     constructor(data: MenuInputLabelsJson) {

@@ -58,6 +58,30 @@ cli.addPlugin({
             jp: "オプションを選択してください：",
             ar: "يرجى اختيار خيار:",
         },
+        "default.exit.title": {
+            en: "Exit",
+            it: "Esci",
+            fr: "Quitter",
+            de: "Beenden",
+            es: "Salir",
+            pl: "Wyjście",
+            ru: "Выход",
+            cn: "退出",
+            jp: "終了",
+            ar: "خروج",
+        },
+        "default.back.title": {
+            en: "Go Back",
+            it: "Torna Indietro",
+            fr: "Retourner",
+            de: "Zurückgehen",
+            es: "Volver",
+            pl: "Wróć",
+            ru: "Назад",
+            cn: "返回",
+            jp: "戻る",
+            ar: "العودة",
+        },
         "default.press_to_continue.question": {
             en: "Press Enter to continue...",
             it: "Premi Invio per continuare...",
@@ -92,11 +116,7 @@ cli.addPlugin({
                     callback: async ({ values, menu, parent }): Promise<void> => {
                         if (values.length > 0) {
                             Translations.setCurrentLanguage(values[0]);
-                            //Cli.write(menu.getSuccessLabel(Translations.getSelectedLanguage()), "green");
-                            const message = menu.getLabels().getSuccess()?.getValue(Translations.getSelectedLanguage()) ?? "Language set successfully.";
-                            if(message) {
-                                Cli.write(message, "green");
-                            }
+                            menu.getLabels().getSuccess()?.print({ color: "green", language: Translations.getSelectedLanguage() });
                             await cli.run("press-to-continue", parent);
                         }
                     },
@@ -107,7 +127,7 @@ cli.addPlugin({
                         idle: lang == "de" ? { prefix: "*", color: "magenta" } : undefined,
                         hover: lang == "es" ? { prefix: "->", color: "yellow" } : undefined,
                         selected: lang == "fr" ? { prefix: "✓ ", color: "red" } : undefined,
-                        label: data.menu.getAnswerName(lang),
+                        labels: { title: data.menu.getLabels().getAnswer(lang)?.getName() },
                     })),
             },
         ],
@@ -280,8 +300,7 @@ cli.addPlugin({
                 configs: {
                     validate: (value): boolean => value.trim().length > 0,
                     callback: async ({ menu, value, language, parent }): Promise<void> => {
-                        //Cli.write(`${menu.getSuccessLabel(language)}: ${value}`, "green");
-                        Cli.write(`${menu.getLabels().getSuccess()?.getValue(language)}: ${value}`, "green");
+                        menu.getLabels().getSuccess()?.print({ color: "green", language, append: value });
                         await cli.run("press-to-continue", parent);
                     },
                 },
@@ -308,8 +327,7 @@ cli.addPlugin({
                     selectable: true,
                     defaultValues: ["notifications"],
                     callback: async ({ values, menu, parent }): Promise<void> => {
-                        //Cli.write(`${menu.getSuccessLabel()} ${values.join(", ")}`, "green");
-                        Cli.write(`${menu.getLabels().getSuccess()?.getValue()} ${values.join(", ")}`, "green");
+                        menu.getLabels().getSuccess()?.print({ color: "green", append: values.join(", ") });
                         await cli.run("press-to-continue", parent);
                     },
                 },

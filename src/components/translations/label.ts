@@ -1,5 +1,5 @@
 import { TranslationJson, Translations } from ".";
-import { Utility } from "../utility";
+import { Utility } from "@/components/utility";
 import { ColorName } from "chalk";
 
 class Label {
@@ -36,8 +36,20 @@ class Label {
         ;
     }
 
-    public write(style?: { prefix?: string; color?: ColorName }, language?: keyof TranslationJson[string]): string {
-        return Utility.write(`${style?.prefix ?? ""}${this.getValue(language)}`, style?.color);
+    public write(options?: { 
+        prefix?: string; 
+        color?: ColorName; 
+        language?: keyof TranslationJson[string]; 
+        append?: string 
+    }): string {
+        const value = this.getValue(options?.language);
+        const text = options?.prefix !== undefined ? `${options.prefix}${value}` : value;
+        const full = options?.append !== undefined ? `${text} ${options.append}` : text;
+        return Utility.write(full, options?.color);
+    }
+
+    public print(options?: { prefix?: string; color?: ColorName; language?: keyof TranslationJson[string]; append?: string }): void {
+        console.log(this.write(options));
     }
 
     public toJson(): { name: string; value: string } {

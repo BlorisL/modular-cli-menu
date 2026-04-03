@@ -1,23 +1,24 @@
-import { Plugins } from "./classes/plugin";
+import { PluginJson } from "./components/plugins";
 
-const plugins = new Plugins([
+const plugins: PluginJson[] = [
     {
         name: "default",
         menus: [
             {
-                mode: "choices",
+                type: "choice",
                 name: "main",
                 values: [],
             },
         ],
         actions: [
             {
-                mode: "goto",
+                type: "goto",
                 name: "back",
+                to: "main",
                 global: true,
             },
             {
-                mode: "function",
+                type: "function",
                 name: "exit",
                 global: true,
                 callback: async (): Promise<void> => {
@@ -31,13 +32,13 @@ const plugins = new Plugins([
         name: "test",
         menus: [
             {
-                mode: "choices",
+                type: "choice",
                 name: "test1",
                 parents: ["main"],
                 values: ["a", "b", "c"],
             },
             {
-                mode: "choices",
+                type: "choice",
                 name: "test2",
                 parents: ["test1"],
                 values: ["d", "e", "f"],
@@ -49,15 +50,14 @@ const plugins = new Plugins([
             //}
         ],
     },
-]);
+];
 
-//console.log(JSON.stringify(plugins.toObject()));
+// console.log(JSON.stringify(plugins, null, 2));
 
-plugins
-    .print()
+Promise.resolve()
     .then(() => {
-        //console.log('Done');
+        console.log(JSON.stringify(plugins, null, 2));
     })
-    .catch((err) => {
+    .catch((err: unknown) => {
         console.error("Error:", err);
     });
