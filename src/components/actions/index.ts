@@ -1,4 +1,3 @@
-export * from "./action";
-export * from "./function";
-export * from "./goto";
-
+export * from "@/components/actions/action";
+export * from "@/components/actions/function";
+export * from "@/components/actions/goto";

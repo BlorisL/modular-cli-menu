@@ -1,4 +1,4 @@
-import type { MenuInput } from "./index";
+import type { MenuInput } from "@/components/menus/input";
 
 type MenuInputConfigsJson = {
     clear?: boolean;
@@ -28,6 +28,7 @@ class MenuInputConfigs {
     public isClear(): MenuInputConfigsJson["clear"] {
         return this.clear;
     }
+
     public setClear(v: NonNullable<MenuInputConfigsJson["clear"]>): this {
         this.clear = v;
         return this;
@@ -36,6 +37,7 @@ class MenuInputConfigs {
     public isFastSubmit(): MenuInputConfigsJson["fastSubmit"] {
         return this.fastSubmit;
     }
+
     public setFastSubmit(v: NonNullable<MenuInputConfigsJson["fastSubmit"]>): this {
         this.fastSubmit = v;
         return this;
@@ -44,6 +46,7 @@ class MenuInputConfigs {
     public isInline(): MenuInputConfigsJson["inline"] {
         return this.inline;
     }
+
     public setInline(v: NonNullable<MenuInputConfigsJson["inline"]>): this {
         this.inline = v;
         return this;
@@ -52,6 +55,7 @@ class MenuInputConfigs {
     public getValidate(): MenuInputConfigsJson["validate"] {
         return this.validate;
     }
+
     public setValidate(v: MenuInputConfigsJson["validate"]): this {
         this.validate = v;
         return this;
@@ -60,6 +64,7 @@ class MenuInputConfigs {
     public getCallback(): MenuInputConfigsJson["callback"] {
         return this.callback;
     }
+
     public setCallback(v: MenuInputConfigsJson["callback"]): this {
         this.callback = v;
         return this;

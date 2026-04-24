@@ -1,4 +1,4 @@
-import { MenuField } from ".";
+import { MenuField } from "@/components/menus/field";
 
 type MenuFieldConfigDefaultsJson = {
     values?: string[];
@@ -17,6 +17,7 @@ class MenuFieldConfigDefaults {
     public getValues(): MenuFieldConfigDefaults["values"] {
         return this.values;
     }
+
     public setValues(values: MenuFieldConfigDefaults["values"]): this {
         this.values = values;
         return this;

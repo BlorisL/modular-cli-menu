@@ -1,7 +1,7 @@
 import { Menu } from "@/components/menus/menu";
 import { Action } from "@/components/actions";
 import { MenuStyles, MenuStylesJson } from "@/components/menus/styles";
-import { MenuFieldOptionLabels, MenuFieldOptionLabelsJson } from "./labels";
+import { MenuFieldOptionLabels, MenuFieldOptionLabelsJson } from "@/components/menus/field/option/labels";
 
 type MenuFieldOptionJson = {
     value: string;
@@ -20,7 +20,7 @@ class MenuFieldOption {
         value: string | Menu | Action,
         multi?: boolean,
         labels?: MenuFieldOptionLabelsJson,
-        styles?: MenuStylesJson,
+        styles?: MenuStylesJson
     ) {
         this.value = value;
         this.labels = new MenuFieldOptionLabels(
@@ -33,6 +33,7 @@ class MenuFieldOption {
     public getValue(): string {
         return typeof this.value === "string" ? this.value : this.value.getName();
     }
+
     public setValue(value: MenuFieldOption["value"]): this {
         this.value = value;
         return this;
@@ -53,6 +54,7 @@ class MenuFieldOption {
     public getLabels(): MenuFieldOptionLabels {
         return this.labels;
     }
+
     public setLabels(labels: MenuFieldOptionLabels | MenuFieldOptionLabelsJson): this {
         this.labels = labels instanceof MenuFieldOptionLabels ? labels : new MenuFieldOptionLabels(labels);
         return this;
@@ -61,6 +63,7 @@ class MenuFieldOption {
     public getStyles(): MenuStyles {
         return this.styles;
     }
+
     public setStyles(styles: MenuStyles | MenuStylesJson): this {
         this.styles = styles instanceof MenuStyles ? styles : new MenuStyles(styles);
         return this;
@@ -78,9 +81,4 @@ class MenuFieldOption {
     }
 }
 
-export { 
-    type MenuFieldOptionJson, 
-    type MenuFieldOptionLabelsJson, 
-    MenuFieldOption, 
-    MenuFieldOptionLabels, 
-};
+export { type MenuFieldOptionJson, type MenuFieldOptionLabelsJson, MenuFieldOption, MenuFieldOptionLabels };

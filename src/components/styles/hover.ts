@@ -28,6 +28,7 @@ class StyleHover {
     public getPrefix(): StyleHover["prefix"] {
         return this.prefix;
     }
+
     public setPrefix(prefix: StyleHover["prefix"]): this {
         if (prefix && prefix.length > 0) {
             this.prefix = prefix;
@@ -38,6 +39,7 @@ class StyleHover {
     public getColor(): StyleHover["color"] | undefined {
         return this.color;
     }
+
     public setColor(color: StyleHover["color"]): this {
         this.color = color;
         return this;
@@ -46,6 +48,7 @@ class StyleHover {
     public isUnderline(): StyleHover["underline"] | undefined {
         return this.underline;
     }
+
     public setUnderline(underline: StyleHover["underline"]): this {
         this.underline = underline;
         return this;
@@ -54,6 +57,7 @@ class StyleHover {
     public isItalic(): StyleHover["italic"] | undefined {
         return this.italic;
     }
+
     public setItalic(italic: StyleHover["italic"]): this {
         this.italic = italic;
         return this;

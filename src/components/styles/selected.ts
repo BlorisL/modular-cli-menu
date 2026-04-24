@@ -28,6 +28,7 @@ class StyleSelected {
     public getPrefix(): StyleSelected["prefix"] {
         return this.prefix;
     }
+
     public setPrefix(prefix: StyleSelected["prefix"]): this {
         if (prefix && prefix.length > 0) {
             this.prefix = prefix;
@@ -38,6 +39,7 @@ class StyleSelected {
     public getColor(): StyleSelected["color"] | undefined {
         return this.color;
     }
+
     public setColor(color: StyleSelected["color"]): this {
         this.color = color;
         return this;
@@ -46,6 +48,7 @@ class StyleSelected {
     public isUnderline(): StyleSelected["underline"] | undefined {
         return this.underline;
     }
+
     public setUnderline(underline: StyleSelected["underline"]): this {
         this.underline = underline;
         return this;
@@ -54,6 +57,7 @@ class StyleSelected {
     public isItalic(): StyleSelected["italic"] | undefined {
         return this.italic;
     }
+
     public setItalic(italic: StyleSelected["italic"]): this {
         this.italic = italic;
         return this;

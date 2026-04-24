@@ -4,7 +4,7 @@ import { Language, Translations } from "@/components/translations";
 import { Utility } from "@/components/utility";
 import { prompt, Choice, Separator } from "@/prompts/Prompt";
 import { MenuFieldOption, MenuFieldOptionJson } from "@/components/menus/field/option";
-import { MenuChoiceConfigs, MenuChoiceConfigsJson } from "./config";
+import { MenuChoiceConfigs, MenuChoiceConfigsJson } from "@/components/menus/choice/config";
 
 type MenuChoiceJsonValue = string | MenuFieldOptionJson;
 
@@ -66,35 +66,53 @@ class MenuChoice extends Menu {
             const aGlobal = aItem?.isGlobal() ?? false;
             const bGlobal = bItem?.isGlobal() ?? false;
 
-            if (aGlobal && !bGlobal) return 1;
-            if (!aGlobal && bGlobal) return -1;
-
-            if (aGlobal && bGlobal) {
+            if (aGlobal && !bGlobal) {
+                return 1;
+            } else if (!aGlobal && bGlobal) {
+                return -1;
+            } else if (aGlobal && bGlobal) {
                 const aIdx = aItem?.getIndex() ?? Infinity;
                 const bIdx = bItem?.getIndex() ?? Infinity;
                 const aRes = aIdx < 0;
                 const bRes = bIdx < 0;
-                if (aRes && !bRes) return 1;
-                if (!aRes && bRes) return -1;
-                if (aRes && bRes) return bIdx - aIdx;
-                if (aIdx !== bIdx) return aIdx - bIdx;
-                const aAct = aItem instanceof Action;
-                const bAct = bItem instanceof Action;
-                if (aAct && !bAct) return -1;
-                if (!aAct && bAct) return 1;
-                return aItem!.getName().localeCompare(bItem!.getName());
+                if (aRes && !bRes) {
+                    return 1;
+                } else if (!aRes && bRes) {
+                    return -1;
+                } else if (aRes && bRes) {
+                    return bIdx - aIdx;
+                } else if (aIdx !== bIdx) {
+                    return aIdx - bIdx;
+                } else {
+                    const aAct = aItem instanceof Action;
+                    const bAct = bItem instanceof Action;
+                    if (aAct && !bAct) {
+                        return -1;
+                    } else if (!aAct && bAct) {
+                        return 1;
+                    } else {
+                        return aItem!.getName().localeCompare(bItem!.getName());
+                    }
+                }
+            } else {
+                const aIdx = aItem ? (aItem.getIndex() ?? Infinity) : Infinity;
+                const bIdx = bItem ? (bItem.getIndex() ?? Infinity) : Infinity;
+                if (aIdx !== bIdx) {
+                    return aIdx - bIdx;
+                } else {
+                    const aAct = aItem instanceof Action;
+                    const bAct = bItem instanceof Action;
+                    if (aAct && !bAct) {
+                        return -1;
+                    } else if (!aAct && bAct) {
+                        return 1;
+                    } else {
+                        const aName = aItem ? aItem.getName() : a.getValue();
+                        const bName = bItem ? bItem.getName() : b.getValue();
+                        return aName.localeCompare(bName);
+                    }
+                }
             }
-
-            const aIdx = aItem ? (aItem.getIndex() ?? Infinity) : Infinity;
-            const bIdx = bItem ? (bItem.getIndex() ?? Infinity) : Infinity;
-            if (aIdx !== bIdx) return aIdx - bIdx;
-            const aAct = aItem instanceof Action;
-            const bAct = bItem instanceof Action;
-            if (aAct && !bAct) return -1;
-            if (!aAct && bAct) return 1;
-            const aName = aItem ? aItem.getName() : a.getValue();
-            const bName = bItem ? bItem.getName() : b.getValue();
-            return aName.localeCompare(bName);
         });
     }
 
@@ -105,24 +123,45 @@ class MenuChoice extends Menu {
         const isGlobal = option.getItem()?.isGlobal() ?? false;
         const ms = isGlobal ? undefined : this.getStyles();
 
-        const idlePrefix    = os.getIdle()?.getPrefix()    ?? ms?.getIdle()?.getPrefix()    ?? Utility.getDefaultIdlePrefix();
-        const idleColor     = os.getIdle()?.getColor()     ?? ms?.getIdle()?.getColor()     ?? Utility.getDefaultIdleColor();
-        const idleUnderline = os.getIdle()?.isUnderline()  ?? ms?.getIdle()?.isUnderline()  ?? Utility.getDefaultIdleUnderline();
-        const idleItalic    = os.getIdle()?.isItalic()     ?? ms?.getIdle()?.isItalic();
+        const idlePrefix = os.getIdle()?.getPrefix() ?? ms?.getIdle()?.getPrefix() ?? Utility.getDefaultIdlePrefix();
+        const idleColor = os.getIdle()?.getColor() ?? ms?.getIdle()?.getColor() ?? Utility.getDefaultIdleColor();
+        const idleUnderline =
+            os.getIdle()?.isUnderline() ?? ms?.getIdle()?.isUnderline() ?? Utility.getDefaultIdleUnderline();
+        const idleItalic = os.getIdle()?.isItalic() ?? ms?.getIdle()?.isItalic();
 
         option.setStyles({
             idle: { prefix: idlePrefix, color: idleColor, underline: idleUnderline, italic: idleItalic },
             hover: {
-                prefix:    os.getHover()?.getPrefix()    ?? ms?.getHover()?.getPrefix()    ?? Utility.getDefaultHoverPrefix()    ?? idlePrefix,
-                color:     os.getHover()?.getColor()     ?? ms?.getHover()?.getColor()     ?? Utility.getDefaultHoverColor()     ?? idleColor,
-                underline: os.getHover()?.isUnderline()  ?? ms?.getHover()?.isUnderline()  ?? Utility.getDefaultHoverUnderline(),
-                italic:    os.getHover()?.isItalic()     ?? ms?.getHover()?.isItalic(),
+                prefix:
+                    os.getHover()?.getPrefix()
+                    ?? ms?.getHover()?.getPrefix()
+                    ?? Utility.getDefaultHoverPrefix()
+                    ?? idlePrefix,
+                color:
+                    os.getHover()?.getColor()
+                    ?? ms?.getHover()?.getColor()
+                    ?? Utility.getDefaultHoverColor()
+                    ?? idleColor,
+                underline:
+                    os.getHover()?.isUnderline() ?? ms?.getHover()?.isUnderline() ?? Utility.getDefaultHoverUnderline(),
+                italic: os.getHover()?.isItalic() ?? ms?.getHover()?.isItalic(),
             },
             selected: {
-                prefix:    os.getSelected()?.getPrefix()    ?? ms?.getSelected()?.getPrefix()    ?? Utility.getDefaultSelectedPrefix()    ?? idlePrefix,
-                color:     os.getSelected()?.getColor()     ?? ms?.getSelected()?.getColor()     ?? Utility.getDefaultSelectedColor()     ?? idleColor,
-                underline: os.getSelected()?.isUnderline()  ?? ms?.getSelected()?.isUnderline()  ?? Utility.getDefaultSelectedUnderline(),
-                italic:    os.getSelected()?.isItalic()     ?? ms?.getSelected()?.isItalic(),
+                prefix:
+                    os.getSelected()?.getPrefix()
+                    ?? ms?.getSelected()?.getPrefix()
+                    ?? Utility.getDefaultSelectedPrefix()
+                    ?? idlePrefix,
+                color:
+                    os.getSelected()?.getColor()
+                    ?? ms?.getSelected()?.getColor()
+                    ?? Utility.getDefaultSelectedColor()
+                    ?? idleColor,
+                underline:
+                    os.getSelected()?.isUnderline()
+                    ?? ms?.getSelected()?.isUnderline()
+                    ?? Utility.getDefaultSelectedUnderline(),
+                italic: os.getSelected()?.isItalic() ?? ms?.getSelected()?.isItalic(),
             },
         });
     }
@@ -132,17 +171,27 @@ class MenuChoice extends Menu {
     public getValues(map: boolean = false): MenuFieldOption[] | MenuChoiceValuesMap {
         const values = typeof this.values === "function"
             ? (this.values as MenuChoiceValuesResolvedFn)({ menu: this })
-            : this.values;
+            : this.values
+        ;
         return map ? values : Object.values(values);
     }
-    public getValuesMap(): MenuChoiceValuesMap     { return this.getValues(true)  as MenuChoiceValuesMap; }
-    public getValuesList(): MenuFieldOption[]       { return this.getValues(false) as MenuFieldOption[]; }
+
+    public getValuesMap(): MenuChoiceValuesMap {
+        return this.getValues(true) as MenuChoiceValuesMap;
+    }
+
+    public getValuesList(): MenuFieldOption[] {
+        return this.getValues(false) as MenuFieldOption[];
+    }
+
     public getOptions(sorted = false): MenuFieldOption[] {
         return sorted ? this.sortValues() : this.getValuesList();
     }
+
     public getOption(name: string): MenuFieldOption | undefined {
         return this.getValuesMap()[name];
     }
+
     public setOption(name: string, value: MenuFieldOption): this {
         if (typeof this.values === "function") {
             const vals = (this.values as MenuChoiceValuesResolvedFn)({ menu: this });
@@ -153,6 +202,7 @@ class MenuChoice extends Menu {
         }
         return this;
     }
+
     public addOption(value: Menu | Action | MenuFieldOption | MenuChoiceJsonValue): this {
         let name: string | undefined;
         let option: MenuFieldOption | undefined;
@@ -168,12 +218,7 @@ class MenuChoice extends Menu {
             option = new MenuFieldOption(value);
         } else if (typeof value === "object") {
             name = value.value;
-            option = new MenuFieldOption(
-                value.value,
-                value.multi,
-                value.labels,
-                value.styles
-            );
+            option = new MenuFieldOption(value.value, value.multi, value.labels, value.styles);
         }
 
         if (name && option) {
@@ -182,30 +227,48 @@ class MenuChoice extends Menu {
         }
         return this;
     }
+
     public hasChoices(): boolean {
         const resolved = typeof this.values === "function"
             ? (this.values as MenuChoiceValuesResolvedFn)({ menu: this })
-            : this.values;
+            : this.values
+        ;
         return Object.keys(resolved).length > 0;
     }
 
     // selected values API
 
-    public getSelectedValues(): string[] { return this.selectedValues; }
-    public setSelectedValues(v: string[]): this { this.selectedValues = v; return this; }
-    public addSelectedValue(v: string): this {
-        if (!this.selectedValues.includes(v)) this.selectedValues.push(v);
+    public getSelectedValues(): string[] {
+        return this.selectedValues;
+    }
+
+    public setSelectedValues(v: string[]): this {
+        this.selectedValues = v;
         return this;
     }
+
+    public addSelectedValue(v: string): this {
+        if (!this.selectedValues.includes(v)) {
+            this.selectedValues.push(v);
+        }
+        return this;
+    }
+
     public delSelectedValue(v: string): this {
         this.selectedValues = this.selectedValues.filter((s) => s !== v);
         return this;
     }
-    public isSelectedValue(v: string): boolean { return this.selectedValues.includes(v); }
+
+    public isSelectedValue(v: string): boolean {
+        return this.selectedValues.includes(v);
+    }
 
     // configs API
 
-    public getConfigs(): MenuChoiceConfigs { return this.configs; }
+    public getConfigs(): MenuChoiceConfigs {
+        return this.configs;
+    }
+
     public setConfigs(data: MenuChoiceConfigs | MenuChoiceConfigsJson): this {
         this.configs = data instanceof MenuChoiceConfigs ? data : new MenuChoiceConfigs(data);
         return this;
@@ -238,43 +301,54 @@ class MenuChoice extends Menu {
         }
 
         const choiceList: (Choice | Separator)[] = items.map((item) => {
-            if (item instanceof Separator) return item;
+            let choiceItem: Choice | Separator;
+            if (item instanceof Separator) {
+                choiceItem = item;
+            } else {
+                const isSelected =
+                    isSelectable && !item.getItem()?.isGlobal() && this.selectedValues.includes(item.getValue());
 
-            const isSelected = isSelectable && !item.getItem()?.isGlobal() && this.selectedValues.includes(item.getValue());
-
-            return {
-                value: item.getValue(),
-                label:
-                    item.getItem()?.getLabels().getTitle()?.getValue(language) ??
-                    item.getLabels().getTitle()?.getValue(language) ??
-                    Translations.getTranslation(item.getValue(), language),
-                multi: item.isMulti(),
-                ...(item.getStyles().getIdle() ? {
-                    idle: {
-                        prefix:    item.getStyles().getIdle()?.getPrefix(),
-                        color:     item.getStyles().getIdle()?.getColor(),
-                        underline: item.getStyles().getIdle()?.isUnderline(),
-                        italic:    item.getStyles().getIdle()?.isItalic(),
-                    },
-                } : {}),
-                ...(item.getStyles().getHover() ? {
-                    hover: {
-                        prefix:    item.getStyles().getHover()?.getPrefix(),
-                        color:     item.getStyles().getHover()?.getColor(),
-                        underline: item.getStyles().getHover()?.isUnderline(),
-                        italic:    item.getStyles().getHover()?.isItalic(),
-                    },
-                } : {}),
-                ...(item.getStyles().getSelected() ? {
-                    selected: {
-                        prefix:    item.getStyles().getSelected()?.getPrefix(),
-                        color:     item.getStyles().getSelected()?.getColor(),
-                        underline: item.getStyles().getSelected()?.isUnderline(),
-                        italic:    item.getStyles().getSelected()?.isItalic(),
-                        active:    isSelected,
-                    },
-                } : {}),
-            };
+                choiceItem = {
+                    value: item.getValue(),
+                    label:
+                        item.getItem()?.getLabels().getTitle()?.getValue(language)
+                        ?? item.getLabels().getTitle()?.getValue(language)
+                        ?? Translations.getTranslation(item.getValue(), language),
+                    multi: item.isMulti(),
+                    ...(item.getStyles().getIdle()
+                        ? {
+                                idle: {
+                                    prefix: item.getStyles().getIdle()?.getPrefix(),
+                                    color: item.getStyles().getIdle()?.getColor(),
+                                    underline: item.getStyles().getIdle()?.isUnderline(),
+                                    italic: item.getStyles().getIdle()?.isItalic(),
+                                },
+                            }
+                        : {}),
+                    ...(item.getStyles().getHover()
+                        ? {
+                                hover: {
+                                    prefix: item.getStyles().getHover()?.getPrefix(),
+                                    color: item.getStyles().getHover()?.getColor(),
+                                    underline: item.getStyles().getHover()?.isUnderline(),
+                                    italic: item.getStyles().getHover()?.isItalic(),
+                                },
+                            }
+                        : {}),
+                    ...(item.getStyles().getSelected()
+                        ? {
+                                selected: {
+                                    prefix: item.getStyles().getSelected()?.getPrefix(),
+                                    color: item.getStyles().getSelected()?.getColor(),
+                                    underline: item.getStyles().getSelected()?.isUnderline(),
+                                    italic: item.getStyles().getSelected()?.isItalic(),
+                                    active: isSelected,
+                                },
+                            }
+                        : {}),
+                };
+            }
+            return choiceItem;
         });
 
         Utility.log(
@@ -314,10 +388,4 @@ class MenuChoice extends Menu {
     }
 }
 
-export {
-    type MenuChoiceJson,
-    type MenuChoiceJsonValue,
-    type MenuChoiceConfigsJson,
-    MenuChoice,
-    MenuChoiceConfigs,
-};
+export { type MenuChoiceJson, type MenuChoiceJsonValue, type MenuChoiceConfigsJson, MenuChoice, MenuChoiceConfigs };

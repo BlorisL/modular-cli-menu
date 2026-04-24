@@ -1,7 +1,7 @@
 import { config } from "dotenv";
-import { Language } from "./translations";
+import { Language } from "@/components/translations";
 import chalk, { ColorName } from "chalk";
-import { MenuInput } from "./menus";
+import { MenuInput } from "@/components/menus";
 import { appendFileSync, mkdirSync } from "fs";
 
 class Utility {
@@ -25,16 +25,10 @@ class Utility {
 
         const env = process.env;
         const envString = (value?: string): string | undefined => {
-            if (value && value.length > 0) {
-                return value;
-            }
-            return undefined;
+            return value && value.length > 0 ? value : undefined;
         };
         const envBool = (value?: string): boolean | undefined => {
-            if (value && value.length > 0) {
-                return value === "true";
-            }
-            return undefined;
+            return value && value.length > 0 ? value === "true" : undefined;
         };
 
         if (env.DEBUG_LOG === "true") {
@@ -65,6 +59,7 @@ class Utility {
     public static isDebugLog(): boolean {
         return Utility.debugLog.length > 0;
     }
+
     public static log(value: string, force: boolean = false): void {
         if (Utility.isDebugLog() || force) {
             try {
@@ -83,6 +78,7 @@ class Utility {
     public static getDefaultIdlePrefix(): string | undefined {
         return Utility.defaultIdlePrefix;
     }
+
     public static getDefaultIdleColor(): ColorName | undefined {
         return Utility.defaultIdleColor;
     }
@@ -90,6 +86,7 @@ class Utility {
     public static getDefaultHoverPrefix(): string | undefined {
         return Utility.defaultHoverPrefix;
     }
+
     public static getDefaultHoverColor(): ColorName | undefined {
         return Utility.defaultHoverColor;
     }
@@ -97,6 +94,7 @@ class Utility {
     public static getDefaultSelectedPrefix(): string | undefined {
         return Utility.defaultSelectedPrefix;
     }
+
     public static getDefaultSelectedColor(): ColorName | undefined {
         return Utility.defaultSelectedColor;
     }
@@ -104,9 +102,11 @@ class Utility {
     public static getDefaultIdleUnderline(): boolean | undefined {
         return Utility.defaultIdleUnderline;
     }
+
     public static getDefaultHoverUnderline(): boolean | undefined {
         return Utility.defaultHoverUnderline;
     }
+
     public static getDefaultSelectedUnderline(): boolean | undefined {
         return Utility.defaultSelectedUnderline;
     }

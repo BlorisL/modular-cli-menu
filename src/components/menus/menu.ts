@@ -1,6 +1,5 @@
-import { MenuStyles, MenuStylesJson } from "./styles";
-import { MenuLabels, MenuLabelsJson } from "./labels";
-
+import { MenuStyles, MenuStylesJson } from "@/components/menus/styles";
+import { MenuLabels, MenuLabelsJson } from "@/components/menus/labels";
 
 type MenuJson = {
     name: string;
@@ -53,6 +52,7 @@ abstract class Menu {
     public getPlugin(): Menu["plugin"] | undefined {
         return this.plugin;
     }
+
     public setPlugin(plugin: Menu["plugin"]): this {
         this.plugin = plugin;
         return this;
@@ -61,6 +61,7 @@ abstract class Menu {
     public getIndex(): Menu["index"] | undefined {
         return this.index;
     }
+
     public setIndex(index: Menu["index"]): this {
         this.index = index;
         return this;
@@ -69,9 +70,11 @@ abstract class Menu {
     public getParents(): Menu["parents"][string][] {
         return Object.values(this.parents);
     }
+
     public getParent(name: string): Menu["parents"][string] | undefined {
         return this.parents[name];
     }
+
     public addParent(name: Menu["parents"][string]): this {
         this.parents[name] = name;
         return this;
@@ -84,15 +87,17 @@ abstract class Menu {
     public getStyles(): MenuStyles {
         return this.styles;
     }
+
     public setStyles(styles: MenuStyles | MenuStylesJson): this {
         this.styles = styles instanceof MenuStyles ? styles : new MenuStyles(styles);
         return this;
     }
 
-    public getLabels(): Menu['labels'] {
+    public getLabels(): Menu["labels"] {
         return this.labels;
     }
-    public setLabels(labels: Menu['labels'] | MenuLabelsJson): this {
+
+    public setLabels(labels: Menu["labels"] | MenuLabelsJson): this {
         this.labels = labels instanceof MenuLabels ? labels : new MenuLabels(labels);
         return this;
     }

@@ -22,6 +22,7 @@ class ActionGoto extends Action {
     public getTo(): ActionGoto["to"] {
         return this.to;
     }
+
     public setTo(to: ActionGoto["to"]): this {
         this.to = to;
         return this;

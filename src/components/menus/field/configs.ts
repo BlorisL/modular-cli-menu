@@ -22,6 +22,7 @@ class MenuFieldConfigs {
     public getChoiceConfigs(): MenuChoiceConfigs | undefined {
         return this.choiceConfigs;
     }
+
     public setChoiceConfigs(data: MenuChoiceConfigs | MenuChoiceConfigsJson): this {
         this.choiceConfigs = data instanceof MenuChoiceConfigs ? data : new MenuChoiceConfigs(data);
         return this;
@@ -30,6 +31,7 @@ class MenuFieldConfigs {
     public getInputConfigs(): MenuInputConfigs | undefined {
         return this.inputConfigs;
     }
+
     public setInputConfigs(data: MenuInputConfigs | MenuInputConfigsJson): this {
         this.inputConfigs = data instanceof MenuInputConfigs ? data : new MenuInputConfigs(data);
         return this;

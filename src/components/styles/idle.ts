@@ -28,6 +28,7 @@ class StyleIdle {
     public getPrefix(): StyleIdle["prefix"] {
         return this.prefix;
     }
+
     public setPrefix(prefix: StyleIdle["prefix"]): this {
         if (prefix && prefix.length > 0) {
             this.prefix = prefix;
@@ -38,6 +39,7 @@ class StyleIdle {
     public getColor(): StyleIdle["color"] | undefined {
         return this.color;
     }
+
     public setColor(color: StyleIdle["color"]): this {
         this.color = color;
         return this;
@@ -46,6 +48,7 @@ class StyleIdle {
     public isUnderline(): StyleIdle["underline"] | undefined {
         return this.underline;
     }
+
     public setUnderline(underline: StyleIdle["underline"]): this {
         this.underline = underline;
         return this;
@@ -54,6 +57,7 @@ class StyleIdle {
     public isItalic(): StyleIdle["italic"] | undefined {
         return this.italic;
     }
+
     public setItalic(italic: StyleIdle["italic"]): this {
         this.italic = italic;
         return this;

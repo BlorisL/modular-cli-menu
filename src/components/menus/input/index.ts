@@ -2,8 +2,8 @@ import { Menu, MenuJson } from "@/components/menus/menu";
 import { Language, Translations } from "@/components/translations";
 import { Utility } from "@/components/utility";
 import { prompt, Choice, Separator } from "@/prompts/Prompt";
-import { MenuInputLabels, MenuInputLabelsJson } from "./labels";
-import { MenuInputConfigs, MenuInputConfigsJson } from "./config";
+import { MenuInputLabels, MenuInputLabelsJson } from "@/components/menus/input/labels";
+import { MenuInputConfigs, MenuInputConfigsJson } from "@/components/menus/input/config";
 
 type MenuInputJson = Omit<MenuJson, "type" | "labels"> & {
     type: "input";
@@ -27,11 +27,11 @@ class MenuInput extends Menu {
         const plugin = this.getPlugin() ?? "default";
         const name = this.getName();
         this.labels = new MenuInputLabels({
-            question:    this.labels.getQuestion()?.getName(),
-            title:       this.labels.getTitle()?.getName(),
-            success:     this.labels.getSuccess()?.getName(),
-            error:       this.labels.getError()?.getName(),
-            answer:      this.labels.getAnswer()?.getName(),
+            question: this.labels.getQuestion()?.getName(),
+            title: this.labels.getTitle()?.getName(),
+            success: this.labels.getSuccess()?.getName(),
+            error: this.labels.getError()?.getName(),
+            answer: this.labels.getAnswer()?.getName(),
             placeholder: il?.placeholder ?? `${plugin}.${name}.placeholder`,
         });
 
@@ -42,17 +42,32 @@ class MenuInput extends Menu {
 
     // value API
 
-    public getValue(): string { return this.value; }
-    public setValue(v: string): this { this.value = v; return this; }
+    public getValue(): string {
+        return this.value;
+    }
+
+    public setValue(v: string): this {
+        this.value = v;
+        return this;
+    }
 
     // global choices (sidebar)
 
-    public getGlobalChoices(): (Choice | Separator)[] { return this.globalChoices; }
-    public setGlobalChoices(choices: (Choice | Separator)[]): this { this.globalChoices = choices; return this; }
+    public getGlobalChoices(): (Choice | Separator)[] {
+        return this.globalChoices;
+    }
+
+    public setGlobalChoices(choices: (Choice | Separator)[]): this {
+        this.globalChoices = choices;
+        return this;
+    }
 
     // configs API
 
-    public getConfigs(): MenuInputConfigs { return this.configs; }
+    public getConfigs(): MenuInputConfigs {
+        return this.configs;
+    }
+
     public setConfigs(data: MenuInputConfigs | MenuInputConfigsJson): this {
         this.configs = data instanceof MenuInputConfigs ? data : new MenuInputConfigs(data);
         return this;
@@ -60,14 +75,18 @@ class MenuInput extends Menu {
 
     // labels
 
-    public override getLabels(): MenuInputLabels { return this.labels; }
+    public override getLabels(): MenuInputLabels {
+        return this.labels;
+    }
 
     public getPlaceholder(language?: Language): string | undefined {
         return this.labels.getPlaceholder()?.getValue(language);
     }
+
     public getValidate(): MenuInputConfigsJson["validate"] {
         return this.configs.getValidate();
     }
+
     public getCallback(): MenuInputConfigsJson["callback"] {
         return this.configs.getCallback();
     }
@@ -96,16 +115,24 @@ class MenuInput extends Menu {
         const validate = this.configs.getValidate();
         const translatedValidate = validate
             ? (value: string): boolean | string => {
-                const res = validate(value);
-                if (res === true || res === undefined) return true;
-                if (typeof res === "string" && res.length > 0) {
-                    const asKey = Translations.getTranslation(res, language);
-                    if (asKey !== res) return asKey;
+                    const res = validate(value);
+                    let result: boolean | string;
+                    if (res === true || res === undefined) {
+                        result = true;
+                    } else if (typeof res === "string" && res.length > 0) {
+                        const asKey = Translations.getTranslation(res, language);
+                        if (asKey !== res) {
+                            result = asKey;
+                        } else {
+                            result = labels.getError()?.getValue(language) ?? true;
+                        }
+                    } else {
+                        result = labels.getError()?.getValue(language) ?? true;
+                    }
+                    return result;
                 }
-                return labels.getError()?.getValue(language) ?? true;
-            }
-            : undefined;
-
+            : undefined
+        ;
         const result = await prompt({
             message: this.getLabels().getQuestion()!.write({ color: this.getStyles().getIdle()?.getColor(), language }),
             input: {
@@ -121,7 +148,11 @@ class MenuInput extends Menu {
         if (result.type === "input") {
             this.value = result.value;
             Utility.log(
-                [new Date().toISOString(), `${this.getName()} - ${labels.getQuestion()?.getValue(language)}`, result.value].join("\n") + "\n"
+                [
+                    new Date().toISOString(),
+                    `${this.getName()} - ${labels.getQuestion()?.getValue(language)}`,
+                    result.value,
+                ].join("\n") + "\n"
             );
             return result.value;
         }
@@ -131,4 +162,11 @@ class MenuInput extends Menu {
     }
 }
 
-export { type MenuInputJson, type MenuInputLabelsJson, type MenuInputConfigsJson, MenuInput, MenuInputLabels, MenuInputConfigs };
+export {
+    type MenuInputJson,
+    type MenuInputLabelsJson,
+    type MenuInputConfigsJson,
+    MenuInput,
+    MenuInputLabels,
+    MenuInputConfigs,
+};

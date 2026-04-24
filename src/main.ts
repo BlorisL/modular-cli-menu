@@ -1,12 +1,6 @@
-import { Cli } from "./components/cli";
-import { MenuFieldJsonValue } from "./components/menus";
-import { Translations } from "./components/translations";
-
-// Re-export library exports
-//export { Cli } from "./components/cli";
-//export { Translations } from "./components/translations";
-//export { MenuChoice, MenuInput, MenuField } from "./components/menus";
-//export { ActionGoto, ActionFunction } from "./components/actions";
+import { Cli } from "@/components/cli";
+import { MenuFieldJsonValue } from "@/components/menus";
+import { Translations } from "@/components/translations";
 
 const cli = new Cli();
 
@@ -103,8 +97,7 @@ cli.addPlugin({
             ar: "اضغط Enter للمتابعة...",
         },
     },
-})
-.addPlugin({
+}).addPlugin({
     name: "translation",
     menus: [
         {
@@ -124,7 +117,9 @@ cli.addPlugin({
                 callback: async ({ values, menu, parent }): Promise<void> => {
                     if (values.length > 0) {
                         Translations.setCurrentLanguage(values[0]);
-                        menu.getLabels().getSuccess()?.print({ color: "green", language: Translations.getSelectedLanguage() });
+                        menu.getLabels()
+                            .getSuccess()
+                            ?.print({ color: "green", language: Translations.getSelectedLanguage() });
                         await cli.run("press-to-continue", parent);
                     }
                 },
@@ -285,6 +280,6 @@ cli.addPlugin({
             ar: "تم تعيين اللغة بنجاح.",
         },
     },
-})
+});
 
 export { cli, write };

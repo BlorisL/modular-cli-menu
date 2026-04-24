@@ -1,5 +1,5 @@
-import { ActionLabels, ActionLabelsJson } from "./labels";
-import { ActionStyles, ActionStylesJson } from "./styles";
+import { ActionLabels, ActionLabelsJson } from "@/components/actions/labels";
+import { ActionStyles, ActionStylesJson } from "@/components/actions/styles";
 
 type ActionJson = {
     name: string;
@@ -40,6 +40,7 @@ abstract class Action {
     public getName(): Action["name"] {
         return this.name;
     }
+
     public getType(): Action["type"] {
         return this.type;
     }
@@ -47,6 +48,7 @@ abstract class Action {
     public getPlugin(): Action["plugin"] | undefined {
         return this.plugin;
     }
+
     public setPlugin(plugin: Action["plugin"]): this {
         this.plugin = plugin;
         return this;
@@ -55,6 +57,7 @@ abstract class Action {
     public getIndex(): Action["index"] | undefined {
         return this.index;
     }
+
     public setIndex(index: Action["index"]): this {
         this.index = index;
         return this;
@@ -63,9 +66,11 @@ abstract class Action {
     public getParents(): Action["parents"][string][] {
         return Object.values(this.parents);
     }
+
     public getParent(name: string): Action["parents"][string] | undefined {
         return this.parents[name];
     }
+
     public addParent(name: Action["parents"][string]): this {
         this.parents[name] = name;
         return this;
@@ -78,13 +83,16 @@ abstract class Action {
     public getStyles(): ActionStyles {
         return this.styles;
     }
+
     public setStyles(styles: ActionStyles | ActionStylesJson): this {
         this.styles = styles instanceof ActionStyles ? styles : new ActionStyles(styles);
         return this;
     }
+
     public getLabels(): ActionLabels {
         return this.labels;
     }
+
     public setLabels(labels: ActionLabels | ActionLabelsJson): this {
         this.labels = labels instanceof ActionLabels ? labels : new ActionLabels(labels);
         return this;

@@ -3,8 +3,8 @@ import { Action } from "@/components/actions";
 import { Language, Translations } from "@/components/translations";
 import { Utility } from "@/components/utility";
 import { prompt, Choice, Separator } from "@/prompts/Prompt";
-import { MenuFieldOption, MenuFieldOptionJson } from "./option";
-import { MenuFieldConfigs, MenuFieldConfigsJson } from "./configs";
+import { MenuFieldOption, MenuFieldOptionJson } from "@/components/menus/field/option";
+import { MenuFieldConfigs, MenuFieldConfigsJson } from "@/components/menus/field/configs";
 import { MenuChoice, MenuChoiceJson, MenuChoiceJsonValue } from "@/components/menus/choice";
 import { MenuInput } from "@/components/menus/input";
 
@@ -32,24 +32,24 @@ class MenuField extends Menu {
 
         if (data.values !== undefined || data.configs?.choice) {
             this.choice = new MenuChoice({
-                name:    data.name,
-                plugin:  data.plugin,
-                global:  data.global,
-                index:   data.index,
+                name: data.name,
+                plugin: data.plugin,
+                global: data.global,
+                index: data.index,
                 parents: data.parents,
-                styles:  data.styles,
-                labels:  data.labels,
-                type:    "choice",
-                values:  data.values as MenuChoiceJson["values"],
+                styles: data.styles,
+                labels: data.labels,
+                type: "choice",
+                values: data.values as MenuChoiceJson["values"],
                 configs: data.configs?.choice,
             });
         }
 
         if (data.configs?.input) {
             this.input = new MenuInput({
-                name:    data.name,
-                plugin:  data.plugin,
-                type:    "input",
+                name: data.name,
+                plugin: data.plugin,
+                type: "input",
                 configs: data.configs.input,
             });
         }
@@ -57,14 +57,20 @@ class MenuField extends Menu {
 
     // internal components access
 
-    public getChoice(): MenuChoice | undefined { return this.choice; }
-    public getInput(): MenuInput   | undefined { return this.input;  }
+    public getChoice(): MenuChoice | undefined {
+        return this.choice;
+    }
+
+    public getInput(): MenuInput | undefined {
+        return this.input;
+    }
 
     // helpers
 
     public hasChoices(): boolean {
-        return !!(this.choice?.hasChoices()) || this.globalChoices.length > 0;
+        return !!this.choice?.hasChoices() || this.globalChoices.length > 0;
     }
+
     public hasInput(): boolean {
         return !!this.input;
     }
@@ -74,12 +80,15 @@ class MenuField extends Menu {
     public getOption(name: string): MenuFieldOption | undefined {
         return this.choice?.getOption(name);
     }
+
     public getOptions(sorted = false): MenuFieldOption[] {
         return this.choice?.getOptions(sorted) ?? [];
     }
+
     public getSelectedValues(): string[] {
         return this.choice?.getSelectedValues() ?? [];
     }
+
     public addOption(value: Menu | Action | MenuFieldOption | MenuFieldJsonValue): this {
         this.choice?.addOption(value);
         return this;
@@ -87,8 +96,14 @@ class MenuField extends Menu {
 
     // global choices (input sidebar)
 
-    public getGlobalChoices(): (Choice | Separator)[] { return this.globalChoices; }
-    public setGlobalChoices(choices: (Choice | Separator)[]): this { this.globalChoices = choices; return this; }
+    public getGlobalChoices(): (Choice | Separator)[] {
+        return this.globalChoices;
+    }
+
+    public setGlobalChoices(choices: (Choice | Separator)[]): this {
+        this.globalChoices = choices;
+        return this;
+    }
 
     // toJson
 
@@ -97,13 +112,13 @@ class MenuField extends Menu {
             ...super.toJson(),
             type: "field" as const,
             ...(this.choice?.getOptions().length ? { values: this.choice.getValuesList().map((v) => v.toJson()) } : {}),
-            ...((this.choice?.getConfigs() || this.input)
+            ...(this.choice?.getConfigs() || this.input
                 ? {
-                      configs: new MenuFieldConfigs({
-                          choice: this.choice?.getConfigs().toJson(),
-                          input:  this.input?.getConfigs().toJson(),
-                      }).toJson(),
-                  }
+                        configs: new MenuFieldConfigs({
+                            choice: this.choice?.getConfigs().toJson(),
+                            input: this.input?.getConfigs().toJson(),
+                        }).toJson(),
+                    }
                 : {}),
         };
     }
@@ -115,10 +130,10 @@ class MenuField extends Menu {
         const resolvedPlaceholder = this.input?.getLabels().getPlaceholder()?.getValue(language);
 
         const hasInputSection = !!(
-            inputCfg?.getCallback() ||
-            inputCfg?.getValidate() ||
-            inputCfg?.isFastSubmit() ||
-            resolvedPlaceholder
+            inputCfg?.getCallback()
+            || inputCfg?.getValidate()
+            || inputCfg?.isFastSubmit()
+            || resolvedPlaceholder
         );
         const hasChoicesSection = this.hasChoices();
 
@@ -128,57 +143,81 @@ class MenuField extends Menu {
             console.clear();
         }
 
-        const isSelectable   = this.choice?.getConfigs().isSelectable() ?? false;
+        const isSelectable = this.choice?.getConfigs().isSelectable() ?? false;
         const selectedValues = this.choice?.getSelectedValues() ?? [];
-        const inputValue     = this.input?.getValue();
+        const inputValue = this.input?.getValue();
 
         const buildChoices = (): (Choice | Separator)[] => {
-            if (!hasChoicesSection) return [];
+            let choicesResult: (Choice | Separator)[];
+            if (hasChoicesSection) {
+                const values = this.choice?.getOptions() ?? [];
+                const globalIndex = values.findIndex((v) => v.getItem()?.isGlobal());
+                const items: (MenuFieldOption | Separator)[] = [...values];
+                if (globalIndex >= 0) {
+                    items.splice(globalIndex, 0, new Separator());
+                }
 
-            const values = this.choice?.getOptions() ?? [];
-            const globalIndex = values.findIndex((v) => v.getItem()?.isGlobal());
-            const items: (MenuFieldOption | Separator)[] = [...values];
-            if (globalIndex >= 0) items.splice(globalIndex, 0, new Separator());
+                const choiceList: (Choice | Separator)[] = items.map((item) => {
+                    let choiceItem: Choice | Separator;
+                    if (item instanceof Separator) {
+                        choiceItem = item;
+                    } else {
+                        const isSelected =
+                            isSelectable
+                            && !item.getItem()?.isGlobal()
+                            && (this.choice?.isSelectedValue(item.getValue()) ?? false);
 
-            const choiceList: (Choice | Separator)[] = items.map((item) => {
-                if (item instanceof Separator) return item;
+                        choiceItem = {
+                            value: item.getValue(),
+                            label:
+                                item.getItem()?.getLabels().getTitle()?.getValue(language)
+                                ?? item.getLabels().getTitle()?.getValue(language)
+                                ?? Translations.getTranslation(item.getValue(), language),
+                            multi: item.isMulti(),
+                            ...(item.getStyles().getIdle()
+                                ? {
+                                        idle: {
+                                            prefix: item.getStyles().getIdle()?.getPrefix(),
+                                            color: item.getStyles().getIdle()?.getColor(),
+                                            underline: item.getStyles().getIdle()?.isUnderline(),
+                                            italic: item.getStyles().getIdle()?.isItalic(),
+                                        },
+                                    }
+                                : {}),
+                            ...(item.getStyles().getHover()
+                                ? {
+                                        hover: {
+                                            prefix: item.getStyles().getHover()?.getPrefix(),
+                                            color: item.getStyles().getHover()?.getColor(),
+                                            underline: item.getStyles().getHover()?.isUnderline(),
+                                            italic: item.getStyles().getHover()?.isItalic(),
+                                        },
+                                    }
+                                : {}),
+                            ...(item.getStyles().getSelected()
+                                ? {
+                                        selected: {
+                                            prefix: item.getStyles().getSelected()?.getPrefix(),
+                                            color: item.getStyles().getSelected()?.getColor(),
+                                            underline: item.getStyles().getSelected()?.isUnderline(),
+                                            italic: item.getStyles().getSelected()?.isItalic(),
+                                            active: isSelected,
+                                        },
+                                    }
+                                : {}),
+                        };
+                    }
+                    return choiceItem;
+                });
 
-                const isSelected =
-                    isSelectable &&
-                    !item.getItem()?.isGlobal() &&
-                    (this.choice?.isSelectedValue(item.getValue()) ?? false);
-
-                return {
-                    value: item.getValue(),
-                    label:
-                        item.getItem()?.getLabels().getTitle()?.getValue(language) ??
-                        item.getLabels().getTitle()?.getValue(language) ??
-                        Translations.getTranslation(item.getValue(), language),
-                    multi: item.isMulti(),
-                    ...(item.getStyles().getIdle() ? { idle: {
-                        prefix:    item.getStyles().getIdle()?.getPrefix(),
-                        color:     item.getStyles().getIdle()?.getColor(),
-                        underline: item.getStyles().getIdle()?.isUnderline(),
-                        italic:    item.getStyles().getIdle()?.isItalic(),
-                    }} : {}),
-                    ...(item.getStyles().getHover() ? { hover: {
-                        prefix:    item.getStyles().getHover()?.getPrefix(),
-                        color:     item.getStyles().getHover()?.getColor(),
-                        underline: item.getStyles().getHover()?.isUnderline(),
-                        italic:    item.getStyles().getHover()?.isItalic(),
-                    }} : {}),
-                    ...(item.getStyles().getSelected() ? { selected: {
-                        prefix:    item.getStyles().getSelected()?.getPrefix(),
-                        color:     item.getStyles().getSelected()?.getColor(),
-                        underline: item.getStyles().getSelected()?.isUnderline(),
-                        italic:    item.getStyles().getSelected()?.isItalic(),
-                        active:    isSelected,
-                    }} : {}),
-                };
-            });
-
-            if (this.globalChoices.length > 0) choiceList.push(...this.globalChoices);
-            return choiceList;
+                if (this.globalChoices.length > 0) {
+                    choiceList.push(...this.globalChoices);
+                }
+                choicesResult = choiceList;
+            } else {
+                choicesResult = [];
+            }
+            return choicesResult;
         };
 
         const choiceList = buildChoices();
@@ -195,27 +234,37 @@ class MenuField extends Menu {
         const validate = inputCfg?.getValidate();
         const translatedValidate = validate
             ? (value: string): boolean | string => {
-                const res = validate(value);
-                if (res === true || res === undefined) return true;
-                if (typeof res === "string" && res.length > 0) {
-                    const asKey = Translations.getTranslation(res, language);
-                    if (asKey !== res) return asKey;
+                    const res = validate(value);
+                    let result: boolean | string;
+                    if (res === true || res === undefined) {
+                        result = true;
+                    } else if (typeof res === "string" && res.length > 0) {
+                        const asKey = Translations.getTranslation(res, language);
+                        if (asKey !== res) {
+                            result = asKey;
+                        } else {
+                            result = this.getLabels().getError()?.getValue(language) ?? true;
+                        }
+                    } else {
+                        result = this.getLabels().getError()?.getValue(language) ?? true;
+                    }
+                    return result;
                 }
-                return this.getLabels().getError()?.getValue(language) ?? true;
-            }
-            : undefined;
-
+            : undefined
+        ;
         const result = await prompt({
             message: this.getLabels().getQuestion()!.write({ color: this.getStyles().getIdle()?.getColor(), language }),
-            ...(hasInputSection ? {
-                input: {
-                    value:       inputValue,
-                    placeholder: resolvedPlaceholder,
-                    fastSubmit:  inputCfg?.isFastSubmit() ?? false,
-                    inline:      inputCfg?.isInline()     ?? false,
-                    validate:    translatedValidate,
-                },
-            } : {}),
+            ...(hasInputSection
+                ? {
+                        input: {
+                            value: inputValue,
+                            placeholder: resolvedPlaceholder,
+                            fastSubmit: inputCfg?.isFastSubmit() ?? false,
+                            inline: inputCfg?.isInline() ?? false,
+                            validate: translatedValidate,
+                        },
+                    }
+                : {}),
             ...(hasChoicesSection ? { choices: choiceList } : {}),
             ...(isSelectable && selectedValues.length > 0 ? { initialSelected: selectedValues } : {}),
         });
@@ -223,7 +272,11 @@ class MenuField extends Menu {
         if (result.type === "input") {
             this.input?.setValue(result.value);
             Utility.log(
-                [new Date().toISOString(), `${this.getName()} - ${this.getLabels().getQuestion()?.getValue(language)}`, result.value].join("\n") + "\n"
+                [
+                    new Date().toISOString(),
+                    `${this.getName()} - ${this.getLabels().getQuestion()?.getValue(language)}`,
+                    result.value,
+                ].join("\n") + "\n"
             );
             return result.value;
         }

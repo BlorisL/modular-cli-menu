@@ -24,69 +24,81 @@ class MenuLabels {
     }
 
     public getAnswer(name?: string): Label | undefined {
-        if (name === undefined) return this.answer;
-        if (!this.answer) return undefined;
-        return new Label(`${this.answer.getName()}.${name}`);
+        let result: Label | undefined;
+        if (name === undefined) {
+            result = this.answer;
+        } else if (!this.answer) {
+            result = undefined;
+        } else {
+            result = new Label(`${this.answer.getName()}.${name}`);
+        }
+        return result;
     }
+
     public setAnswer(
-        answer: NonNullable<MenuLabels['answer'] | MenuLabelsJson['answer']>,
-        callback?: Label['callback'],
+        answer: NonNullable<MenuLabels["answer"] | MenuLabelsJson["answer"]>,
+        callback?: Label["callback"]
     ): this {
         this.answer = answer instanceof Label
             ? new Label(answer.getName(), callback ?? answer.getCallback())
-            : new Label(answer, callback);
+            : new Label(answer, callback)
+        ;
         return this;
     }
 
     public getQuestion(): MenuLabels["question"] {
         return this.question;
     }
+
     public setQuestion(
-        question: NonNullable<MenuLabels['question'] | MenuLabelsJson['question']>,
-        callback?: Label['callback'],
+        question: NonNullable<MenuLabels["question"] | MenuLabelsJson["question"]>,
+        callback?: Label["callback"]
     ): this {
-        this.question = question instanceof Label 
+        this.question = question instanceof Label
             ? new Label(question.getName(), callback ?? question.getCallback())
-            : new Label(question);
+            : new Label(question)
+        ;
         return this;
     }
 
     public getTitle(): MenuLabels["title"] {
         return this.title;
     }
+
     public setTitle(
-        title: NonNullable<MenuLabels['title'] | MenuLabelsJson['title']>,
-        callback?: Label['callback'],
+        title: NonNullable<MenuLabels["title"] | MenuLabelsJson["title"]>,
+        callback?: Label["callback"]
     ): this {
-        this.title = title instanceof Label 
-            ? new Label(title.getName(), callback ?? title.getCallback())
-            : new Label(title);
+        this.title =
+            title instanceof Label ? new Label(title.getName(), callback ?? title.getCallback()) : new Label(title);
         return this;
     }
 
     public getSuccess(): MenuLabels["success"] {
         return this.success;
     }
+
     public setSuccess(
-        success: NonNullable<MenuLabels['success'] | MenuLabelsJson['success']>,
-        callback?: Label['callback'],
+        success: NonNullable<MenuLabels["success"] | MenuLabelsJson["success"]>,
+        callback?: Label["callback"]
     ): this {
-        this.success = success instanceof Label 
+        this.success = success instanceof Label
             ? new Label(success.getName(), callback ?? success.getCallback())
-            : new Label(success);
+            : new Label(success)
+        ;
         return this;
     }
 
     public getError(): MenuLabels["error"] {
         return this.error;
     }
+
     public setError(
-        error: NonNullable<MenuLabels['error'] | MenuLabelsJson['error']>,
-        callback?: Label['callback'],
+        error: NonNullable<MenuLabels["error"] | MenuLabelsJson["error"]>,
+        callback?: Label["callback"]
     ): this {
-        this.error = error instanceof Label 
-            ? new Label(error.getName(), callback ?? error.getCallback())
-            : new Label(error);
+        this.error =
+            error instanceof Label ? new Label(error.getName(), callback ?? error.getCallback()) : new Label(error);
         return this;
     }
 

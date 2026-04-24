@@ -1,5 +1,5 @@
 import { Label } from "@/components/translations";
-import { MenuLabels, MenuLabelsJson } from "../labels";
+import { MenuLabels, MenuLabelsJson } from "@/components/menus/labels";
 
 type MenuInputLabelsJson = MenuLabelsJson & {
     placeholder?: string;
@@ -16,13 +16,15 @@ class MenuInputLabels extends MenuLabels {
     public getPlaceholder(): MenuInputLabels["placeholder"] {
         return this.placeholder;
     }
+
     public setPlaceholder(
         placeholder: NonNullable<MenuInputLabels["placeholder"]> | string,
-        callback?: Label["callback"],
+        callback?: Label["callback"]
     ): this {
         this.placeholder = placeholder instanceof Label
             ? new Label(placeholder.getName(), callback ?? placeholder.getCallback())
-            : new Label(placeholder);
+            : new Label(placeholder)
+        ;
         return this;
     }
 

@@ -1,1 +1,1 @@
-export * from "./plugin";
+export * from "@/components/plugins/plugin";

@@ -14,13 +14,13 @@ class MenuFieldOptionLabels {
     public getTitle(): MenuFieldOptionLabels["title"] {
         return this.title;
     }
+
     public setTitle(
         title: NonNullable<MenuFieldOptionLabels["title"] | MenuFieldOptionLabelsJson["title"]>,
-        callback?: Label["callback"],
+        callback?: Label["callback"]
     ): this {
-        this.title = title instanceof Label
-            ? new Label(title.getName(), callback ?? title.getCallback())
-            : new Label(title);
+        this.title =
+            title instanceof Label ? new Label(title.getName(), callback ?? title.getCallback()) : new Label(title);
         return this;
     }
 

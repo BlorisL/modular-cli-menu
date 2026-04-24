@@ -17,6 +17,7 @@ class ActionFunction extends Action {
     public getCallback(): Promise<void> {
         return this.callback();
     }
+
     public setCallback(callback: ActionFunction["callback"]): this {
         this.callback = callback;
         return this;

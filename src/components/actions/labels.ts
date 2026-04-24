@@ -14,7 +14,8 @@ class ActionLabels {
     public getTitle(): ActionLabels["title"] | undefined {
         return this.title;
     }
-    public setTitle(title: NonNullable<ActionLabels['title'] | ActionLabelsJson['title']>): this {
+
+    public setTitle(title: NonNullable<ActionLabels["title"] | ActionLabelsJson["title"]>): this {
         this.title = title instanceof Label ? title : new Label(title);
         return this;
     }

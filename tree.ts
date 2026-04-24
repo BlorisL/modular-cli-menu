@@ -19,16 +19,19 @@ async function getFilesRecursively(dir: string): Promise<string[]> {
         entries.map(async (entry) => {
             const fullPath = path.join(dir, entry.name);
 
+            let result: string[] | Promise<string[]>;
             if (entry.isDirectory()) {
-                if (IGNORED_DIRS.includes(entry.name)) {
-                    return [];
+                if (!IGNORED_DIRS.includes(entry.name)) {
+                    result = getFilesRecursively(fullPath);
+                } else {
+                    result = [];
                 }
-                return getFilesRecursively(fullPath);
             } else if (EXTENSIONS.includes(path.extname(entry.name))) {
-                return [fullPath];
+                result = [fullPath];
+            } else {
+                result = [];
             }
-
-            return [];
+            return result;
         })
     );
 

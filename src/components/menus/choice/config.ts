@@ -1,4 +1,4 @@
-import type { MenuChoice } from "./index";
+import type { MenuChoice } from "@/components/menus/choice";
 
 type MenuChoiceConfigsJson = {
     selectable?: boolean;
@@ -26,6 +26,7 @@ class MenuChoiceConfigs {
     public isSelectable(): boolean {
         return this.selectable;
     }
+
     public setSelectable(v: boolean): this {
         this.selectable = v;
         return this;
@@ -34,6 +35,7 @@ class MenuChoiceConfigs {
     public getDefaultValues(): string[] {
         return this.defaultValues;
     }
+
     public setDefaultValues(v: string[]): this {
         this.defaultValues = v;
         return this;
@@ -42,6 +44,7 @@ class MenuChoiceConfigs {
     public getCallback(): MenuChoiceConfigsJson["callback"] {
         return this.callback;
     }
+
     public setCallback(v: MenuChoiceConfigsJson["callback"]): this {
         this.callback = v;
         return this;

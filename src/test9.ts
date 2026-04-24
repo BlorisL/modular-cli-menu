@@ -1,8 +1,7 @@
-import { Cli } from "./components/cli";
-import { MenuFieldJsonValue } from "./components/menus";
-import { Translations } from "./components/translations";
-
-const cli = new Cli();
+import { Cli } from "@/components/cli";
+import { MenuFieldJsonValue } from "@/components/menus";
+import { Translations } from "@/components/translations";
+import { cli } from "@/main";
 
 cli.addPlugin({
     name: "default",
@@ -116,7 +115,9 @@ cli.addPlugin({
                     callback: async ({ values, menu, parent }): Promise<void> => {
                         if (values.length > 0) {
                             Translations.setCurrentLanguage(values[0]);
-                            menu.getLabels().getSuccess()?.print({ color: "green", language: Translations.getSelectedLanguage() });
+                            menu.getLabels()
+                                .getSuccess()
+                                ?.print({ color: "green", language: Translations.getSelectedLanguage() });
                             await cli.run("press-to-continue", parent);
                         }
                     },
@@ -327,7 +328,9 @@ cli.addPlugin({
                     selectable: true,
                     defaultValues: ["notifications"],
                     callback: async ({ values, menu, parent }): Promise<void> => {
-                        menu.getLabels().getSuccess()?.print({ color: "green", append: values.join(", ") });
+                        menu.getLabels()
+                            .getSuccess()
+                            ?.print({ color: "green", append: values.join(", ") });
                         await cli.run("press-to-continue", parent);
                     },
                 },

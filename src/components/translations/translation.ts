@@ -15,6 +15,7 @@ class Translations {
     public static getCurrentLanguage(): Language | undefined {
         return Translations.currentLanguage;
     }
+
     public static setCurrentLanguage(language: Language): void {
         Translations.currentLanguage = language;
     }
@@ -47,20 +48,20 @@ class Translations {
     public static getTranslations(): TranslationJson {
         return Translations.items;
     }
+
     public static getTranslation(name: string, language?: keyof TranslationJson[string]): string {
         const lang = language ?? Translations.currentLanguage;
-        if (!lang) {
-            return name;
+        let value: string = name;
+        if (lang) {
+            let translated: (typeof Translations)["items"][string][typeof lang] | undefined = undefined;
+            try {
+                translated = Translations.items[name]?.[lang];
+            } catch {
+                // console.error(`Error retrieving translation for key "${name}" and language "${lang}":`, error);
+            }
+            value = translated ?? name;
         }
-
-        let translated: typeof Translations['items'][string][typeof lang] | undefined = undefined;
-        try {
-            translated = Translations.items[name]?.[lang];
-        } catch {
-            //console.error(`Error retrieving translation for key "${name}" and language "${lang}":`, error);
-        }
-
-        return translated ?? name;
+        return value;
     }
 
     public static addTranslations(items: TranslationJson): Translations {
@@ -71,6 +72,7 @@ class Translations {
         });
         return this;
     }
+
     public static addTranslation(name: string, language: keyof TranslationJson[string], text: string): Translations {
         if (!Translations.items[name]) {
             Translations.items[name] = {};

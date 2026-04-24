@@ -154,19 +154,18 @@ function getBack(menuName: string): ActionGoto | undefined {
 
 function simulateRender(menuName: string, parentName?: string): void {
     const menu = cli.getMenu(menuName) as MenuChoice | undefined;
-    if (!menu || menuName === "main") {
-        return;
-    }
-    const existing = getBack(menuName);
-    if (existing) {
-        existing.setTo(parentName ?? "main");
-    } else {
-        const backTemplate = cli.getAction("back") as ActionGoto;
-        if (backTemplate) {
-            const backAction = new ActionGoto(backTemplate.toJson())
-                .setName(`back_${menuName}`)
-                .setTo(parentName ?? "main");
-            menu.addOption(backAction);
+    if (menu && menuName !== "main") {
+        const existing = getBack(menuName);
+        if (existing) {
+            existing.setTo(parentName ?? "main");
+        } else {
+            const backTemplate = cli.getAction("back") as ActionGoto;
+            if (backTemplate) {
+                const backAction = new ActionGoto(backTemplate.toJson())
+                    .setName(`back_${menuName}`)
+                    .setTo(parentName ?? "main");
+                menu.addOption(backAction);
+            }
         }
     }
 }
@@ -327,7 +326,7 @@ for (const m of flatMenus()) {
 section("SUITE 10 — Nessun back_* nella struttura statica");
 assert(
     cli.getActions().filter((a) => a.getName().startsWith("back_")).length === 0,
-    'nessuna action "back_*" nei actions globali'
+    "nessuna action \"back_*\" nei actions globali"
 );
 for (const m of flatMenus()) {
     const menu = cli.getMenu(m.name);
@@ -348,21 +347,21 @@ section("SUITE 11 — Back dinamico (navigazione simulata)");
 simulateRender("submenu1", "main");
 assert(
     getBack("submenu1")?.getTo() === "main",
-    'main→submenu1: back_submenu1.to === "main"',
+    "main→submenu1: back_submenu1.to === \"main\"",
     `trovato: ${getBack("submenu1")?.getTo()}`
 );
 
 simulateRender("submenu2", "submenu1");
 assert(
     getBack("submenu2")?.getTo() === "submenu1",
-    'submenu1→submenu2: back_submenu2.to === "submenu1"',
+    "submenu1→submenu2: back_submenu2.to === \"submenu1\"",
     `trovato: ${getBack("submenu2")?.getTo()}`
 );
 
 simulateRender("submenu2", "main");
 assert(
     getBack("submenu2")?.getTo() === "main",
-    'main→submenu2 (via goto): back_submenu2.to === "main"',
+    "main→submenu2 (via goto): back_submenu2.to === \"main\"",
     `trovato: ${getBack("submenu2")?.getTo()}`
 );
 
@@ -370,14 +369,14 @@ simulateRender("submenu2", "submenu1");
 simulateRender("language", "submenu2");
 assert(
     getBack("language")?.getTo() === "submenu2",
-    'submenu2→language: back_language.to === "submenu2"',
+    "submenu2→language: back_language.to === \"submenu2\"",
     `trovato: ${getBack("language")?.getTo()}`
 );
 const sub2ParentBeforeLang = getBack("submenu2")?.getTo();
 simulateRender("submenu2", sub2ParentBeforeLang);
 assert(
     getBack("submenu2")?.getTo() === "submenu1",
-    'dopo back da language→submenu2: back_submenu2.to === "submenu1"',
+    "dopo back da language→submenu2: back_submenu2.to === \"submenu1\"",
     `trovato: ${getBack("submenu2")?.getTo()}`
 );
 
@@ -433,31 +432,43 @@ section("SUITE 13 — Stili option per-option");
 
 {
     const langMenu = cli.getMenu("language") as MenuChoice | undefined;
-    assert(!!langMenu, 'menu "language" esiste');
+    assert(!!langMenu, "menu \"language\" esiste");
 
     const values = langMenu!.getOptions();
 
     const frOption = values.find((v) => v.getValue() === "fr");
-    assert(!!frOption, 'opzione "fr" esiste nei values di language');
+    assert(!!frOption, "opzione \"fr\" esiste nei values di language");
     assert(
         frOption!.getStyles().getSelected()?.getPrefix() === "✓ ",
-        'fr selected.prefix === "✓ "',
+        "fr selected.prefix === \"✓ \"",
         `trovato: ${frOption?.getStyles().getSelected()?.getPrefix()}`
     );
     assert(
         frOption!.getStyles().getSelected()?.getColor() === "red",
-        'fr selected.color === "red"',
+        "fr selected.color === \"red\"",
         `trovato: ${frOption?.getStyles().getSelected()?.getColor()}`
     );
 
     const deOption = values.find((v) => v.getValue() === "de");
-    assert(!!deOption, 'opzione "de" esiste nei values di language');
-    assert(deOption!.getStyles().getIdle()?.getPrefix() === "·", 'de idle.prefix === "·"', `trovato: ${deOption?.getStyles().getIdle()?.getPrefix()}`);
-    assert(deOption!.getStyles().getIdle()?.getColor() === "gray", 'de idle.color === "gray"', `trovato: ${deOption?.getStyles().getIdle()?.getColor()}`);
-    assert(deOption!.getStyles().getHover()?.getPrefix() === "»", 'de hover.prefix === "»"', `trovato: ${deOption?.getStyles().getHover()?.getPrefix()}`);
+    assert(!!deOption, "opzione \"de\" esiste nei values di language");
+    assert(
+        deOption!.getStyles().getIdle()?.getPrefix() === "·",
+        "de idle.prefix === \"·\"",
+        `trovato: ${deOption?.getStyles().getIdle()?.getPrefix()}`
+    );
+    assert(
+        deOption!.getStyles().getIdle()?.getColor() === "gray",
+        "de idle.color === \"gray\"",
+        `trovato: ${deOption?.getStyles().getIdle()?.getColor()}`
+    );
+    assert(
+        deOption!.getStyles().getHover()?.getPrefix() === "»",
+        "de hover.prefix === \"»\"",
+        `trovato: ${deOption?.getStyles().getHover()?.getPrefix()}`
+    );
     assert(
         deOption!.getStyles().getHover()?.getColor() === "white",
-        'de hover.color === "white"',
+        "de hover.color === \"white\"",
         `trovato: ${deOption?.getStyles().getHover()?.getColor()}`
     );
 }
