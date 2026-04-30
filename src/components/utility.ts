@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import { Language } from "@/components/translations";
 import chalk, { ColorName } from "chalk";
-import { MenuInput } from "@/components/menus";
+// import { MenuInput } from "@/components/menus";
 import { appendFileSync, mkdirSync } from "fs";
 
 class Utility {
@@ -115,7 +115,7 @@ class Utility {
         return text ? (color && chalk[color] ? chalk[color](text) : text) : "";
     }
 
-    public static async pressAnyKey(message?: string): Promise<void> {
+    /* public static async pressAnyKey(message?: string): Promise<void> {
         try {
             const pause = new MenuInput({
                 name: "press-to-continue",
@@ -133,7 +133,7 @@ class Utility {
         } catch {
             await new Promise((resolve) => setTimeout(resolve, 300));
         }
-    }
+    } */
 }
 
 export { Utility };

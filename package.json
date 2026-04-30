@@ -2,12 +2,12 @@
     "version": "1.4.0",
     "name": "modular-cli-menu",
     "description": "",
-    "main": "./dist/main.js",
-    "types": "./dist/main.d.ts",
+    "main": "./dist/main.cjs",
+    "types": "./dist/main.d.mts",
     "exports": {
         ".": {
-            "types": "./dist/main.d.ts",
-            "import": "./dist/main.js",
+            "types": "./dist/main.d.mts",
+            "import": "./dist/main.mjs",
             "require": "./dist/main.cjs"
         }
     },
@@ -29,6 +29,7 @@
     },
     "dependencies": {
         "@inquirer/checkbox": "^5.1.4",
+        "@inquirer/core": "^11.1.9",
         "@inquirer/input": "^5.0.12",
         "@inquirer/select": "^5.1.4",
         "@types/inquirer": "^9.0.9",
@@ -43,13 +44,12 @@
         "@stylistic/eslint-plugin": "^5.10.0",
         "@types/node": "^25.6.0",
         "clean-pkg-json": "^1.4.2",
-        "commitizen": "^4.3.1",
-        "cz-conventional-changelog": "^3.3.0",
+        "czg": "^1.12.0",
         "eslint": "^10.2.1",
         "eslint-plugin-jsonc": "^3.1.2",
         "husky": "^9.1.7",
         "lint-staged": "^16.4.0",
-        "pkgroll": "^2.27.0",
+        "tsdown": "^0.21.10",
         "tsx": "^4.21.0",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.59.1"
@@ -62,14 +62,14 @@
     "scripts": {
         "prepare": "husky",
         "dev": "tsx src/dev.ts",
-        "git:commit": "git-cz",
+        "git:commit": "czg",
         "example": "f() { tsx src/examples/example-${1}.ts; }; f",
         "test": "tsx src/tests/test1.ts",
         "style:dry": "eslint .",
         "style:apply": "eslint . --fix",
-        "build": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false",
-        "build:en": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false --env.MENU_LANGUAGE=en",
-        "build:it": "npx pkgroll --clean-dist --minify --env.DEBUG_LOG=false --env.MENU_LANGUAGE=it",
+        "build": "npx tsdown src/main.ts --format esm,cjs --dts --clean --minify --env.DEBUG_LOG=false --out-dir dist",
+        "build:en": "npx tsdown src/main.ts --format esm,cjs --dts --clean --minify --env.DEBUG_LOG=false --env.DEFAULT_LANGUAGE=en --out-dir dist",
+        "build:it": "npx tsdown src/main.ts --format esm,cjs --dts --clean --minify --env.DEBUG_LOG=false --env.DEFAULT_LANGUAGE=it --out-dir dist",
         "build:test": "npm pack --dry-run",
         "publish:dry": "npm run build && npm publish --dry-run"
     },
@@ -77,11 +77,6 @@
         "**/*.{ts,json}": [
             "eslint --fix"
         ]
-    },
-    "config": {
-        "commitizen": {
-            "path": "cz-conventional-changelog"
-        }
     },
     "publishConfig": {
         "access": "public",
