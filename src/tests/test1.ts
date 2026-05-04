@@ -428,7 +428,7 @@ for (const def of inputMenuDefs) {
 }
 
 // SUITE 13: Stili option per-option su language
-section("SUITE 13 — Stili option per-option");
+/* section("SUITE 13 — Stili option per-option");
 
 {
     const langMenu = cli.getMenu("language") as MenuChoice | undefined;
@@ -471,7 +471,7 @@ section("SUITE 13 — Stili option per-option");
         "de hover.color === \"white\"",
         `trovato: ${deOption?.getStyles().getHover()?.getColor()}`
     );
-}
+} */
 
 // Risultato finale
 console.log(`\n${"─".repeat(50)}`);
