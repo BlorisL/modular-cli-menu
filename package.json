@@ -71,6 +71,7 @@
         "build:en": "npx tsdown src/main.ts --format esm,cjs --dts --clean --minify --env.DEBUG_LOG=false --env.DEFAULT_LANGUAGE=en --out-dir dist",
         "build:it": "npx tsdown src/main.ts --format esm,cjs --dts --clean --minify --env.DEBUG_LOG=false --env.DEFAULT_LANGUAGE=it --out-dir dist",
         "build:test": "npm pack --dry-run",
+        "pack": "npm run build && npm pack",
         "publish:dry": "npm run build && npm publish --dry-run"
     },
     "lint-staged": {

@@ -8,11 +8,11 @@ class Env {
 
     // Choice defaults
     protected idlePrefix!: string;
-    protected idleColor!: ColorName;
+    protected idleColor?: ColorName;
     protected hoverPrefix!: string;
-    protected hoverColor!: ColorName;
+    protected hoverColor?: ColorName;
     protected selectedPrefix!: string;
-    protected selectedColor!: ColorName;
+    protected selectedColor?: ColorName;
     protected idleUnderline!: boolean;
     protected hoverUnderline!: boolean;
     protected selectedUnderline!: boolean;
@@ -25,11 +25,11 @@ class Env {
     protected static defaultDebugLog: boolean = false;
     protected static defaultLanguage: Language = "en";
     protected static defaultIdlePrefix: string = " ";
-    protected static defaultIdleColor: ColorName = "gray";
+    protected static defaultIdleColor: ColorName | undefined = undefined;
     protected static defaultHoverPrefix: string = "❯";
-    protected static defaultHoverColor: ColorName = "gray";
+    protected static defaultHoverColor: ColorName | undefined = undefined;
     protected static defaultSelectedPrefix: string = "";
-    protected static defaultSelectedColor: ColorName = "gray";
+    protected static defaultSelectedColor: ColorName | undefined = undefined;
     protected static defaultIdleUnderline: boolean = false;
     protected static defaultHoverUnderline: boolean = false;
     protected static defaultSelectedUnderline: boolean = false;
@@ -114,7 +114,7 @@ class Env {
     }
 
     public setIdleColor(value?: Env["idleColor"] | string): this {
-        const color = this.envString(value) as Env["idleColor"] | undefined;
+        const color = this.envString(value) as Env["idleColor"];
         this.idleColor = color ?? Env.defaultIdleColor;
         return this;
     }
@@ -133,7 +133,7 @@ class Env {
     }
 
     public setHoverColor(value?: Env["hoverColor"] | string): this {
-        const color = this.envString(value) as Env["hoverColor"] | undefined;
+        const color = this.envString(value) as Env["hoverColor"];
         this.hoverColor = color ?? Env.defaultHoverColor;
         return this;
     }
@@ -152,7 +152,7 @@ class Env {
     }
 
     public setSelectedColor(value?: Env["selectedColor"] | string): this {
-        const color = this.envString(value) as Env["selectedColor"] | undefined;
+        const color = this.envString(value) as Env["selectedColor"];
         this.selectedColor = color ?? Env.defaultSelectedColor;
         return this;
     }
