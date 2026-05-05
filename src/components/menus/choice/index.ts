@@ -123,10 +123,10 @@ class MenuChoice extends Menu {
         const isGlobal = option.getItem()?.isGlobal() ?? false;
         const ms = isGlobal ? undefined : this.getStyles();
 
-        const idlePrefix = os.getIdle()?.getPrefix() ?? ms?.getIdle()?.getPrefix() ?? Utility.getDefaultIdlePrefix();
-        const idleColor = os.getIdle()?.getColor() ?? ms?.getIdle()?.getColor() ?? Utility.getDefaultIdleColor();
+        const idlePrefix = os.getIdle()?.getPrefix() ?? ms?.getIdle()?.getPrefix() ?? Utility.getEnv().getIdlePrefix();
+        const idleColor = os.getIdle()?.getColor() ?? ms?.getIdle()?.getColor() ?? Utility.getEnv().getIdleColor();
         const idleUnderline =
-            os.getIdle()?.isUnderline() ?? ms?.getIdle()?.isUnderline() ?? Utility.getDefaultIdleUnderline();
+            os.getIdle()?.isUnderline() ?? ms?.getIdle()?.isUnderline() ?? Utility.getEnv().getIdleUnderline();
         const idleItalic = os.getIdle()?.isItalic() ?? ms?.getIdle()?.isItalic();
 
         option.setStyles({
@@ -135,32 +135,32 @@ class MenuChoice extends Menu {
                 prefix:
                     os.getHover()?.getPrefix()
                     ?? ms?.getHover()?.getPrefix()
-                    ?? Utility.getDefaultHoverPrefix()
+                    ?? Utility.getEnv().getHoverPrefix()
                     ?? idlePrefix,
                 color:
                     os.getHover()?.getColor()
                     ?? ms?.getHover()?.getColor()
-                    ?? Utility.getDefaultHoverColor()
+                    ?? Utility.getEnv().getHoverColor()
                     ?? idleColor,
                 underline:
-                    os.getHover()?.isUnderline() ?? ms?.getHover()?.isUnderline() ?? Utility.getDefaultHoverUnderline(),
+                    os.getHover()?.isUnderline() ?? ms?.getHover()?.isUnderline() ?? Utility.getEnv().getHoverUnderline(),
                 italic: os.getHover()?.isItalic() ?? ms?.getHover()?.isItalic(),
             },
             selected: {
                 prefix:
                     os.getSelected()?.getPrefix()
                     ?? ms?.getSelected()?.getPrefix()
-                    ?? Utility.getDefaultSelectedPrefix()
+                    ?? Utility.getEnv().getSelectedPrefix()
                     ?? idlePrefix,
                 color:
                     os.getSelected()?.getColor()
                     ?? ms?.getSelected()?.getColor()
-                    ?? Utility.getDefaultSelectedColor()
+                    ?? Utility.getEnv().getSelectedColor()
                     ?? idleColor,
                 underline:
                     os.getSelected()?.isUnderline()
                     ?? ms?.getSelected()?.isUnderline()
-                    ?? Utility.getDefaultSelectedUnderline(),
+                    ?? Utility.getEnv().getSelectedUnderline(),
                 italic: os.getSelected()?.isItalic() ?? ms?.getSelected()?.isItalic(),
             },
         });

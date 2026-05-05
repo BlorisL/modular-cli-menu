@@ -6,7 +6,7 @@ type TranslationJson = Record<string, Partial<Record<Language, string>>>;
 
 class Translations {
     protected static items: TranslationJson = {};
-    protected static currentLanguage: Language | undefined = Utility.getDefaultLanguage();
+    protected static currentLanguage: Language | undefined = Utility.getEnv().getLanguage();
 
     /**
      * Returns the active language, or undefined if translations are disabled
@@ -42,7 +42,7 @@ class Translations {
     }
 
     public static getDefaultLanguage(): Language | undefined {
-        return Utility.getDefaultLanguage();
+        return Utility.getEnv().getLanguage();
     }
 
     public static getTranslations(): TranslationJson {

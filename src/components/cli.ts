@@ -30,9 +30,9 @@ class Cli {
         const hover = item.getStyles().getHover();
         const sel = item.getStyles().getSelected();
 
-        const idlePrefix = idle?.getPrefix() ?? Utility.getDefaultIdlePrefix();
-        const idleColor = idle?.getColor() ?? Utility.getDefaultIdleColor();
-        const idleUnderline = idle?.isUnderline() ?? Utility.getDefaultIdleUnderline();
+        const idlePrefix = idle?.getPrefix() ?? Utility.getEnv().getIdlePrefix();
+        const idleColor = idle?.getColor() ?? Utility.getEnv().getIdleColor();
+        const idleUnderline = idle?.isUnderline() ?? Utility.getEnv().getIdleUnderline();
         const idleItalic = idle?.isItalic();
 
         return {
@@ -46,15 +46,15 @@ class Cli {
                 italic: idleItalic,
             },
             hover: {
-                prefix: hover?.getPrefix() ?? Utility.getDefaultHoverPrefix(),
-                color: hover?.getColor() ?? Utility.getDefaultHoverColor() ?? idleColor,
-                underline: hover?.isUnderline() ?? Utility.getDefaultHoverUnderline() ?? idleUnderline,
+                prefix: hover?.getPrefix() ?? Utility.getEnv().getHoverPrefix(),
+                color: hover?.getColor() ?? Utility.getEnv().getHoverColor() ?? idleColor,
+                underline: hover?.isUnderline() ?? Utility.getEnv().getHoverUnderline() ?? idleUnderline,
                 italic: hover?.isItalic() ?? idleItalic,
             },
             selected: {
-                prefix: sel?.getPrefix() ?? Utility.getDefaultSelectedPrefix(),
-                color: sel?.getColor() ?? Utility.getDefaultSelectedColor() ?? idleColor,
-                underline: sel?.isUnderline() ?? Utility.getDefaultSelectedUnderline() ?? idleUnderline,
+                prefix: sel?.getPrefix() ?? Utility.getEnv().getSelectedPrefix(),
+                color: sel?.getColor() ?? Utility.getEnv().getSelectedColor() ?? idleColor,
+                underline: sel?.isUnderline() ?? Utility.getEnv().getSelectedUnderline() ?? idleUnderline,
                 italic: sel?.isItalic() ?? idleItalic,
             },
         };
