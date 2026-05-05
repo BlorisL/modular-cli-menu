@@ -51,6 +51,7 @@ interface InputState {
 
 // Helpers
 
+/** Checks if an item is a Separator (from @inquirer/core). */
 function isSeparator(item: Choice | Separator): boolean {
     return (
         item != null
@@ -59,6 +60,10 @@ function isSeparator(item: Choice | Separator): boolean {
     );
 }
 
+/**
+ * Renders the input line with cursor position.
+ * Returns plain text when not focused; inverse cursor when focused.
+ */
 function renderInputLine(
     state: InputState,
     config: { placeholder?: string; fastSubmit?: boolean },
@@ -78,6 +83,10 @@ function renderInputLine(
                 : "";
 }
 
+/**
+ * Handles keyboard input for the input field.
+ * Returns true if the key was handled (should prevent default).
+ */
 function handleInputKey(
     key: { name?: string; ctrl?: boolean; sequence?: string },
     state: InputState,
@@ -147,6 +156,10 @@ function handleInputKey(
     return false;
 }
 
+/**
+ * Renders all visible choice lines with proper styling and state indicators.
+ * Separators are rendered as dividers; choices show prefix and label with colors/underline/italic.
+ */
 function renderChoiceLines(
     items: (Choice | Separator)[],
     activeIndex: number,

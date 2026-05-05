@@ -18,6 +18,10 @@ class MenuStyles {
     private hover?: StyleHover;
     private selected?: StyleSelected;
 
+    /**
+     * Creates a new MenuStyles container.
+     * @param data Optional JSON object with idle, hover, and selected style configs.
+     */
     constructor(data?: MenuStylesJson) {
         this.idle = data?.idle
             ? new StyleIdle(data.idle.prefix, data.idle.color, data.idle.underline, data.idle.italic)
@@ -38,20 +42,34 @@ class MenuStyles {
         ;
     }
 
+    /** Returns the idle style, or undefined if not customised. */
     public getIdle(): StyleIdle | undefined {
         return this.idle;
     }
 
+    /**
+     * Sets the idle style from an instance or a plain JSON object.
+     * @param idle StyleIdle instance or compatible JSON.
+     */
+    public setIdle(idle: StyleIdle): this;
+    public setIdle(idle: StyleIdleJson): this;
     public setIdle(idle: StyleIdle | StyleIdleJson): this {
         this.idle =
             idle instanceof StyleIdle ? idle : new StyleIdle(idle.prefix, idle.color, idle.underline, idle.italic);
         return this;
     }
 
+    /** Returns the hover style, or undefined if not customised. */
     public getHover(): StyleHover | undefined {
         return this.hover;
     }
 
+    /**
+     * Sets the hover style from an instance or a plain JSON object.
+     * @param hover StyleHover instance or compatible JSON.
+     */
+    public setHover(hover: StyleHover): this;
+    public setHover(hover: StyleHoverJson): this;
     public setHover(hover: StyleHover | StyleHoverJson): this {
         this.hover = hover instanceof StyleHover
             ? hover
@@ -60,10 +78,17 @@ class MenuStyles {
         return this;
     }
 
+    /** Returns the selected style, or undefined if not customised. */
     public getSelected(): StyleSelected | undefined {
         return this.selected;
     }
 
+    /**
+     * Sets the selected style from an instance or a plain JSON object.
+     * @param selected StyleSelected instance or compatible JSON.
+     */
+    public setSelected(selected: StyleSelected): this;
+    public setSelected(selected: StyleSelectedJson): this;
     public setSelected(selected: StyleSelected | StyleSelectedJson): this {
         this.selected = selected instanceof StyleSelected
             ? selected
@@ -72,6 +97,7 @@ class MenuStyles {
         return this;
     }
 
+    /** Serialises the menu styles to a plain JSON-compatible object. */
     public toJson(): MenuStylesJson {
         return {
             ...(this.idle ? { idle: this.idle.toJson() } : {}),

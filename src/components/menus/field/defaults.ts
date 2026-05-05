@@ -14,15 +14,21 @@ class MenuFieldConfigDefaults {
         this.callback = callback;
     }
 
+    /** Returns the list of default values. */
     public getValues(): MenuFieldConfigDefaults["values"] {
         return this.values;
     }
 
+    /**
+     * Replaces the list of default values.
+     * @param values Array of default value strings.
+     */
     public setValues(values: MenuFieldConfigDefaults["values"]): this {
         this.values = values;
         return this;
     }
 
+    /** Returns the callback invoked with the resolved defaults, or undefined if not set. */
     public getCallback(): MenuFieldConfigDefaults["callback"] | undefined {
         return this.callback;
     }

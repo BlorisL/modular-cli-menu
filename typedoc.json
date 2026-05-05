@@ -1,0 +1,28 @@
+{
+    "entryPoints": [
+        "src/components/cli.ts",
+        "src/components/env.ts",
+        "src/components/utility.ts",
+        "src/components/plugins/index.ts",
+        "src/components/actions/index.ts",
+        "src/components/actions/labels.ts",
+        "src/components/menus/index.ts",
+        "src/components/menus/field/option/labels.ts",
+        "src/components/styles/index.ts",
+        "src/components/translations/index.ts"
+    ],
+    "entryPointStrategy": "resolve",
+    "out": "docs",
+    "name": "modular-cli-menu",
+    "includeVersion": true,
+    "readme": "README.md",
+    "tsconfig": "./tsconfig.json",
+    "cleanOutputDir": true,
+    "excludeExternals": true,
+    "excludePrivate": true,
+    "sort": ["source-order"],
+    "navigationLinks": {
+        "GitHub": "https://github.com/blorisl/modular-cli-menu",
+        "npm": "https://www.npmjs.com/package/modular-cli-menu"
+    }
+}

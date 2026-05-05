@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      # Aggiungi altri ambienti qui, es:
+      # Add more environments here, e.g.:
       # - beta
       # - alpha
 
@@ -12,7 +12,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
-  id-token: write  # Richiesto per npm provenance (OIDC, senza NPM_TOKEN)
+  id-token: write  # Required for npm provenance (OIDC, no NPM_TOKEN needed)
 
 jobs:
   release:
@@ -46,8 +46,8 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Pubblicazione su npm via OIDC provenance — nessun NPM_TOKEN necessario.
-          # Requisito: abilitare "Trusted Publishing" per questo repo su npmjs.com
+          # Publish to npm via OIDC provenance — no NPM_TOKEN needed.
+          # Requirement: enable "Trusted Publishing" for this repo on npmjs.com
           # (Account → Package → Settings → Publish granular access token / OIDC)
           NPM_CONFIG_PROVENANCE: 'true'
         run: npx semantic-release

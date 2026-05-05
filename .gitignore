@@ -135,5 +135,6 @@ dist
 .pnp.*
 
 # Customs
+docs/
 
 *.zip

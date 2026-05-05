@@ -47,10 +47,12 @@
         "czg": "^1.12.0",
         "eslint": "^10.2.1",
         "eslint-plugin-jsonc": "^3.1.2",
+        "http-server": "^14.1.1",
         "husky": "^9.1.7",
         "lint-staged": "^16.4.0",
         "tsdown": "^0.21.10",
         "tsx": "^4.21.0",
+        "typedoc": "^0.28.19",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.59.1"
     },
@@ -72,7 +74,9 @@
         "build:it": "npx tsdown src/main.ts --format esm,cjs --dts --clean --minify --env.DEBUG_LOG=false --env.DEFAULT_LANGUAGE=it --out-dir dist",
         "build:test": "npm pack --dry-run",
         "pack": "npm run build && npm pack",
-        "publish:dry": "npm run build && npm publish --dry-run"
+        "publish:dry": "npm run build && npm publish --dry-run",
+        "docs:generate": "typedoc",
+        "docs:serve": "http-server docs -p 8080 -c-1 -o"
     },
     "lint-staged": {
         "**/*.{ts,json}": [

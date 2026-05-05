@@ -153,7 +153,7 @@ const stylisticConfig = stylistic.configs.customize({
 
 export default tseslint.config(
     {
-        ignores: ["dist/**", "node_modules/**", "logs/**", "eslint.config.mjs", "tree.ts"],
+        ignores: ["dist/**", "node_modules/**", "logs/**", "docs/**", "eslint.config.mjs", "tree.ts"],
     },
     js.configs.recommended,
     ...tseslint.configs.recommended,

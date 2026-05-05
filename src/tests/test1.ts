@@ -141,11 +141,11 @@ const plugins: PluginJson[] = [
     },
 ];
 
-// Costruzione CLI
+// CLI setup
 const cli = new Cli();
 plugins.forEach((p) => cli.addPlugin(p));
 
-// Helpers per i test
+// Test helpers
 
 function getBack(menuName: string): ActionGoto | undefined {
     const menu = cli.getMenu(menuName) as MenuChoice | undefined;
@@ -177,32 +177,32 @@ function flatActions(): ActionDefJson[] {
     return plugins.flatMap((p) => (p.actions ?? []).map((a) => ({ ...a, pluginName: p.name })));
 }
 
-// SUITE 1: Menus registrati
-section("SUITE 1 — Menus registrati");
+// SUITE 1: Registered menus
+section("SUITE 1 — Registered menus");
 for (const m of flatMenus()) {
-    assert(!!cli.getMenu(m.name), `menu "${m.name}" registrato`);
+    assert(!!cli.getMenu(m.name), `menu "${m.name}" registered`);
 }
 
-// SUITE 2: Actions registrate
-section("SUITE 2 — Actions registrate");
+// SUITE 2: Registered actions
+section("SUITE 2 — Registered actions");
 for (const a of flatActions()) {
-    assert(!!cli.getAction(a.name), `action "${a.name}" registrata`);
+    assert(!!cli.getAction(a.name), `action "${a.name}" registered`);
 }
 
-// SUITE 3: Plugin assegnati
-section("SUITE 3 — Plugin assegnati");
+// SUITE 3: Assigned plugins
+section("SUITE 3 — Assigned plugins");
 for (const m of flatMenus()) {
     assert(
         cli.getMenu(m.name)?.getPlugin() === m.pluginName,
         `menu "${m.name}" → plugin "${m.pluginName}"`,
-        `trovato: ${cli.getMenu(m.name)?.getPlugin()}`
+        `got: ${cli.getMenu(m.name)?.getPlugin()}`
     );
 }
 for (const a of flatActions()) {
     assert(
         cli.getAction(a.name)?.getPlugin() === a.pluginName,
         `action "${a.name}" → plugin "${a.pluginName}"`,
-        `trovato: ${cli.getAction(a.name)?.getPlugin()}`
+        `got: ${cli.getAction(a.name)?.getPlugin()}`
     );
 }
 
@@ -217,30 +217,30 @@ for (const a of flatActions()) {
     assert(cli.getAction(a.name)?.isGlobal() === isGlobal, `action "${a.name}" isGlobal === ${isGlobal}`);
 }
 
-// SUITE 5: Tipo delle actions
-section("SUITE 5 — Tipo delle actions");
+// SUITE 5: Action types
+section("SUITE 5 — Action types");
 for (const a of flatActions()) {
     const instance = cli.getAction(a.name);
     if (a.type === "goto") {
-        assert(instance instanceof ActionGoto, `action "${a.name}" è ActionGoto`);
+        assert(instance instanceof ActionGoto, `action "${a.name}" is ActionGoto`);
         assert(
             (instance as ActionGoto).getTo() === a.to,
             `action "${a.name}".to === "${a.to}"`,
-            `trovato: ${(instance as ActionGoto).getTo()}`
+            `got: ${(instance as ActionGoto).getTo()}`
         );
     } else {
-        assert(instance instanceof ActionFunction, `action "${a.name}" è ActionFunction`);
+        assert(instance instanceof ActionFunction, `action "${a.name}" is ActionFunction`);
     }
 }
 
-// SUITE 6: Stili
-section("SUITE 6 — Stili");
+// SUITE 6: Styles
+section("SUITE 6 — Styles");
 for (const m of flatMenus()) {
     if (m.styles?.idle?.color) {
         assert(
             cli.getMenu(m.name)?.getStyles().getIdle()?.getColor() === m.styles.idle.color,
             `menu "${m.name}".styles.idle.color === "${m.styles.idle.color}"`,
-            `trovato: ${cli.getMenu(m.name)?.getStyles().getIdle()?.getColor()}`
+            `got: ${cli.getMenu(m.name)?.getStyles().getIdle()?.getColor()}`
         );
     }
 }
@@ -249,25 +249,25 @@ for (const a of flatActions()) {
         assert(
             cli.getAction(a.name)?.getStyles().getIdle()?.getColor() === a.styles.idle.color,
             `action "${a.name}".styles.idle.color === "${a.styles.idle.color}"`,
-            `trovato: ${cli.getAction(a.name)?.getStyles().getIdle()?.getColor()}`
+            `got: ${cli.getAction(a.name)?.getStyles().getIdle()?.getColor()}`
         );
     }
 }
 
-// SUITE 7: Parents dichiarati
-section("SUITE 7 — Parents dichiarati");
+// SUITE 7: Declared parents
+section("SUITE 7 — Declared parents");
 for (const m of flatMenus()) {
     const declaredParents = m.parents ?? [];
     const actualParents = cli.getMenu(m.name)?.getParents() ?? [];
     if (declaredParents.length > 0) {
         for (const p of declaredParents) {
-            assert(actualParents.includes(p), `menu "${m.name}" ha parent "${p}"`);
+            assert(actualParents.includes(p), `menu "${m.name}" has parent "${p}"`);
         }
     } else {
         assert(
             actualParents.length === 0,
-            `menu "${m.name}" non ha parents dichiarati`,
-            `trovati: ${actualParents.join(", ")}`
+            `menu "${m.name}" has no declared parents`,
+            `got: ${actualParents.join(", ")}`
         );
     }
 }
@@ -276,33 +276,33 @@ for (const a of flatActions()) {
     const actualParents = cli.getAction(a.name)?.getParents() ?? [];
     if (declaredParents.length > 0) {
         for (const p of declaredParents) {
-            assert(actualParents.includes(p), `action "${a.name}" ha parent "${p}"`);
+            assert(actualParents.includes(p), `action "${a.name}" has parent "${p}"`);
         }
     } else {
         assert(
             actualParents.length === 0,
-            `action "${a.name}" non ha parents dichiarati`,
-            `trovati: ${actualParents.join(", ")}`
+            `action "${a.name}" has no declared parents`,
+            `got: ${actualParents.join(", ")}`
         );
     }
 }
 
-// SUITE 8: Values iniettati via parents
-section("SUITE 8 — Values iniettati dai parents");
+// SUITE 8: Values injected via parents
+section("SUITE 8 — Values injected from parents");
 for (const m of flatMenus()) {
     for (const parentName of m.parents ?? []) {
         const parentMenu = cli.getMenu(parentName) as MenuChoice | undefined;
-        assert(!!parentMenu?.getOption(m.name), `menu "${m.name}" è nei values di "${parentName}"`);
+        assert(!!parentMenu?.getOption(m.name), `menu "${m.name}" is in values of "${parentName}"`);
     }
 }
 for (const a of flatActions()) {
     for (const parentName of a.parents ?? []) {
         const parentMenu = cli.getMenu(parentName) as MenuChoice | undefined;
-        assert(!!parentMenu?.getOption(a.name), `action "${a.name}" è nei values di "${parentName}"`);
+        assert(!!parentMenu?.getOption(a.name), `action "${a.name}" is in values of "${parentName}"`);
     }
 }
 
-// SUITE 9: Values statici dichiarati
+// SUITE 9: Declared static values
 section("SUITE 9 — Values statici dichiarati");
 for (const m of flatMenus()) {
     if (m.type !== "choice") {
@@ -318,15 +318,15 @@ for (const m of flatMenus()) {
     }
     for (const v of rawValues) {
         const valueName = typeof v === "string" ? v : v.value;
-        assert(!!menu.getOption(valueName), `menu "${m.name}" contiene value "${valueName}"`);
+        assert(!!menu.getOption(valueName), `menu "${m.name}" contains value "${valueName}"`);
     }
 }
 
-// SUITE 10: Nessun back_ nella struttura statica
-section("SUITE 10 — Nessun back_* nella struttura statica");
+// SUITE 10: No back_ entries in static structure
+section("SUITE 10 — No back_* in static structure");
 assert(
     cli.getActions().filter((a) => a.getName().startsWith("back_")).length === 0,
-    "nessuna action \"back_*\" nei actions globali"
+    "no \"back_*\" action in global actions"
 );
 for (const m of flatMenus()) {
     const menu = cli.getMenu(m.name);
@@ -336,33 +336,33 @@ for (const m of flatMenus()) {
     const backValues = menu.getOptions().filter((v) => v.getValue().startsWith("back_"));
     assert(
         backValues.length === 0,
-        `menu "${m.name}" non ha back_* nei values statici`,
-        `trovati: ${backValues.map((v) => v.getValue()).join(", ")}`
+        `menu "${m.name}" has no back_* in static values`,
+        `got: ${backValues.map((v) => v.getValue()).join(", ")}`
     );
 }
 
-// SUITE 11: Back dinamico
-section("SUITE 11 — Back dinamico (navigazione simulata)");
+// SUITE 11: Dynamic back navigation
+section("SUITE 11 — Dynamic back (simulated navigation)");
 
 simulateRender("submenu1", "main");
 assert(
     getBack("submenu1")?.getTo() === "main",
     "main→submenu1: back_submenu1.to === \"main\"",
-    `trovato: ${getBack("submenu1")?.getTo()}`
+    `got: ${getBack("submenu1")?.getTo()}`
 );
 
 simulateRender("submenu2", "submenu1");
 assert(
     getBack("submenu2")?.getTo() === "submenu1",
     "submenu1→submenu2: back_submenu2.to === \"submenu1\"",
-    `trovato: ${getBack("submenu2")?.getTo()}`
+    `got: ${getBack("submenu2")?.getTo()}`
 );
 
 simulateRender("submenu2", "main");
 assert(
     getBack("submenu2")?.getTo() === "main",
     "main→submenu2 (via goto): back_submenu2.to === \"main\"",
-    `trovato: ${getBack("submenu2")?.getTo()}`
+    `got: ${getBack("submenu2")?.getTo()}`
 );
 
 simulateRender("submenu2", "submenu1");
@@ -370,14 +370,14 @@ simulateRender("language", "submenu2");
 assert(
     getBack("language")?.getTo() === "submenu2",
     "submenu2→language: back_language.to === \"submenu2\"",
-    `trovato: ${getBack("language")?.getTo()}`
+    `got: ${getBack("language")?.getTo()}`
 );
 const sub2ParentBeforeLang = getBack("submenu2")?.getTo();
 simulateRender("submenu2", sub2ParentBeforeLang);
 assert(
     getBack("submenu2")?.getTo() === "submenu1",
-    "dopo back da language→submenu2: back_submenu2.to === \"submenu1\"",
-    `trovato: ${getBack("submenu2")?.getTo()}`
+    "after back from language→submenu2: back_submenu2.to === \"submenu1\"",
+    `got: ${getBack("submenu2")?.getTo()}`
 );
 
 // SUITE 12: MenuInput
@@ -390,44 +390,44 @@ const inputMenuDefs = plugins.flatMap((p) =>
 for (const def of inputMenuDefs) {
     const instance = cli.getMenu(def.name);
 
-    assert(instance instanceof MenuInput, `"${def.name}" è istanza di MenuInput`);
+    assert(instance instanceof MenuInput, `"${def.name}" is an instance of MenuInput`);
     assert(instance?.getPlugin() === def.pluginName, `"${def.name}" → plugin "${def.pluginName}"`);
 
     if (def.value !== undefined) {
         assert(
             (instance as MenuInput).getValue() === def.value,
             `"${def.name}".value === "${def.value}"`,
-            `trovato: ${(instance as MenuInput).getValue()}`
+            `got: ${(instance as MenuInput).getValue()}`
         );
     } else {
-        assert((instance as MenuInput).getValue() === "", `"${def.name}".value inizia vuoto`);
+        assert((instance as MenuInput).getValue() === "", `"${def.name}".value starts empty`);
     }
 
     if (def.labels?.placeholder !== undefined) {
         assert(
             (instance as MenuInput).getPlaceholder() === def.labels.placeholder,
             `"${def.name}".placeholder === "${def.labels.placeholder}"`,
-            `trovato: ${(instance as MenuInput).getPlaceholder()}`
+            `got: ${(instance as MenuInput).getPlaceholder()}`
         );
     }
 
     assert(
         typeof (instance as MenuInput).getValidate() === (def.configs?.validate ? "function" : "undefined"),
-        `"${def.name}".validate è ${def.configs?.validate ? "una funzione" : "undefined"}`
+        `"${def.name}".validate is ${def.configs?.validate ? "a function" : "undefined"}`
     );
 
     assert(
         typeof (instance as MenuInput).getCallback() === (def.configs?.callback ? "function" : "undefined"),
-        `"${def.name}".callback è ${def.configs?.callback ? "una funzione" : "undefined"}`
+        `"${def.name}".callback is ${def.configs?.callback ? "a function" : "undefined"}`
     );
 
     for (const parentName of def.parents ?? []) {
         const parentMenu = cli.getMenu(parentName) as MenuChoice | undefined;
-        assert(!!parentMenu?.getOption(def.name), `"${def.name}" è nei values di "${parentName}"`);
+        assert(!!parentMenu?.getOption(def.name), `"${def.name}" is in values of "${parentName}"`);
     }
 }
 
-// SUITE 13: Stili option per-option su language
+// SUITE 13: Per-option styles on language menu
 /* section("SUITE 13 — Stili option per-option");
 
 {
@@ -473,10 +473,10 @@ for (const def of inputMenuDefs) {
     );
 } */
 
-// Risultato finale
+// Final result
 console.log(`\n${"─".repeat(50)}`);
 console.log(
-    `${BOLD}Risultato: ${GREEN}${passed} passed${RESET}${BOLD}, ${failed > 0 ? RED : ""}${failed} failed${RESET}`
+    `${BOLD}Result: ${GREEN}${passed} passed${RESET}${BOLD}, ${failed > 0 ? RED : ""}${failed} failed${RESET}`
 );
 console.log("─".repeat(50));
 

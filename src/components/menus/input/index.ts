@@ -19,6 +19,10 @@ class MenuInput extends Menu {
     protected configs: MenuInputConfigs = new MenuInputConfigs();
     protected globalChoices: (Choice | Separator)[] = [];
 
+    /**
+     * Creates a new input menu with optional pre-configured value and callbacks.
+     * @param data Menu JSON including name, type, optional value, and input-specific configs.
+     */
     constructor(data: MenuInputJson) {
         super(data);
         this.configs = data.configs ? new MenuInputConfigs(data.configs) : new MenuInputConfigs();
@@ -42,10 +46,15 @@ class MenuInput extends Menu {
 
     // value API
 
+    /** Returns the current input value (the user's last answer). */
     public getValue(): string {
         return this.value;
     }
 
+    /**
+     * Overrides the stored input value.
+     * @param v New value string.
+     */
     public setValue(v: string): this {
         this.value = v;
         return this;
@@ -53,10 +62,15 @@ class MenuInput extends Menu {
 
     // global choices (sidebar)
 
+    /** Returns the global sidebar choices rendered alongside the prompt. */
     public getGlobalChoices(): (Choice | Separator)[] {
         return this.globalChoices;
     }
 
+    /**
+     * Replaces the global sidebar choices.
+     * @param choices Array of Choice or Separator items.
+     */
     public setGlobalChoices(choices: (Choice | Separator)[]): this {
         this.globalChoices = choices;
         return this;
@@ -64,10 +78,17 @@ class MenuInput extends Menu {
 
     // configs API
 
+    /** Returns the configs object for this input menu. */
     public getConfigs(): MenuInputConfigs {
         return this.configs;
     }
 
+    /**
+     * Sets the configs from an instance or a plain JSON object.
+     * @param data MenuInputConfigs instance or compatible JSON.
+     */
+    public setConfigs(data: MenuInputConfigs): this;
+    public setConfigs(data: MenuInputConfigsJson): this;
     public setConfigs(data: MenuInputConfigs | MenuInputConfigsJson): this {
         this.configs = data instanceof MenuInputConfigs ? data : new MenuInputConfigs(data);
         return this;
@@ -75,24 +96,32 @@ class MenuInput extends Menu {
 
     // labels
 
+    /** Returns the input-specific labels (extends MenuLabels with placeholder). */
     public override getLabels(): MenuInputLabels {
         return this.labels;
     }
 
+    /**
+     * Returns the translated placeholder string, or undefined if not set.
+     * @param language Optional language override.
+     */
     public getPlaceholder(language?: Language): string | undefined {
         return this.labels.getPlaceholder()?.getValue(language);
     }
 
+    /** Returns the validation function, or undefined if not configured. */
     public getValidate(): MenuInputConfigsJson["validate"] {
         return this.configs.getValidate();
     }
 
+    /** Returns the submission callback, or undefined if not configured. */
     public getCallback(): MenuInputConfigsJson["callback"] {
         return this.configs.getCallback();
     }
 
     // toJson
 
+    /** Serialises this input menu to a plain JSON-compatible object. */
     public toJson(): MenuInputJson {
         return {
             ...super.toJson(),
@@ -104,6 +133,10 @@ class MenuInput extends Menu {
 
     // run
 
+    /**
+     * Renders and runs the interactive input prompt.
+     * @param language Optional language override for label translation.
+     */
     public async run(language?: Language): Promise<string | string[]> {
         const labels = this.getLabels();
         const resolvedPlaceholder = this.getPlaceholder(language);

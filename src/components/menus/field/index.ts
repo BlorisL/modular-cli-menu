@@ -27,6 +27,10 @@ class MenuField extends Menu {
     protected input?: MenuInput;
     protected globalChoices: (Choice | Separator)[] = [];
 
+    /**
+     * Creates a new field menu (composite choice+input menu) from JSON.
+     * @param data Menu JSON including name, type, optional choice/input values and configs.
+     */
     constructor(data: MenuFieldJson) {
         super(data);
 
@@ -57,49 +61,73 @@ class MenuField extends Menu {
 
     // internal components access
 
+    /** Returns the underlying choice menu if configured, or undefined. */
     public getChoice(): MenuChoice | undefined {
         return this.choice;
     }
 
+    /** Returns the underlying input menu if configured, or undefined. */
     public getInput(): MenuInput | undefined {
         return this.input;
     }
 
     // helpers
 
+    /** Returns true when a choice menu has been configured. */
     public hasChoices(): boolean {
         return !!this.choice?.hasChoices() || this.globalChoices.length > 0;
     }
 
+    /** Returns true when an input menu has been configured. */
     public hasInput(): boolean {
         return !!this.input;
     }
 
     // options API — delegates to internal MenuChoice
 
+    /**
+     * Returns an option by name from the choice menu, or undefined if not found.
+     * @param name Option value/name to look up.
+     */
     public getOption(name: string): MenuFieldOption | undefined {
         return this.choice?.getOption(name);
     }
 
+    /**
+     * Returns the option list from the choice menu, optionally sorted for display.
+     * @param sorted When true, applies the display-order sorting algorithm.
+     */
     public getOptions(sorted = false): MenuFieldOption[] {
         return this.choice?.getOptions(sorted) ?? [];
     }
 
+    /** Returns the currently selected option names from the choice menu. */
     public getSelectedValues(): string[] {
         return this.choice?.getSelectedValues() ?? [];
     }
 
+    /**
+     * Adds an option to the choice menu.
+     * @param value The option to add (Menu, Action, MenuFieldOption, or raw JSON value).
+     */
     public addOption(value: Menu | Action | MenuFieldOption | MenuFieldJsonValue): this {
-        this.choice?.addOption(value);
+        if (this.choice) {
+            this.choice.addOption(value);
+        }
         return this;
     }
 
     // global choices (input sidebar)
 
+    /** Returns the global sidebar choices rendered alongside the menu. */
     public getGlobalChoices(): (Choice | Separator)[] {
         return this.globalChoices;
     }
 
+    /**
+     * Replaces the global sidebar choices.
+     * @param choices Array of Choice or Separator items.
+     */
     public setGlobalChoices(choices: (Choice | Separator)[]): this {
         this.globalChoices = choices;
         return this;
@@ -107,6 +135,7 @@ class MenuField extends Menu {
 
     // toJson
 
+    /** Serialises this field menu to a plain JSON-compatible object. */
     public toJson(): MenuFieldJson {
         return {
             ...super.toJson(),
@@ -125,6 +154,10 @@ class MenuField extends Menu {
 
     // run (combined: choice + input in one prompt)
 
+    /**
+     * Renders and runs the field menu (choice + optional input).
+     * @param language Optional language override for label translation.
+     */
     public async run(language?: Language): Promise<string | string[]> {
         const inputCfg = this.input?.getConfigs();
         const resolvedPlaceholder = this.input?.getLabels().getPlaceholder()?.getValue(language);

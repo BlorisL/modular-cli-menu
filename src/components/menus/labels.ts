@@ -15,6 +15,10 @@ class MenuLabels {
     protected success?: Label;
     protected error?: Label;
 
+    /**
+     * Creates a new MenuLabels container with all label types.
+     * @param data JSON object with optional question, title, success, error, and answer translation keys.
+     */
     constructor(data: MenuLabelsJson) {
         this.answer = data.answer ? new Label(data.answer) : undefined;
         this.question = data.question ? new Label(data.question) : undefined;
@@ -23,6 +27,11 @@ class MenuLabels {
         this.error = data.error ? new Label(data.error) : undefined;
     }
 
+    /**
+     * Returns the answer label.
+     * When a `name` suffix is provided, a new Label is derived by appending `.name` to the base key.
+     * @param name Optional suffix appended to the label's translation key.
+     */
     public getAnswer(name?: string): Label | undefined {
         let result: Label | undefined;
         if (name === undefined) {
@@ -35,6 +44,17 @@ class MenuLabels {
         return result;
     }
 
+    /**
+     * Sets the answer label from a Label instance or a translation key string.
+     * @param answer Label instance or translation key.
+     * @param callback Optional interpolation callback forwarded to the Label.
+     */
+    public setAnswer(
+        answer: NonNullable<MenuLabels["answer"]>): this;
+    public setAnswer(
+        answer: NonNullable<MenuLabelsJson["answer"]>,
+        callback?: Label["callback"]
+    ): this;
     public setAnswer(
         answer: NonNullable<MenuLabels["answer"] | MenuLabelsJson["answer"]>,
         callback?: Label["callback"]
@@ -46,10 +66,22 @@ class MenuLabels {
         return this;
     }
 
+    /** Returns the question label, or undefined if not set. */
     public getQuestion(): MenuLabels["question"] {
         return this.question;
     }
 
+    /**
+     * Sets the question label from a Label instance or a translation key string.
+     * @param question Label instance or translation key.
+     * @param callback Optional interpolation callback forwarded to the Label.
+     */
+    public setQuestion(
+        question: NonNullable<MenuLabels["question"]>): this;
+    public setQuestion(
+        question: NonNullable<MenuLabelsJson["question"]>,
+        callback?: Label["callback"]
+    ): this;
     public setQuestion(
         question: NonNullable<MenuLabels["question"] | MenuLabelsJson["question"]>,
         callback?: Label["callback"]
@@ -61,10 +93,22 @@ class MenuLabels {
         return this;
     }
 
+    /** Returns the title label, or undefined if not set. */
     public getTitle(): MenuLabels["title"] {
         return this.title;
     }
 
+    /**
+     * Sets the title label from a Label instance or a translation key string.
+     * @param title Label instance or translation key.
+     * @param callback Optional interpolation callback forwarded to the Label.
+     */
+    public setTitle(
+        title: NonNullable<MenuLabels["title"]>): this;
+    public setTitle(
+        title: NonNullable<MenuLabelsJson["title"]>,
+        callback?: Label["callback"]
+    ): this;
     public setTitle(
         title: NonNullable<MenuLabels["title"] | MenuLabelsJson["title"]>,
         callback?: Label["callback"]
@@ -74,10 +118,22 @@ class MenuLabels {
         return this;
     }
 
+    /** Returns the success label, or undefined if not set. */
     public getSuccess(): MenuLabels["success"] {
         return this.success;
     }
 
+    /**
+     * Sets the success label from a Label instance or a translation key string.
+     * @param success Label instance or translation key.
+     * @param callback Optional interpolation callback forwarded to the Label.
+     */
+    public setSuccess(
+        success: NonNullable<MenuLabels["success"]>): this;
+    public setSuccess(
+        success: NonNullable<MenuLabelsJson["success"]>,
+        callback?: Label["callback"]
+    ): this;
     public setSuccess(
         success: NonNullable<MenuLabels["success"] | MenuLabelsJson["success"]>,
         callback?: Label["callback"]
@@ -89,10 +145,22 @@ class MenuLabels {
         return this;
     }
 
+    /** Returns the error label, or undefined if not set. */
     public getError(): MenuLabels["error"] {
         return this.error;
     }
 
+    /**
+     * Sets the error label from a Label instance or a translation key string.
+     * @param error Label instance or translation key.
+     * @param callback Optional interpolation callback forwarded to the Label.
+     */
+    public setError(
+        error: NonNullable<MenuLabels["error"]>): this;
+    public setError(
+        error: NonNullable<MenuLabelsJson["error"]>,
+        callback?: Label["callback"]
+    ): this;
     public setError(
         error: NonNullable<MenuLabels["error"] | MenuLabelsJson["error"]>,
         callback?: Label["callback"]
@@ -102,6 +170,7 @@ class MenuLabels {
         return this;
     }
 
+    /** Serialises the labels to a plain JSON-compatible object. */
     public toJson(): MenuLabelsJson {
         return {
             ...(this.question ? { question: this.question.getValue() } : {}),

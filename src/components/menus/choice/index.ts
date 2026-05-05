@@ -24,6 +24,10 @@ class MenuChoice extends Menu {
     protected selectedValues: string[] = [];
     protected configs: MenuChoiceConfigs = new MenuChoiceConfigs();
 
+    /**
+     * Creates a new choice menu with optional pre-configured options and callbacks.
+     * @param data Menu JSON including name, type, optional values array/function, and choice-specific configs.
+     */
     constructor(data: MenuChoiceJson) {
         super(data);
         this.configs = data.configs ? new MenuChoiceConfigs(data.configs) : new MenuChoiceConfigs();
@@ -59,6 +63,9 @@ class MenuChoice extends Menu {
 
     // internals
 
+    /**
+     * Sorts option values for display: global items last, then by index, then by type (actions before menus), then alphabetically.
+     */
     protected sortValues(): MenuFieldOption[] {
         return this.getValuesList().sort((a, b) => {
             const aItem = a.getItem();
@@ -116,6 +123,10 @@ class MenuChoice extends Menu {
         });
     }
 
+    /**
+     * Applies cascading style resolution: option → menu → Utility defaults.
+     * Global items do not inherit menu styles.
+     */
     protected applyOptionStyles(option: MenuFieldOption): void {
         const os = option.getStyles();
         // Global items must never inherit any style from the host menu — only
@@ -168,6 +179,13 @@ class MenuChoice extends Menu {
 
     // values API
 
+    /**
+     * Returns the current option values.
+     * @param map When true, returns a `MenuChoiceValuesMap` keyed by option name.
+     * When false (default), returns a flat `MenuFieldOption[]`.
+     */
+    public getValues(map: true): MenuChoiceValuesMap;
+    public getValues(map?: false): MenuFieldOption[];
     public getValues(map: boolean = false): MenuFieldOption[] | MenuChoiceValuesMap {
         const values = typeof this.values === "function"
             ? (this.values as MenuChoiceValuesResolvedFn)({ menu: this })
@@ -176,22 +194,37 @@ class MenuChoice extends Menu {
         return map ? values : Object.values(values);
     }
 
+    /** Returns all option values as a map keyed by option name. */
     public getValuesMap(): MenuChoiceValuesMap {
         return this.getValues(true) as MenuChoiceValuesMap;
     }
 
+    /** Returns all option values as a flat array. */
     public getValuesList(): MenuFieldOption[] {
         return this.getValues(false) as MenuFieldOption[];
     }
 
+    /**
+     * Returns the option list, optionally sorted for display.
+     * @param sorted When true, applies the display-order sorting algorithm.
+     */
     public getOptions(sorted = false): MenuFieldOption[] {
         return sorted ? this.sortValues() : this.getValuesList();
     }
 
+    /**
+     * Returns the option matching the given name, or undefined.
+     * @param name Option value/name to look up.
+     */
     public getOption(name: string): MenuFieldOption | undefined {
         return this.getValuesMap()[name];
     }
 
+    /**
+     * Replaces or inserts a named option.
+     * @param name Option key.
+     * @param value Replacement MenuFieldOption.
+     */
     public setOption(name: string, value: MenuFieldOption): this {
         if (typeof this.values === "function") {
             const vals = (this.values as MenuChoiceValuesResolvedFn)({ menu: this });
@@ -203,6 +236,17 @@ class MenuChoice extends Menu {
         return this;
     }
 
+    /**
+     * Adds an option from a Menu, Action, MenuFieldOption, or raw JSON value.
+     * Styles are resolved and applied automatically.
+     * @param value The option to add.
+     */
+    public addOption(value: Menu | Action | MenuFieldOption | MenuChoiceJsonValue): this;
+    public addOption(value: Menu): this;
+    public addOption(value: Action): this;
+    public addOption(value: Menu | Action): this;
+    public addOption(value: MenuFieldOption): this;
+    public addOption(value: MenuChoiceJsonValue): this;
     public addOption(value: Menu | Action | MenuFieldOption | MenuChoiceJsonValue): this {
         let name: string | undefined;
         let option: MenuFieldOption | undefined;
@@ -228,6 +272,7 @@ class MenuChoice extends Menu {
         return this;
     }
 
+    /** Returns true when at least one option is registered. */
     public hasChoices(): boolean {
         const resolved = typeof this.values === "function"
             ? (this.values as MenuChoiceValuesResolvedFn)({ menu: this })
@@ -238,15 +283,24 @@ class MenuChoice extends Menu {
 
     // selected values API
 
+    /** Returns the currently selected values. */
     public getSelectedValues(): string[] {
         return this.selectedValues;
     }
 
+    /**
+     * Replaces the selected values list.
+     * @param v New array of selected option names.
+     */
     public setSelectedValues(v: string[]): this {
         this.selectedValues = v;
         return this;
     }
 
+    /**
+     * Adds a value to the selected values list if not already present.
+     * @param v Option name to select.
+     */
     public addSelectedValue(v: string): this {
         if (!this.selectedValues.includes(v)) {
             this.selectedValues.push(v);
@@ -254,21 +308,34 @@ class MenuChoice extends Menu {
         return this;
     }
 
+    /**
+     * Removes a value from the selected values list.
+     * @param v Option name to deselect.
+     */
     public delSelectedValue(v: string): this {
         this.selectedValues = this.selectedValues.filter((s) => s !== v);
         return this;
     }
 
+    /**
+     * Returns true when the given value is in the selected list.
+     * @param v Option name to check.
+     */
     public isSelectedValue(v: string): boolean {
         return this.selectedValues.includes(v);
     }
 
     // configs API
 
+    /** Returns the configs object for this choice menu. */
     public getConfigs(): MenuChoiceConfigs {
         return this.configs;
     }
 
+    /**
+     * Sets the configs from an instance or a plain JSON object.
+     * @param data MenuChoiceConfigs instance or compatible JSON.
+     */
     public setConfigs(data: MenuChoiceConfigs | MenuChoiceConfigsJson): this {
         this.configs = data instanceof MenuChoiceConfigs ? data : new MenuChoiceConfigs(data);
         return this;
@@ -276,6 +343,7 @@ class MenuChoice extends Menu {
 
     // toJson
 
+    /** Serialises this choice menu to a plain JSON-compatible object. */
     public toJson(): MenuChoiceJson {
         return {
             ...super.toJson(),
@@ -287,6 +355,10 @@ class MenuChoice extends Menu {
 
     // run
 
+    /**
+     * Renders and runs the interactive choice prompt.
+     * @param language Optional language override for label translation.
+     */
     public async run(language?: Language): Promise<string | string[]> {
         console.clear();
 

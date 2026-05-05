@@ -12,11 +12,26 @@ class Cli {
     protected menus: Record<string, Menu>;
     protected actions: Record<string, Action>;
 
+    /**
+     * Creates a new Cli instance with empty menus and actions registries.
+     * Use `addMenu()`, `addAction()`, and `run()` to build and execute the CLI.
+     */
     constructor() {
         this.menus = {};
         this.actions = {};
     }
 
+    /**
+     * Writes a styled text line to stdout.
+     *
+     * @param text Text to print.
+     * @param color Optional chalk color name.
+     */
+    /**
+     * Writes text to stdout with optional chalk color styling.
+     * @param text Text to write.
+     * @param color Optional chalk color name.
+     */
     public static write(text: string, color?: ColorName): void {
         console.log(Utility.write(text, color));
     }
@@ -24,6 +39,12 @@ class Cli {
     /**
      * Builds a Choice for a global item (back, exit, language, etc.)
      * applying env defaults as fallback for hover/selected, with idle fallback for color/underline/italic.
+     */
+    /**
+     * Builds a global choice entry for a Menu or Action.
+     * @param value Choice value/name.
+     * @param label Display label.
+     * @param item Menu or Action instance.
      */
     protected buildGlobalChoice(value: string, label: string, item: Menu | Action): Choice {
         const idle = item.getStyles().getIdle();
@@ -60,6 +81,9 @@ class Cli {
         };
     }
 
+    /**
+     * Collects all global menus and actions to be added as choices in every menu.
+     */
     protected getGlobalItems(): Array<Menu | Action> {
         const items: Array<Menu | Action> = [];
 
@@ -78,6 +102,10 @@ class Cli {
         return items;
     }
 
+    /**
+     * Creates a "back" action for the given menu, or returns undefined if none should be shown.
+     * @param menu MenuField or MenuChoice to navigate back from.
+     */
     protected getActionTypeBack(menu: MenuField | MenuChoice): ActionGoto | undefined {
         const item = menu.getOptions().find((v) => v.getValue().startsWith("back_"));
         const action = item?.getItem();
@@ -90,6 +118,11 @@ class Cli {
         return result;
     }
 
+    /**
+     * Resolves the parent menu name, prioritizing runtime parameter over Menu parent list.
+     * @param menu The current menu context.
+     * @param runtimeParent Runtime-provided parent name override.
+     */
     protected resolveTargetParent(menu: Menu | undefined, runtimeParent?: string): string | undefined {
         let targetParent: string | undefined;
 
@@ -119,6 +152,11 @@ class Cli {
 
     // Run handlers
 
+    /**
+     * Executes an input menu interaction and handles its callback.
+     * @param item MenuInput to run.
+     * @param parentName Optional parent menu name for navigation context.
+     */
     protected async runMenuInput(item: MenuInput, parentName?: string): Promise<void> {
         // Build sidebar global choices
         const globalChoices: (Choice | Separator)[] = [];
@@ -180,6 +218,11 @@ class Cli {
         }
     }
 
+    /**
+     * Executes a choice menu interaction and handles selected items or callbacks.
+     * @param item MenuChoice to run.
+     * @param parentName Optional parent menu name for navigation context.
+     */
     protected async runMenuChoices(item: MenuChoice, parentName?: string): Promise<void> {
         // Inject global items into choice list
         this.getGlobalItems().forEach((globalItem) => {
@@ -255,6 +298,11 @@ class Cli {
         }
     }
 
+    /**
+     * Executes a field menu interaction (choice + optional input sequence).
+     * @param item MenuField to run.
+     * @param parentName Optional parent menu name for navigation context.
+     */
     protected async runMenuField(item: MenuField, parentName?: string): Promise<void> {
         // Input sidebar setup
         if (item.hasInput()) {
@@ -389,6 +437,11 @@ class Cli {
         }
     }
 
+    /**
+     * Executes a goto action: records the target and returns control to the caller.
+     * @param item ActionGoto to execute.
+     * @param parentName Optional parent menu name for navigation context.
+     */
     protected async runActionGoto(item: ActionGoto, parentName?: string): Promise<void> {
         const targetName = item.getTo();
         const targetMenu = this.getMenu(targetName);
@@ -398,6 +451,12 @@ class Cli {
         await this.run(targetName, targetParent);
     }
 
+    /**
+     * Registers a plugin and merges its translations, menus and actions.
+     *
+     * @param plugin Plugin definition.
+     * @returns Current Cli instance for chaining.
+     */
     public addPlugin(plugin: PluginJson): this {
         if (plugin.translations) {
             Translations.addTranslations(plugin.translations);
@@ -409,13 +468,39 @@ class Cli {
         return this;
     }
 
+    /**
+     * Returns all registered menus.
+     */
     public getMenus(): Cli["menus"][string][] {
         return Object.values(this.menus);
     }
 
+    /**
+     * Returns a menu by name.
+     *
+     * @param name Menu name.
+     */
     public getMenu(name: string): Cli["menus"][string] | undefined {
         return this.menus[name];
     }
+
+    /**
+     * Adds a menu from JSON config.
+     *
+     * @param menu Menu JSON definition.
+     * @param plugin Optional plugin namespace override.
+     * @returns Current Cli instance for chaining.
+     */
+    public addMenu(menu: Exclude<PluginJson["menus"], undefined>[number], plugin?: string): this;
+
+    /**
+     * Adds an existing Menu instance.
+     *
+     * @param menu Menu instance.
+     * @param plugin Optional plugin namespace override.
+     * @returns Current Cli instance for chaining.
+     */
+    public addMenu(menu: Cli["menus"][string], plugin?: string): this;
 
     public addMenu(
         menu: Exclude<PluginJson["menus"], undefined>[number] | Cli["menus"][string],
@@ -451,13 +536,39 @@ class Cli {
         return this.load();
     }
 
+    /**
+     * Returns all registered actions.
+     */
     public getActions(): Cli["actions"][string][] {
         return Object.values(this.actions);
     }
 
+    /**
+     * Returns an action by name.
+     *
+     * @param name Action name.
+     */
     public getAction(name: string): Cli["actions"][string] | undefined {
         return this.actions[name];
     }
+
+    /**
+     * Adds an action from JSON config.
+     *
+     * @param action Action JSON definition.
+     * @param plugin Optional plugin namespace override.
+     * @returns Current Cli instance for chaining.
+     */
+    public addAction(action: Exclude<PluginJson["actions"], undefined>[number], plugin?: string): this;
+
+    /**
+     * Adds an existing Action instance.
+     *
+     * @param action Action instance.
+     * @param plugin Optional plugin namespace override.
+     * @returns Current Cli instance for chaining.
+     */
+    public addAction(action: Cli["actions"][string], plugin?: string): this;
 
     public addAction(
         action: Exclude<PluginJson["actions"], undefined>[number] | Cli["actions"][string],
@@ -495,11 +606,28 @@ class Cli {
         return this.load();
     }
 
+    /**
+     * Deletes an action by name.
+     *
+     * @param name Action name.
+     * @returns Current Cli instance for chaining.
+     */
     public delAction(name: string): this {
         delete this.actions[name];
         return this;
     }
 
+    /**
+     * Triggers a shortcut flow from a menu.
+     *
+     * Supported built-in shortcuts:
+     * - "back": navigates to the computed parent.
+     * - "exit": executes the global exit action.
+     *
+     * @param menu Current menu context.
+     * @param type Trigger type.
+     * @param parent Optional runtime parent override.
+     */
     public trigger(menu: Menu, type: "back" | "exit" | string, parent?: string): Promise<unknown> | void {
         switch (type) {
             case "back": {
@@ -529,6 +657,11 @@ class Cli {
         }
     }
 
+    /**
+     * Rebuilds reverse links by injecting menus/actions into their parent menus.
+     *
+     * @returns Current Cli instance for chaining.
+     */
     public load(): this {
         this.getMenus().forEach((menu) => {
             menu.getParents().forEach((parentName) => {
@@ -554,6 +687,27 @@ class Cli {
     }
 
     // Main dispatcher
+
+    /**
+     * Runs the default entry item ("main").
+     */
+    public run(): Promise<this>;
+
+    /**
+     * Runs an item by name.
+     *
+     * @param value Menu/action name.
+     * @param parent Optional parent context (name or instance).
+     */
+    public run(value: string, parent?: string | Menu | Action): Promise<this>;
+
+    /**
+     * Runs an item instance directly.
+     *
+     * @param value Menu or Action instance.
+     * @param parent Optional parent context (name or instance).
+     */
+    public run(value: Menu | Action, parent?: string | Menu | Action): Promise<this>;
 
     public async run(value: string | Menu | Action = "main", parent?: string | Menu | Action): Promise<this> {
         if (typeof parent === "string") {
@@ -585,6 +739,9 @@ class Cli {
         return this;
     }
 
+    /**
+     * Serializes current menus and actions into plugin-compatible JSON.
+     */
     public toJson(): Omit<PluginJson, "name" | "version" | "translations"> {
         return {
             menus: this.getMenus().map((m) => m.toJson() as Exclude<PluginJson["menus"], undefined>[number]),
