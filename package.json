@@ -2,13 +2,12 @@
     "version": "1.4.0",
     "name": "modular-cli-menu",
     "description": "",
-    "main": "./dist/main.cjs",
+    "main": "./dist/main.mjs",
     "types": "./dist/main.d.mts",
     "exports": {
         ".": {
             "types": "./dist/main.d.mts",
-            "import": "./dist/main.mjs",
-            "require": "./dist/main.cjs"
+            "import": "./dist/main.mjs"
         }
     },
     "keywords": [
@@ -25,7 +24,10 @@
     "homepage": "https://github.com/BlorisL/modular-cli-menu/blob/main/README.md",
     "repository": {
         "type": "git",
-        "url": "https://github.com/blorisl/modular-cli-menu.git"
+        "url": "git+https://github.com/blorisl/modular-cli-menu.git"
+    },
+    "engines": {
+        "node": ">=22.18.0"
     },
     "dependencies": {
         "@inquirer/checkbox": "^5.1.4",
@@ -43,7 +45,6 @@
         "@eslint/js": "^10.0.1",
         "@stylistic/eslint-plugin": "^5.10.0",
         "@types/node": "^25.6.0",
-        "clean-pkg-json": "^1.4.2",
         "czg": "^1.12.0",
         "eslint": "^10.2.1",
         "eslint-plugin-jsonc": "^3.1.2",
@@ -69,9 +70,9 @@
         "test": "tsx src/tests/test1.ts",
         "style:dry": "eslint .",
         "style:apply": "eslint . --fix",
-        "build": "npx tsdown src/main.ts --format esm,cjs --dts --clean --minify --env.DEBUG_LOG=false --out-dir dist",
-        "build:en": "npx tsdown src/main.ts --format esm,cjs --dts --clean --minify --env.DEBUG_LOG=false --env.DEFAULT_LANGUAGE=en --out-dir dist",
-        "build:it": "npx tsdown src/main.ts --format esm,cjs --dts --clean --minify --env.DEBUG_LOG=false --env.DEFAULT_LANGUAGE=it --out-dir dist",
+        "build": "npx tsdown src/main.ts --format esm --dts --clean --minify --env.DEBUG_LOG=false --out-dir dist",
+        "build:en": "npx tsdown src/main.ts --format esm --dts --clean --minify --env.DEBUG_LOG=false --env.DEFAULT_LANGUAGE=en --out-dir dist",
+        "build:it": "npx tsdown src/main.ts --format esm --dts --clean --minify --env.DEBUG_LOG=false --env.DEFAULT_LANGUAGE=it --out-dir dist",
         "build:test": "npm pack --dry-run",
         "pack": "npm run build && npm pack",
         "publish:dry": "npm run build && npm publish --dry-run",
@@ -86,5 +87,8 @@
     "publishConfig": {
         "access": "public",
         "provenance": true
+    },
+    "volta": {
+        "node": "22.18.0"
     }
 }
