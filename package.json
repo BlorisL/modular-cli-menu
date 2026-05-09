@@ -48,7 +48,7 @@
         "czg": "^1.12.0",
         "eslint": "^10.2.1",
         "eslint-plugin-jsonc": "^3.1.2",
-        "http-server": "^14.1.1",
+        "serve": "^14.2.6",
         "husky": "^9.1.7",
         "lint-staged": "^16.4.0",
         "tsdown": "^0.21.10",
@@ -77,7 +77,7 @@
         "pack": "npm run build && npm pack",
         "publish:dry": "npm run build && npm publish --dry-run",
         "docs:generate": "typedoc",
-        "docs:serve": "http-server docs -p 8080 -c-1 -o"
+        "docs:serve": "serve docs -l 8080"
     },
     "lint-staged": {
         "**/*.{ts,json}": [
