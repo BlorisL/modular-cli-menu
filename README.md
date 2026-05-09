@@ -559,14 +559,36 @@ Key points:
 |---|---|
 | `npm run build` | Compile to `dist/` (ESM + CJS + types) |
 | `npm run build:en` | Build with `DEFAULT_LANGUAGE=en` baked in |
+| `npm run build:test` | Preview npm package contents via `npm pack --dry-run` |
 | `npm run pack` | Build + create `.tgz` |
 | `npm run style:dry` | Run ESLint (no fix) |
 | `npm run style:apply` | Run ESLint with auto-fix |
 | `npm run test` | Run the test suite |
 | `npm run dev` | Run `src/dev.ts` (tsx) |
+| `npm run example -- <name>` | Run `src/examples/example-<name>.ts` (e.g. `npm run example -- mix`) |
+| `npm run publish:dry` | Build + simulate npm publish (no upload) |
 | `npm run docs:generate` | Generate HTML docs via TypeDoc |
 | `npm run docs:serve` | Serve generated docs at `localhost:8080` |
 | `npm run git:commit` | Interactive conventional commit via `czg` |
+| `npm run prepare` | Install Husky git hooks (runs automatically on install) |
+
+Before running `npm run publish:dry`, authenticate with npm:
+
+```bash
+npm ping
+npm whoami || npm login --auth-type=legacy
+```
+
+If you switch between multiple npm accounts, use this identity check routine before publishing:
+
+```bash
+npm whoami
+# if the user is not the expected one:
+npm logout
+npm login --auth-type=legacy
+npm whoami
+npm run publish:dry
+```
 
 ---
 
