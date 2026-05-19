@@ -16,6 +16,7 @@ class Env {
     protected idleUnderline!: boolean;
     protected hoverUnderline!: boolean;
     protected selectedUnderline!: boolean;
+    protected pageSize!: number;
 
     /**
      * Creates a new Env instance and immediately loads settings from .env file.
@@ -37,6 +38,7 @@ class Env {
     protected static defaultIdleUnderline: boolean = false;
     protected static defaultHoverUnderline: boolean = false;
     protected static defaultSelectedUnderline: boolean = false;
+    protected static defaultPageSize: number = 10;
 
     /** Helper: extracts a string from env, returning undefined if empty. */
     protected envString(value?: string): string | undefined {
@@ -79,6 +81,7 @@ class Env {
         this.setIdleUnderline(env.DEFAULT_CHOICE_IDLE_UNDERLINE);
         this.setHoverUnderline(env.DEFAULT_CHOICE_HOVER_UNDERLINE);
         this.setSelectedUnderline(env.DEFAULT_CHOICE_SELECTED_UNDERLINE);
+        this.setPageSize(env.DEFAULT_CHOICE_PAGE_SIZE);
 
         return this;
     }
@@ -236,6 +239,22 @@ class Env {
     /** Returns true if selected underline decoration is active. */
     public isSelectedUnderline(): boolean {
         return this.selectedUnderline === true;
+    }
+
+    /** Returns the default page size for scrollable choice menus. */
+    public getPageSize(): number {
+        return this.pageSize;
+    }
+
+    /**
+     * Sets the default page size from a number or env string.
+     * Falls back to the class default (10) if the value is missing or invalid.
+     * @param value Number or numeric string.
+     */
+    public setPageSize(value?: number | string): this {
+        const parsed = typeof value === "number" ? value : parseInt(value ?? "", 10);
+        this.pageSize = !isNaN(parsed) && parsed > 0 ? parsed : Env.defaultPageSize;
+        return this;
     }
 }
 

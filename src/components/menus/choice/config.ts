@@ -3,12 +3,14 @@ import type { MenuChoice } from "@/components/menus/choice";
 type MenuChoiceConfigsJson = {
     selectable?: boolean;
     defaultValues?: string[];
+    pageSize?: number;
     callback?: (data: { menu: MenuChoice; values: string[]; language?: string; parent?: string }) => Promise<void>;
 };
 
 class MenuChoiceConfigs {
-    protected selectable: boolean = false;
-    protected defaultValues: string[] = [];
+    protected selectable: NonNullable<MenuChoiceConfigsJson["selectable"]> = false;
+    protected defaultValues: NonNullable<MenuChoiceConfigsJson["defaultValues"]> = [];
+    protected pageSize?: NonNullable<MenuChoiceConfigsJson["pageSize"]>;
     protected callback?: MenuChoiceConfigsJson["callback"];
 
     /**
@@ -21,6 +23,9 @@ class MenuChoiceConfigs {
         }
         if (data?.defaultValues) {
             this.defaultValues = data.defaultValues;
+        }
+        if (data?.pageSize !== undefined) {
+            this.pageSize = data.pageSize;
         }
         if (data?.callback) {
             this.callback = data.callback;
@@ -55,6 +60,20 @@ class MenuChoiceConfigs {
         return this;
     }
 
+    /** Returns the page size for scrollable choice lists, or undefined for no limit. */
+    public getPageSize(): MenuChoiceConfigs["pageSize"] {
+        return this.pageSize;
+    }
+
+    /**
+     * Sets the maximum number of visible rows before scrolling kicks in.
+     * @param v Number of rows, or undefined to disable paging.
+     */
+    public setPageSize(v: MenuChoiceConfigs["pageSize"]): this {
+        this.pageSize = v;
+        return this;
+    }
+
     /** Returns the submission callback, or undefined if not set. */
     public getCallback(): MenuChoiceConfigsJson["callback"] {
         return this.callback;
@@ -74,6 +93,7 @@ class MenuChoiceConfigs {
         return {
             ...(this.selectable ? { selectable: true } : {}),
             ...(this.defaultValues.length > 0 ? { defaultValues: this.defaultValues } : {}),
+            ...(this.pageSize !== undefined ? { pageSize: this.pageSize } : {}),
             ...(this.callback ? { callback: this.callback } : {}),
         };
     }

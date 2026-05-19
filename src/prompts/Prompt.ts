@@ -36,6 +36,11 @@ interface PromptConfig {
     choices?: (Choice | Separator)[];
     /** Pre-selected values for multi-select menus. */
     initialSelected?: string[];
+    /**
+     * Maximum number of choice rows visible at once before scrolling.
+     * Separators count toward the limit. Defaults to showing all items.
+     */
+    pageSize?: number;
 }
 
 type PromptResult =
@@ -277,7 +282,7 @@ function renderChoiceLines(
 }
 
 const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
-    const { message, input: inputCfg, choices: choicesCfg, initialSelected } = config;
+    const { message, input: inputCfg, choices: choicesCfg, initialSelected, pageSize } = config;
 
     const hasInput = !!inputCfg;
     const hasChoices = !!choicesCfg && choicesCfg.length > 0;
@@ -291,12 +296,25 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
     // Choices state
     const allItems = choicesCfg ?? [];
     const firstSelectable = allItems.findIndex((i) => !isSeparator(i));
+
+    // Separate normal items from global items (globals follow the last separator)
+    const globalSepIndex = allItems.reduce<number>((last, item, idx) => isSeparator(item) ? idx : last, -1);
+    const normalItems = globalSepIndex >= 0 ? allItems.slice(0, globalSepIndex) : allItems;
+    const globalItems = globalSepIndex >= 0 ? allItems.slice(globalSepIndex) : []; // includes the separator
+
     const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected ?? []));
     const [justSelected, setJustSelected] = useState<Set<string>>(new Set());
     const [activeIndex, setActiveIndex] = useState<number>(firstSelectable >= 0 ? firstSelectable : 0);
+    const [scrollOffset, setScrollOffset] = useState<number>(0);
 
-    // Focus: 'input' | 'list', only meaningful when both sections are active
-    const [focus, setFocus] = useState<"input" | "list">(hasInput ? "input" : "list");
+    // focus: 'list' = navigating normal items, 'globals' = navigating global items
+    // (for input+choices combos the existing 'input'|'list' logic is unchanged)
+    const [focus, setFocus] = useState<"input" | "list" | "globals">(hasInput ? "input" : "list");
+    // index within globalItems (skipping the leading separator at position 0)
+    const firstGlobalSelectable = globalItems.findIndex((i) => !isSeparator(i));
+    const [globalActiveIndex, setGlobalActiveIndex] = useState<number>(
+        firstGlobalSelectable >= 0 ? firstGlobalSelectable : 0
+    );
 
     const [status, setStatus] = useState<"pending" | "done">("pending");
     const prefix = usePrefix({ status });
@@ -315,53 +333,133 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
         } else if (!hasInput && hasChoices) {
             // choices only (no input section)
             if (isEnterKey(key)) {
-                const item = allItems[activeIndex];
-                if (!isSeparator(item)) {
-                    const choice = item as Choice;
-                    if (choice.multi) {
+                if (focus === "globals") {
+                    const item = globalItems[globalActiveIndex];
+                    if (item && !isSeparator(item)) {
                         setStatus("done");
-                        done({ type: "choices", values: Array.from(selected) });
-                    } else {
-                        setStatus("done");
-                        done({ type: "choice", value: choice.value });
+                        done({ type: "choice", value: (item as Choice).value });
+                    }
+                } else {
+                    const item = normalItems[activeIndex];
+                    if (item && !isSeparator(item)) {
+                        const choice = item as Choice;
+                        if (choice.multi) {
+                            setStatus("done");
+                            done({ type: "choices", values: Array.from(selected) });
+                        } else {
+                            setStatus("done");
+                            done({ type: "choice", value: choice.value });
+                        }
                     }
                 }
             } else if (isSpaceKey(key)) {
-                const item = allItems[activeIndex];
-                if (!isSeparator(item)) {
-                    const choice = item as Choice;
-                    if (choice.multi) {
-                        // Toggle multi-select
-                        const val = choice.value;
-                        const next = new Set(selected);
-                        const wasSelected = next.has(val);
-                        if (wasSelected) {
-                            next.delete(val);
+                if (focus === "list") {
+                    const item = normalItems[activeIndex];
+                    if (item && !isSeparator(item)) {
+                        const choice = item as Choice;
+                        if (choice.multi) {
+                            const val = choice.value;
+                            const next = new Set(selected);
+                            const wasSelected = next.has(val);
+                            if (wasSelected) {
+                                next.delete(val);
+                            } else {
+                                next.add(val);
+                            }
+                            setSelected(next);
+                            setJustSelected(wasSelected ? new Set() : new Set([val]));
                         } else {
-                            next.add(val);
+                            setStatus("done");
+                            done({ type: "choice", value: choice.value });
                         }
-                        setSelected(next);
-                        setJustSelected(wasSelected ? new Set() : new Set([val]));
+                    }
+                }
+            } else if (key.name === "tab") {
+                // TAB cycles focus list → globals → list, but only when scroll is active.
+                // When scroll is inactive, arrow keys already reach globals naturally.
+                const scrollActive = pageSize !== undefined && normalItems.length > pageSize;
+                if (scrollActive && globalItems.length > 0) {
+                    if (focus === "list") {
+                        setFocus("globals");
+                        setGlobalActiveIndex(firstGlobalSelectable >= 0 ? firstGlobalSelectable : 0);
                     } else {
-                        // Non-multi: space acts like enter
-                        setStatus("done");
-                        done({ type: "choice", value: choice.value });
+                        setFocus("list");
                     }
                 }
             } else if (key.name === "up") {
-                setJustSelected(new Set());
-                let i = activeIndex === 0 ? allItems.length - 1 : activeIndex - 1;
-                while (isSeparator(allItems[i]) && i !== activeIndex) {
-                    i = i === 0 ? allItems.length - 1 : i - 1;
+                if (focus === "globals") {
+                    let i = globalActiveIndex - 1;
+                    while (i >= 0 && isSeparator(globalItems[i])) {
+                        i--;
+                    }
+                    if (i >= 0) {
+                        setGlobalActiveIndex(i);
+                    } else {
+                        setFocus("list");
+                        // When scroll is inactive, land on the last normal item
+                        const scrollActive = pageSize !== undefined && normalItems.length > pageSize;
+                        if (!scrollActive) {
+                            let last = normalItems.length - 1;
+                            while (last >= 0 && isSeparator(normalItems[last])) {
+                                last--;
+                            }
+                            if (last >= 0) {
+                                setActiveIndex(last);
+                            }
+                        }
+                    }
+                } else {
+                    setJustSelected(new Set());
+                    let i = activeIndex === 0 ? normalItems.length - 1 : activeIndex - 1;
+                    while (isSeparator(normalItems[i]) && i !== activeIndex) {
+                        i = i === 0 ? normalItems.length - 1 : i - 1;
+                    }
+                    setActiveIndex(i);
+                    if (pageSize !== undefined) {
+                        let newOffset = scrollOffset;
+                        if (i < scrollOffset) {
+                            newOffset = i;
+                        } else if (i >= normalItems.length - 1 && activeIndex === 0) {
+                            newOffset = Math.max(0, normalItems.length - pageSize);
+                        }
+                        setScrollOffset(newOffset);
+                    }
                 }
-                setActiveIndex(i);
             } else if (key.name === "down") {
-                setJustSelected(new Set());
-                let i = activeIndex === allItems.length - 1 ? 0 : activeIndex + 1;
-                while (isSeparator(allItems[i]) && i !== activeIndex) {
-                    i = i === allItems.length - 1 ? 0 : i + 1;
+                if (focus === "globals") {
+                    let i = globalActiveIndex + 1;
+                    while (i < globalItems.length && isSeparator(globalItems[i])) {
+                        i++;
+                    }
+                    if (i < globalItems.length) {
+                        setGlobalActiveIndex(i);
+                    }
+                } else {
+                    setJustSelected(new Set());
+                    const scrollActive = pageSize !== undefined && normalItems.length > pageSize;
+                    const isLast = activeIndex === normalItems.length - 1;
+
+                    if (!scrollActive && isLast && globalItems.length > 0) {
+                        // No scroll: arrow-down from last normal item moves to globals
+                        setFocus("globals");
+                        setGlobalActiveIndex(firstGlobalSelectable >= 0 ? firstGlobalSelectable : 0);
+                    } else {
+                        let i = isLast ? 0 : activeIndex + 1;
+                        while (isSeparator(normalItems[i]) && i !== activeIndex) {
+                            i = i === normalItems.length - 1 ? 0 : i + 1;
+                        }
+                        setActiveIndex(i);
+                        if (pageSize !== undefined) {
+                            let newOffset = scrollOffset;
+                            if (i === 0 && activeIndex === normalItems.length - 1) {
+                                newOffset = 0;
+                            } else if (i >= scrollOffset + pageSize) {
+                                newOffset = i - pageSize + 1;
+                            }
+                            setScrollOffset(newOffset);
+                        }
+                    }
                 }
-                setActiveIndex(i);
             }
         } else {
             // combo: input + choices
@@ -473,14 +571,64 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
         if (hasInput && allItems.length > 0 && !isSeparator(allItems[0])) {
             lines.push(new Separator().separator);
         }
-        // If focus is on input, hide cursor before rendering choices so it doesn't appear below
-        const choiceLines = renderChoiceLines(allItems, activeIndex, focus === "list", selected, justSelected);
-        if (hasInput && focus === "input") {
-            if (choiceLines.length > 0) {
-                choiceLines[0] = "\x1B[?25l" + choiceLines[0];
+
+        if (!hasInput && globalSepIndex >= 0) {
+            // Render normal items with scroll window
+            const normalLines = renderChoiceLines(normalItems, activeIndex, focus === "list", selected, justSelected);
+            if (hasInput && focus === "input") {
+                if (normalLines.length > 0) {
+                    normalLines[0] = "\x1B[?25l" + normalLines[0];
+                }
+            }
+
+            if (pageSize !== undefined && normalLines.length > pageSize) {
+                const windowedLines = normalLines.slice(scrollOffset, scrollOffset + pageSize);
+                const showTopEllipsis = scrollOffset > 0;
+                const showBottomEllipsis = scrollOffset + pageSize < normalLines.length;
+                if (showTopEllipsis) {
+                    lines.push(chalk.dim("  ..."));
+                }
+                lines.push(...windowedLines);
+                if (showBottomEllipsis) {
+                    lines.push(chalk.dim("  ..."));
+                }
+            } else {
+                lines.push(...normalLines);
+            }
+
+            // Always render globals below, using globalActiveIndex for highlight when focus === 'globals'
+            const globalLines = renderChoiceLines(
+                globalItems,
+                focus === "globals" ? globalActiveIndex : -1,
+                focus === "globals",
+                selected,
+                justSelected
+            );
+            lines.push(...globalLines);
+        } else {
+            // No globals separator or input+choices combo: original behaviour
+            const choiceLines = renderChoiceLines(allItems, activeIndex, focus === "list", selected, justSelected);
+            if (hasInput && focus === "input") {
+                if (choiceLines.length > 0) {
+                    choiceLines[0] = "\x1B[?25l" + choiceLines[0];
+                }
+            }
+
+            if (pageSize !== undefined && choiceLines.length > pageSize) {
+                const windowedLines = choiceLines.slice(scrollOffset, scrollOffset + pageSize);
+                const showTopEllipsis = scrollOffset > 0;
+                const showBottomEllipsis = scrollOffset + pageSize < choiceLines.length;
+                if (showTopEllipsis) {
+                    lines.push(chalk.dim("  ..."));
+                }
+                lines.push(...windowedLines);
+                if (showBottomEllipsis) {
+                    lines.push(chalk.dim("  ..."));
+                }
+            } else {
+                lines.push(...choiceLines);
             }
         }
-        lines.push(...choiceLines);
     }
 
     return lines.join("\n");

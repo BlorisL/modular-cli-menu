@@ -435,6 +435,7 @@ class MenuChoice extends Menu {
             message: this.getLabels().getQuestion()!.write({ color: this.getStyles().getIdle()?.getColor(), language }),
             choices: choiceList,
             ...(isSelectable && selectedValues.length > 0 ? { initialSelected: selectedValues } : {}),
+            pageSize: this.configs.getPageSize() ?? Utility.getEnv().getPageSize(),
         });
 
         if (result.type === "choice") {
