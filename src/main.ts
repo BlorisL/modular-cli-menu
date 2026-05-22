@@ -33,10 +33,12 @@ cli.addPlugin({
             type: "goto",
             to: "main",
             global: true,
+            index: -9997,
         },
         {
             name: "exit",
             type: "function",
+            index: -9999,
             styles: {
                 idle: { color: "red", italic: true },
             },
@@ -104,6 +106,7 @@ cli.addPlugin({
             name: "language",
             type: "choice",
             global: true,
+            index: -9998,
             styles: {
                 selected: {
                     prefix: "#",

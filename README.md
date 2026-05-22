@@ -19,6 +19,7 @@ A modular TypeScript library for building interactive CLI interfaces with menus,
   - [Choice menu](#choice-menu)
   - [Input menu](#input-menu)
   - [Field menu](#field-menu)
+  - [Editor menu](#editor-menu)
 - [Actions](#actions)
   - [ActionGoto](#actiongoto)
   - [ActionFunction](#actionfunction)
@@ -27,6 +28,7 @@ A modular TypeScript library for building interactive CLI interfaces with menus,
 - [Configs](#configs)
 - [Values](#values)
 - [Globals](#globals)
+- [anchorGlobal](#anchorglobal)
 - [Parents](#parents)
 - [Translations](#translations)
 - [Style behaviour and priority rules](#style-behaviour-and-priority-rules)
@@ -272,6 +274,30 @@ A composite menu combining a `choice` list and an optional `input`. Useful for f
 
 ---
 
+### Editor menu
+
+A full-screen text editor (wraps `@inquirer/editor`). Useful when the user needs to review or edit a multi-line block of text (e.g. a config file, an `.env.local`).
+
+```ts
+{
+    name: "my-editor",
+    type: "editor",
+    parents: ["main"],
+    labels: { question: "editor.question" },
+    configs: {
+        default: (): string => loadCurrentFileContent(),   // dynamic default content
+        callback: async ({ value }): Promise<void> => {
+            saveContent(value);
+            await cli.run("press-to-continue", "main");
+        },
+    },
+}
+```
+
+The `default` option accepts either a static string or a function returning a string, evaluated fresh each time the editor opens. The user saves and closes the temporary file in their `$EDITOR`.
+
+---
+
 ## Actions
 
 ### ActionGoto
@@ -433,7 +459,62 @@ A menu or action with `global: true` appears automatically at the bottom of **ev
 **Global behaviour:**
 - Rendered below a `──────────────` separator
 - Never show the `selected` style, regardless of `selectable`
-- `index` controls ordering: negative values go further down, positive values come first among globals
+- `index` controls ordering among globals:
+  - Globals without an `index` (or `index: 0`) appear first
+  - Positive `index` values sort ascending after non-indexed globals
+  - Negative `index` values sort at the very bottom, by absolute value ascending (`-1` before `-2` before `-3`)
+  - Built-in defaults: `back` → `index: -3`, `language` → `index: -1`, `exit` → `index: -2`
+
+---
+
+## anchorGlobal
+
+`anchorGlobal: true` on a menu marks it as the **entry point of a wizard or multi-step flow**. Any global `ActionGoto` whose target is an `anchorGlobal` menu is automatically hidden from that menu and from all its descendants (menus that have it as a `parents` ancestor, recursively).
+
+**Use case:** you have a global "Create" action that navigates to `env-name-input`. You don't want "Create" to appear _while the user is already inside the Create wizard_, because it would restart the flow. Mark `env-name-input` with `anchorGlobal: true` and declare `parents` on every wizard step menu — the library handles the rest.
+
+```ts
+// Entry point of the wizard
+{
+    name: "env-name-input",
+    type: "input",
+    anchorGlobal: true,   // hides the "create" global inside this wizard
+    /* ... */
+}
+
+// Step 2 — declares its parent so the ancestor chain can be traced
+{
+    name: "repo-selection",
+    type: "choice",
+    parents: ["env-name-input"],
+    /* ... */
+}
+
+// Step 3 — also a descendant
+{
+    name: "branch-select-tars",
+    type: "choice",
+    parents: ["repo-selection"],
+    /* ... */
+}
+```
+
+The global action that navigates to `env-name-input`:
+
+```ts
+{
+    name: "create",
+    type: "goto",
+    to: "env-name-input",
+    global: true,
+}
+```
+
+With `anchorGlobal: true` set, the "create" option disappears from `env-name-input`, `repo-selection`, `branch-select-tars`, and any other menu that has `env-name-input` anywhere in its ancestor chain.
+
+**Requirements:**
+- `parents` must be declared statically on every menu in the wizard (the library uses `getParents()` to walk the ancestor chain — it does not infer parents from navigation calls)
+- Only `ActionGoto` globals are affected; `ActionFunction` globals are never hidden by `anchorGlobal`
 
 ---
 
@@ -454,6 +535,8 @@ Equivalent to calling `mainMenu.addOption(settingsMenu)` manually, but managed b
 ```ts
 parents: ["main", "submenu1"]
 ```
+
+`parents` also serves as the **ancestor chain** used by [`anchorGlobal`](#anchorglobal): the library walks `parents` recursively to determine whether a menu is a descendant of an `anchorGlobal` entry point. For this reason, `parents` must be declared statically on every menu that belongs to a wizard flow — even if navigation is driven programmatically via `cli.run()`.
 
 ---
 

@@ -179,6 +179,15 @@ class MenuChoice extends Menu {
 
     // values API
 
+    /** Resolves runtime values to a concrete map. */
+    protected resolveValuesMap(): MenuChoiceValuesMap {
+        const result = typeof this.values === "function"
+            ? (this.values as MenuChoiceValuesResolvedFn)({ menu: this })
+            : this.values
+        ;
+        return result;
+    }
+
     /**
      * Returns the current option values.
      * @param map When true, returns a `MenuChoiceValuesMap` keyed by option name.
@@ -187,10 +196,7 @@ class MenuChoice extends Menu {
     public getValues(map: true): MenuChoiceValuesMap;
     public getValues(map?: false): MenuFieldOption[];
     public getValues(map: boolean = false): MenuFieldOption[] | MenuChoiceValuesMap {
-        const values = typeof this.values === "function"
-            ? (this.values as MenuChoiceValuesResolvedFn)({ menu: this })
-            : this.values
-        ;
+        const values: MenuChoiceValuesMap = this.resolveValuesMap();
         return map ? values : Object.values(values);
     }
 
@@ -227,12 +233,9 @@ class MenuChoice extends Menu {
      */
     public setOption(name: string, value: MenuFieldOption): this {
         if (typeof this.values === "function") {
-            const vals = (this.values as MenuChoiceValuesResolvedFn)({ menu: this });
-            vals[name] = value;
-            this.values = vals;
-        } else {
-            this.values[name] = value;
+            this.values = { ...this.resolveValuesMap() };
         }
+        this.values[name] = value;
         return this;
     }
 
@@ -274,10 +277,7 @@ class MenuChoice extends Menu {
 
     /** Returns true when at least one option is registered. */
     public hasChoices(): boolean {
-        const resolved = typeof this.values === "function"
-            ? (this.values as MenuChoiceValuesResolvedFn)({ menu: this })
-            : this.values
-        ;
+        const resolved = this.resolveValuesMap();
         return Object.keys(resolved).length > 0;
     }
 
@@ -365,7 +365,7 @@ class MenuChoice extends Menu {
         const isSelectable = this.configs.isSelectable();
         const selectedValues = this.selectedValues;
 
-        const values = this.getOptions();
+        const values = this.getOptions(true);
         const globalIndex = values.findIndex((v) => v.getItem()?.isGlobal());
         const items: (MenuFieldOption | Separator)[] = [...values];
         if (globalIndex >= 0) {

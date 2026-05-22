@@ -3,6 +3,7 @@ import { Action, ActionFunction, ActionFunctionJson, ActionGoto, ActionGotoJson 
 import { Menu, MenuField, MenuFieldJson } from "@/components/menus";
 import { MenuChoice, MenuChoiceJson } from "@/components/menus/choice";
 import { MenuInput, MenuInputJson } from "@/components/menus/input";
+import { MenuEditor, MenuEditorJson } from "@/components/menus/editor";
 import { Choice, Separator } from "@/prompts/Prompt";
 import { PluginJson } from "@/components/plugins";
 import { Translations } from "@/components/translations";
@@ -82,9 +83,50 @@ class Cli {
     }
 
     /**
+     * Returns true if `menuName` equals `ancestorName` or has it in its `parents` chain.
+     */
+    protected menuBelongsToAncestor(menuName: string | undefined, ancestorName: string): boolean {
+        let belongs = false;
+        if (menuName !== undefined) {
+            const stack: string[] = [menuName];
+            const visited = new Set<string>();
+
+            while (!belongs && stack.length > 0) {
+                const current = stack.pop() as string;
+                if (current === ancestorName) {
+                    belongs = true;
+                } else if (!visited.has(current)) {
+                    visited.add(current);
+                    const currentMenu = this.getMenu(current);
+                    currentMenu?.getParents().forEach((parentName) => {
+                        if (!visited.has(parentName)) {
+                            stack.push(parentName);
+                        }
+                    });
+                }
+            }
+        }
+        return belongs;
+    }
+
+    /**
+     * Returns true when a global item can be shown in `currentMenuName`.
+     */
+    protected isVisibleGlobalItem(globalItem: Menu | Action, currentMenuName?: string): boolean {
+        let visible = true;
+        if (currentMenuName !== undefined && globalItem instanceof ActionGoto) {
+            const targetMenu = this.getMenu(globalItem.getTo());
+            if (targetMenu?.isAnchorGlobal()) {
+                visible = !this.menuBelongsToAncestor(currentMenuName, targetMenu.getName());
+            }
+        }
+        return visible;
+    }
+
+    /**
      * Collects all global menus and actions to be added as choices in every menu.
      */
-    protected getGlobalItems(): Array<Menu | Action> {
+    protected getGlobalItems(currentMenuName?: string): Array<Menu | Action> {
         const items: Array<Menu | Action> = [];
 
         this.getMenus().forEach((menu) => {
@@ -99,7 +141,11 @@ class Cli {
             }
         });
 
-        return items;
+        const result = currentMenuName === undefined
+            ? items
+            : items.filter((item) => this.isVisibleGlobalItem(item, currentMenuName))
+        ;
+        return result;
     }
 
     /**
@@ -160,6 +206,7 @@ class Cli {
     protected async runMenuInput(item: MenuInput, parentName?: string): Promise<void> {
         // Build sidebar global choices
         const globalChoices: (Choice | Separator)[] = [];
+        const visibleGlobalItems = this.getGlobalItems(item.getName());
         const resolvedParent = this.resolveTargetParent(item, parentName) ?? "main";
         const backTemplate = this.getAction("back") as ActionGoto | undefined;
         if (backTemplate) {
@@ -168,7 +215,7 @@ class Cli {
             globalChoices.push(new Separator());
             globalChoices.push(this.buildGlobalChoice(backAction.getTo(), label, backAction));
         }
-        this.getGlobalItems()
+        visibleGlobalItems
             .filter((g) => g.getName() !== "back")
             .forEach((globalItem) => {
                 const label = globalItem.getLabels().getTitle()!.write(globalItem.getStyles().getIdle()?.toJson());
@@ -181,7 +228,7 @@ class Cli {
         // Input result (string)
         if (!Array.isArray(runResult)) {
             const inputResult = runResult;
-            const globalAction = this.getGlobalItems().find((g) => g.getName() === inputResult);
+            const globalAction = visibleGlobalItems.find((g) => g.getName() === inputResult);
             if (globalAction) {
                 await this.run(globalAction, item);
             } else {
@@ -202,7 +249,7 @@ class Cli {
         } else {
             // Sidebar selection (string[])
             for (const answer of runResult) {
-                const globalAction = this.getGlobalItems().find((g) => g.getName() === answer);
+                const globalAction = visibleGlobalItems.find((g) => g.getName() === answer);
                 if (globalAction) {
                     await this.run(globalAction, item);
                     break;
@@ -219,13 +266,30 @@ class Cli {
     }
 
     /**
+     * Executes an editor menu interaction (opens $EDITOR with pre-populated content).
+     * @param item MenuEditor to run.
+     * @param parentName Optional parent menu name for navigation context.
+     */
+    protected async runMenuEditor(item: MenuEditor, parentName?: string): Promise<void> {
+        const value = await item.run(Translations.getSelectedLanguage());
+
+        await item.getConfigs().getCallback()?.({
+            menu: item,
+            value,
+            language: Translations.getSelectedLanguage(),
+            parent: parentName,
+        });
+    }
+
+    /**
      * Executes a choice menu interaction and handles selected items or callbacks.
      * @param item MenuChoice to run.
      * @param parentName Optional parent menu name for navigation context.
      */
     protected async runMenuChoices(item: MenuChoice, parentName?: string): Promise<void> {
         // Inject global items into choice list
-        this.getGlobalItems().forEach((globalItem) => {
+        const visibleGlobalItems = this.getGlobalItems(item.getName());
+        visibleGlobalItems.forEach((globalItem) => {
             if (globalItem.getName() !== item.getName()) {
                 if (globalItem.getName() === "back") {
                     if (item.getName() !== "main") {
@@ -273,7 +337,7 @@ class Cli {
                     break;
                 }
             }
-            const globalAction = this.getGlobalItems().find((g) => g.getName() === answer);
+            const globalAction = visibleGlobalItems.find((g) => g.getName() === answer);
             if (globalAction) {
                 await this.run(globalAction, item);
                 handled = true;
@@ -304,6 +368,8 @@ class Cli {
      * @param parentName Optional parent menu name for navigation context.
      */
     protected async runMenuField(item: MenuField, parentName?: string): Promise<void> {
+        const visibleGlobalItems = this.getGlobalItems(item.getName());
+
         // Input sidebar setup
         if (item.hasInput()) {
             const inputCfg = item.getInput()!.getConfigs();
@@ -316,7 +382,7 @@ class Cli {
                 globalChoices.push(new Separator());
                 globalChoices.push(this.buildGlobalChoice(backAction.getTo(), label, backAction));
             }
-            this.getGlobalItems()
+            visibleGlobalItems
                 .filter((g) => g.getName() !== "back")
                 .forEach((globalItem) => {
                     const label = globalItem.getLabels().getTitle()!.write(globalItem.getStyles().getIdle()?.toJson());
@@ -327,7 +393,7 @@ class Cli {
 
         // Choice setup: inject global items
         if (item.hasChoices()) {
-            this.getGlobalItems().forEach((globalItem) => {
+            visibleGlobalItems.forEach((globalItem) => {
                 if (globalItem.getName() !== item.getName()) {
                     if (globalItem.getName() === "back") {
                         if (item.getName() !== "main") {
@@ -371,7 +437,7 @@ class Cli {
         // Input result (string)
         if (!Array.isArray(runResult)) {
             const inputResult = runResult;
-            const globalAction = this.getGlobalItems().find((g) => g.getName() === inputResult);
+            const globalAction = visibleGlobalItems.find((g) => g.getName() === inputResult);
             if (globalAction) {
                 await this.run(globalAction, item);
             } else {
@@ -403,7 +469,7 @@ class Cli {
                         break;
                     }
                 }
-                const globalAction = this.getGlobalItems().find((g) => g.getName() === answer);
+                const globalAction = visibleGlobalItems.find((g) => g.getName() === answer);
                 if (globalAction) {
                     await this.run(globalAction, item);
                     handled = true;
@@ -518,6 +584,8 @@ class Cli {
                     menuInstance = new MenuChoice({ ...(menu as MenuChoiceJson), plugin: plugin ?? menu.plugin });
                 } else if (menu.type === "input") {
                     menuInstance = new MenuInput({ ...(menu as MenuInputJson), plugin: plugin ?? menu.plugin });
+                } else if (menu.type === "editor") {
+                    menuInstance = new MenuEditor({ ...(menu as MenuEditorJson), plugin: plugin ?? menu.plugin });
                 }
             }
             if (menuInstance) {
@@ -726,6 +794,8 @@ class Cli {
         ;
         if (item instanceof MenuInput) {
             await this.runMenuInput(item, parentName);
+        } else if (item instanceof MenuEditor) {
+            await this.runMenuEditor(item, parentName);
         } else if (item instanceof MenuChoice) {
             await this.runMenuChoices(item, parentName);
         } else if (item instanceof MenuField) {

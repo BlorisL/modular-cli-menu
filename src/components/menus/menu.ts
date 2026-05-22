@@ -3,11 +3,12 @@ import { MenuLabels, MenuLabelsJson } from "@/components/menus/labels";
 
 type MenuJson = {
     name: string;
-    type: "choice" | "input" | "field";
+    type: "choice" | "input" | "field" | "editor";
     plugin?: string;
     index?: number;
     parents?: string[];
     global?: boolean;
+    anchorGlobal?: boolean;
     styles?: MenuStylesJson;
     labels?: MenuLabelsJson;
 };
@@ -19,6 +20,7 @@ abstract class Menu {
     protected parents: Record<string, Exclude<MenuJson["parents"], undefined>[number]> = {};
     protected index: MenuJson["index"];
     protected global: Exclude<MenuJson["global"], undefined>;
+    protected anchorGlobal: Exclude<MenuJson["anchorGlobal"], undefined>;
     protected styles: MenuStyles;
     protected labels!: MenuLabels;
 
@@ -32,6 +34,7 @@ abstract class Menu {
         this.plugin = data.plugin;
         this.index = data.index;
         this.global = data.global ?? false;
+        this.anchorGlobal = data.anchorGlobal ?? false;
         this.styles = new MenuStyles(data.styles);
         this.labels = new MenuLabels({
             question: data.labels?.question ?? `${this.getPlugin() ?? "default"}.${this.getName()}.question`,
@@ -51,7 +54,7 @@ abstract class Menu {
         return this.name;
     }
 
-    /** Returns the menu type: "choice", "input", or "field". */
+    /** Returns the menu type: "choice", "input", "field", or "editor". */
     public getType(): Menu["type"] {
         return this.type;
     }
@@ -111,6 +114,15 @@ abstract class Menu {
         return this.global === true;
     }
 
+    /**
+     * Returns true when this menu is the anchor point of a wizard/flow.
+     * Global actions that target this menu will be hidden in this menu
+     * and in all its descendants, resolved through the regular `parents` chain.
+     */
+    public isAnchorGlobal(): boolean {
+        return this.anchorGlobal === true;
+    }
+
     /** Returns the styles container for this menu. */
     public getStyles(): MenuStyles {
         return this.styles;
@@ -157,6 +169,7 @@ abstract class Menu {
             index: this.index,
             parents: this.getParents(),
             global: this.global,
+            ...(this.anchorGlobal ? { anchorGlobal: this.anchorGlobal } : {}),
             ...(hasStyles ? { styles: stylesJson } : {}),
             ...(hasLabels ? { labels: labelsJson } : {}),
         };

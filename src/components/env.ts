@@ -67,7 +67,7 @@ class Env {
 
     /** Reloads settings from the .env file and re-applies all values. @returns this for chaining. */
     public load(): this {
-        config({ path: ".env" });
+        config({ path: ".env", quiet: true });
 
         const env = process.env;
         this.setDebugLog(env.DEBUG_LOG);
