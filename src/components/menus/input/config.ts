@@ -4,6 +4,8 @@ type MenuInputConfigsJson = {
     clear?: boolean;
     fastSubmit?: boolean;
     inline?: boolean;
+    /** A string containing characters that should be blocked from input (e.g. " "). */
+    forbidChars?: string;
     validate?: (value: string) => boolean | string;
     callback?: (data: { menu: MenuInput; value: string; language?: string; parent?: string }) => Promise<void>;
 };
@@ -12,6 +14,7 @@ class MenuInputConfigs {
     protected clear: NonNullable<MenuInputConfigsJson["clear"]> = true;
     protected fastSubmit: NonNullable<MenuInputConfigsJson["fastSubmit"]> = false;
     protected inline: NonNullable<MenuInputConfigsJson["inline"]> = false;
+    protected forbidChars?: MenuInputConfigsJson["forbidChars"];
     protected validate?: MenuInputConfigsJson["validate"];
     protected callback?: MenuInputConfigsJson["callback"];
 
@@ -26,6 +29,7 @@ class MenuInputConfigs {
             this.inline = data.inline ?? false;
             this.validate = data.validate;
             this.callback = data.callback;
+            this.forbidChars = data.forbidChars;
         }
     }
 
@@ -59,6 +63,17 @@ class MenuInputConfigs {
     /** Sets whether the prompt is rendered inline. */
     public setInline(v: NonNullable<MenuInputConfigsJson["inline"]>): this {
         this.inline = v;
+        return this;
+    }
+
+    /** Returns a string with characters that should be blocked while typing, or undefined. */
+    public getForbidChars(): MenuInputConfigsJson["forbidChars"] {
+        return this.forbidChars;
+    }
+
+    /** Sets characters that should be blocked while typing (e.g. a single space ' '). */
+    public setForbidChars(v: MenuInputConfigsJson["forbidChars"]): this {
+        this.forbidChars = v;
         return this;
     }
 
@@ -96,6 +111,7 @@ class MenuInputConfigs {
             clear: this.clear,
             ...(this.fastSubmit ? { fastSubmit: this.fastSubmit } : {}),
             ...(this.inline ? { inline: this.inline } : {}),
+            ...(this.forbidChars ? { forbidChars: this.forbidChars } : {}),
             ...(this.validate ? { validate: this.validate } : {}),
             ...(this.callback ? { callback: this.callback } : {}),
         };

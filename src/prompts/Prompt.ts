@@ -31,6 +31,8 @@ interface PromptConfig {
         fastSubmit?: boolean;
         inline?: boolean;
         validate?: (value: string) => boolean | string;
+        /** Characters that are silently blocked when the user types them. */
+        forbidChars?: string;
     };
     // choices section
     choices?: (Choice | Separator)[];
@@ -100,7 +102,10 @@ function handleInputKey(
         setCursor: (v: number) => void;
         setError: (v: string) => void;
     },
-    config: { validate?: (value: string) => boolean | string },
+    config: {
+        validate?: (value: string) => boolean | string;
+        forbidChars?: string;
+    },
     submitFn: (value: string) => void
 ): boolean {
     const { inputValue, cursor } = state;
@@ -145,17 +150,32 @@ function handleInputKey(
         setCursor(inputValue.length);
         return true;
     } else if (key.name === "space") {
+        if (config.forbidChars?.includes(" ")) {
+            return true;
+        }
         const next = inputValue.slice(0, cursor) + " " + inputValue.slice(cursor);
         setInputValue(next);
         setCursor(cursor + 1);
         setError("");
         return true;
-    } else if (key.name && key.name.length === 1 && !key.ctrl) {
-        const next = inputValue.slice(0, cursor) + key.name + inputValue.slice(cursor);
-        setInputValue(next);
-        setCursor(cursor + 1);
-        setError("");
-        return true;
+    } else if (!key.ctrl) {
+        // Use key.sequence (actual typed character) when available — this preserves
+        // Shift state (uppercase) and punctuation like '-' and '_'. Fall back to
+        // key.name when sequence is not present.
+        const ch = (key as { sequence?: string }).sequence ?? key.name;
+        if (typeof ch === "string" && ch.length === 1) {
+            if (config.forbidChars?.includes(ch)) {
+                return true;
+            }
+            // Accept printable ASCII characters (including uppercase, hyphen, underscore)
+            if (/^[\x20-\x7E]$/.test(ch)) {
+                const next = inputValue.slice(0, cursor) + ch + inputValue.slice(cursor);
+                setInputValue(next);
+                setCursor(cursor + 1);
+                setError("");
+                return true;
+            }
+        }
     }
 
     return false;
@@ -483,7 +503,10 @@ const prompt = createPrompt<PromptResult, PromptConfig>((config, done) => {
                         key,
                         { inputValue, cursor, error },
                         { setInputValue, setCursor, setError },
-                        { validate: inputCfg?.validate },
+                        {
+                            validate: inputCfg?.validate,
+                            forbidChars: inputCfg?.forbidChars,
+                        },
                         (value) => {
                             setStatus("done");
                             done({ type: "input", value });

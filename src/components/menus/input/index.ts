@@ -174,6 +174,7 @@ class MenuInput extends Menu {
                 fastSubmit: this.configs.isFastSubmit() ?? false,
                 inline: this.configs.isInline() ?? false,
                 validate: translatedValidate,
+                forbidChars: this.configs.getForbidChars(),
             },
             ...(this.globalChoices.length > 0 ? { choices: this.globalChoices } : {}),
         });
